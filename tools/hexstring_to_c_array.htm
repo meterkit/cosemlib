@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+<meta content="text/html; charset=ISO-8859-2" http-equiv="content-type">
+
+<title>HEX string to C-like array converter</title>  
+</head>
+<body class="eupopup eupopup-bottomleft eupopup-style-compact">
+
+     
+
+<script type="text/javascript">
+<!--
+    function clean_hex(input, remove_0x) {
+        input = input.toUpperCase();
+        
+        if (remove_0x) {
+          input = input.replace(/0x/gi, "");        
+        }
+        
+        var orig_input = input;
+        input = input.replace(/[^A-Fa-f0-9]/g, "");
+        if (orig_input != input)
+            alert ("Warning! Non-hex characters in input string ignored.");
+        return input;    
+    }
+    
+    function ShowDecodedAsText(val)
+    {
+        var target = document.getElementById('divDecodedText'); 
+        target.innerHTML = val;    
+    }       
+    
+    function Convert() {
+      var cleaned_hex = clean_hex(document.frmConvert.hex.value, document.frmConvert.chbSeparator.checked);
+      document.frmConvert.cleaned_hex.value = cleaned_hex;
+      if (cleaned_hex.length % 2) {
+        alert ("Error: cleaned hex string length is odd.");     
+        return;
+      }
+	  
+	  var doNotConvert = document.frmConvert.chbDoNotConvert.checked;
+
+      var binary = new Array();
+      for (var i=0; i<cleaned_hex.length/2; i++) {
+        var h = cleaned_hex.substr(i*2, 2);
+		
+		if (!doNotConvert)
+		{
+			binary[i] = parseInt(h,16);
+		}
+		else
+		{
+			binary[i] = h;
+		}
+      }
+
+	  var output = "";
+	  var separator = document.frmConvert.separator.value;
+	  var splitLines = document.frmConvert.chbSplitLines.checked;
+	  var valuesPerLine = document.frmConvert.valuesPerLine.value;		  
+	  var padValues = document.frmConvert.chbPadValues.checked;
+	  var hexSign = document.frmConvert.chbOutPrefix.checked;
+	  
+      for (var i=0; i<binary.length; i++) {
+		var val = binary[i];
+		
+		if (padValues) {
+			if (val < 10) {
+				output += "  ";
+			} else if (val < 100) {
+				output += " ";
+			}
+		}
+		var prefix = "";
+		if (hexSign)
+		{
+			prefix = "0x";
+		}
+		
+		output += prefix + val + "U";
+		if (i != binary.length - 1) {
+			output += separator;
+		}
+		if (splitLines) {
+			if (i % valuesPerLine == (valuesPerLine-1)) {
+				output += "\r\n";
+			}
+		}
+	  }
+	  
+	  
+		document.frmConvert.ed_output.value	= output;
+
+    } 
+
+//-->
+</script>
+
+
+<div id="main">
+<h1>HEX string to C-like array converter</h1>
+      <form name="frmConvert" action="">
+				<p>Hex string:</p>
+			    <p><input name="hex" style="width: 550px;" type="text"></p>
+        <p>Note: all characters outside hex set will be ignored, thus "12AB34" = "12 AB 34" = "12, AB, 34", etc.
+        Input is case-insensitive.</p>
+        <p>Options:</p>
+          <p><input name="chbSeparator" value="sep" checked="checked" type="checkbox">remove "0x" groups from input</p>
+				<p>Cleaned input:</p>
+			    <p><input name="cleaned_hex" readonly="readonly" style="width: 550px;" type="text"></p>				
+				
+				<p>Separator for output values: <input name="separator" value=", " style="width: 80px;" type="text">				
+				<br>
+				<input name="chbSplitLines" value="" checked="checked" type="checkbox">split output into multiple lines, values per line:
+				<input name="valuesPerLine" value="8" style="width: 40px;" type="text">				
+				<br>
+				<input name="chbPadValues" value="" checked="checked" type="checkbox">pad each value with spaces to 3 characters
+				<br>
+				<input name="chbOutPrefix" value="prefix" checked="checked" type="checkbox">Add 0x prefix to numbers
+				<br>
+				<input name="chbDoNotConvert" value="prefix" type="checkbox">Do not convert into decimal (formatter only)
+				</p>
+				
+				<p>Output:</p>
+			    <p>
+				<textarea name="ed_output" rows="10" cols="87" style="width: 700px;"></textarea>				
+				</p>
+				
+			  <p>
+			    <button type="button" name="btnConvert" onclick="Convert()">
+            Convert
+          </button>
+			  </p>
+			</form>
+
+  </div>
+
+  </body></html>
