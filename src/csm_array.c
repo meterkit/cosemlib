@@ -1,5 +1,12 @@
+/**
+ * Copyright (c) 2016, Anthony Rabine
+ * See LICENSE.txt
+ *
+ * Implementation of a protected array with read/write pointers
+ */
 
 #include "csm_array.h"
+#include <string.h>
 
 
 void csm_array_init(csm_array *io_array)
@@ -133,3 +140,37 @@ void csm_array_dump(csm_array *i_array)
 }
 
 
+
+int csm_array_jump(csm_array *array, uint32_t nb_bytes)
+{
+    int ret = TRUE;
+
+    CSM_ASSERT(array != NULL);
+    array->rd_index += nb_bytes;
+    if (array->rd_index >= array->size)
+    {
+        // saturate
+        array->rd_index = array->size;
+        ret = FALSE;
+    }
+
+    return ret;
+}
+
+int csm_array_copy(csm_array *to_array, csm_array *from_array)
+{
+    int ret = FALSE;
+    CSM_ASSERT(from_array != NULL);
+    CSM_ASSERT(to_array != NULL);
+
+    // Clamp size to the minimum
+    uint32_t size = (from_array->size <= to_array->size) ? from_array->size : to_array->size;
+    // Actually perform the copy
+    memcpy(to_array->buff, from_array->buff, size);
+
+    if ((size == from_array->size) && (size == from_array->size))
+    {
+        ret = TRUE;
+    }
+    return ret;
+}

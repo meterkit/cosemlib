@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#define SIZE_OF_DEDICATED_KEY   16 // not wrapped size
 
 #define TRUE 1
 #define FALSE 0
