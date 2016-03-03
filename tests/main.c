@@ -73,7 +73,12 @@ static const uint16_t COSEM_WRAPPER_SIZE = 8U;
 /**
  * @brief datalink_layer
  * This link layer manages the data between the transport (TCP/IP) and the Cosem stack
- * Called by the TCP/IP server
+ * The function is called by the TCP/IP server upon reception of a neww packet.
+ * The passed buffer must be filled by the reply, if any, and return the according number
+ * of bytes to transfer back to the sender.
+ *
+ * The data link layer is application specific - but rather simple - and must be implemented
+ * in the application side. Thus, the DLMS/Cosem stack remains agnostic on the transport layer.
  *
  * @param buffer
  * @param size
@@ -143,6 +148,14 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
     return ret;
 }
 
+// Main stack initialization
+void csm_init()
+{
+    for (uint32_t i = 0U; i < NUMBER_OF_ASSOS; i++)
+    {
+        csm_asso_init(&assos[i]);
+    }
+}
 
 
 int main(int argc, const char * argv[])
@@ -164,6 +177,8 @@ int main(int argc, const char * argv[])
 
     //csm_array_dump(&array2);
 */
+
+    csm_init();
 
     return tcp_server_init(datalink_layer);
 }

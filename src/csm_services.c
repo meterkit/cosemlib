@@ -9,8 +9,10 @@ void csm_services_init(csm_db_access *db_access)
 
 int csm_services_execute(csm_array *array)
 {
+    (void) array;
     if (database != NULL)
     {
         // FIXME: filter the service type, then call it
     }
+    return 0;
 }

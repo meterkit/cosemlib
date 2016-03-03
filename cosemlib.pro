@@ -30,12 +30,28 @@ SOURCES += csm_array.c csm_ber.c csm_channel.c csm_association.c csm_services.c
 
 HEADERS += csm_array.h csm_config.h csm_ber.h csm_channel.h csm_association.h csm_definitions.h csm_services.h
 
-# ====================================================
-# Implementation examples
-# ====================================================
-SOURCES += tcp_server.c
 
-HEADERS += tcp_server.h
+# ====================================================
+# Implementation example: cosem database and transport
+# ====================================================
+SOURCES += tcp_server.c csm_database.c csm_db_gen.h
+
+HEADERS += tcp_server.h csm_database.h csm_data_id_gen.h
+
+# ====================================================
+# Implementation example: operating system
+# ====================================================
+SOURCES += clock.c
+
+HEADERS += clock.h
+
+# ====================================================
+# Implementation example: meter application
+# ====================================================
+
+SOURCES += calendar.c
+
+HEADERS += calendar.h
 
 # ====================================================
 # Test files

@@ -57,6 +57,7 @@ typedef struct
     uint8_t    F; // Obis code field F
 } csm_obis_code;
 
+
 /**
  * @brief attribute
  */
