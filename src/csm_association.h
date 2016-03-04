@@ -13,32 +13,19 @@ enum type_service { REQUEST, INDICATION, RESPONSE, CONFIRM };
 // Type of COSEM-GET service
 enum type_get { GET_NORMAL, GET_WITH_LIST, GET_ONE_BLOCK, GET_LAST_BLOCK };
 
-/*
--- xDLMS APDU-s used during Association establishment
-InitiateRequest ::= SEQUENCE
+enum referencing
 {
---  shall not be encoded in DLMS without ciphering
-dedicated-key                      OCTET STRING OPTIONAL,
-response-allowed                   BOOLEAN DEFAULT TRUE,
-proposed-quality-of-service        [0] IMPLICIT Integer8 OPTIONAL,
-proposed-dlms-version-number       Unsigned8,
-proposed-conformance               Conformance, -- Shall be encoded in BER
-client-max-receive-pdu-size        Unsigned16
-}
+    NO_REF = 0U,
+    LN_REF = 1U,  // Logical Name
+    SN_REF = 2U   // Short Name
+};
 
--- The Conformance field shall be encoded in BER. See IEC 61334-6 Example 1.
-
-*/
-
-typedef struct
+enum auth_level
 {
-    uint8_t dedicated_key[SIZE_OF_DEDICATED_KEY];
-    uint8_t response_allowed;
-    int8_t proposed_quality_of_service;
-    uint8_t proposed_dlms_version_number;
-    uint32_t proposed_conformance;
-    uint16_t client_max_receive_pdu_size;
-} csm_initiate_request;
+    NO_LEVEL    = 0U,
+    LOW_LEVEL   = 1U,
+    HIGH_LEVEL  = 2U
+};
 
 /*
 AARQ ::= [APPLICATION 0] IMPLICIT SEQUENCE
@@ -69,6 +56,28 @@ user-information                   [30] EXPLICIT      Association-information OP
 
 */
 
+typedef enum
+{
+    CSM_ASSO_AARQ                   = TAG_APPLICATION + TAG_CONSTRUCTED + 0U,   ///< Application number 0
+    CSM_ASSO_AARE                   = TAG_APPLICATION + TAG_CONSTRUCTED + 1U,   ///< Application number 1
+    CSM_ASSO_PROTO_VER              = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE,
+    CSM_ASSO_APP_CONTEXT_NAME       = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  1U,
+    CSM_ASSO_CALLED_AP_TITLE        = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  2U,
+    CSM_ASSO_CALLED_AE_QUALIFIER    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  3U,
+    CSM_ASSO_CALLED_AP_INVOC_ID     = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  4U,
+    CSM_ASSO_CALLED_AE_INVOC_ID     = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  5U,
+    CSM_ASSO_CALLING_AP_TITLE       = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  6U,
+    CSM_ASSO_CALLING_AE_QUALIFIER   = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  7U,
+    CSM_ASSO_CALLING_AP_INVOC_ID    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  8U,
+    CSM_ASSO_CALLING_AE_INVOC_ID    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  9U,
+    CSM_ASSO_SENDER_ACSE_REQU       = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE   + 10U,
+    CSM_ASSO_MECHANISM_NAME         = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE   + 11U,
+    CSM_ASSO_CALLING_AUTH_VALUE     = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED + 12U,
+    CSM_ASSO_IMPLEMENTATION_INFO    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED + 29U,
+    CSM_ASSO_USER_INFORMATION       = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED + 30U
+} csm_asso_tag;
+
+
 typedef struct
 {
     uint16_t ssap; //< Client
@@ -85,7 +94,7 @@ typedef struct
     uint32_t conformance;          ///< All services and functionalities authorized.
     uint8_t  is_auto_connected;    ///< Boolean to indicate if the association is auto connected or not;
     uint8_t  authentication_mask;  ///< The mask of authentication authorized.
-    uint8_t  password[8U];         ///< Password of association.
+    uint8_t  password[SIZE_OF_AUTH_VALUE];         ///< Password of association.
 } csm_asso_config;
 
 /**
@@ -94,6 +103,14 @@ typedef struct
 typedef struct
 {
     enum state_cf state_cf;
+    enum referencing ref;
+    enum auth_level auth_level;
+    uint8_t  auth_value[SIZE_OF_AUTH_VALUE];
+    uint8_t dedicated_key[SIZE_OF_DEDICATED_KEY];
+    uint32_t proposed_conformance;
+    uint16_t client_max_receive_pdu_size;
+
+    // Pointer to the configuration structure
     const csm_asso_config *config;
 } csm_asso_state;
 

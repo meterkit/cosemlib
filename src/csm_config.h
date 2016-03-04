@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #define SIZE_OF_DEDICATED_KEY   16 // not wrapped size
+#define SIZE_OF_AUTH_VALUE      8 // LLS or challenge max length
 
 #define TRUE 1
 #define FALSE 0

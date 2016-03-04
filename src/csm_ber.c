@@ -45,7 +45,7 @@ static int csm_ber_read_tag(csm_array *i_array, ber_tag *o_tag)
 
     memset(o_tag, 0, sizeof(ber_tag));
 
-    if (csm_array_read(i_array, &b))
+    if (csm_array_read_u8(i_array, &b))
     {
         o_tag->nbytes = 1;
         o_tag->tag = b;
@@ -55,8 +55,12 @@ static int csm_ber_read_tag(csm_array *i_array, ber_tag *o_tag)
 
         if (o_tag->id == TAG_MASK)
         {
-            // Long tag, encoded as a sequence of 7-bit values, not supported
-            CSM_ERR("[BER] Long tags are not supported");
+            // Long tag, encoded as a sequence of 7-bit values is partially supported to only one extension byte
+            if (csm_array_read_u8(i_array, &b))
+            {
+                o_tag->ext = b & 0x7FU;
+                ret = TRUE;
+            }
         }
         else
         {
@@ -73,7 +77,7 @@ static int csm_ber_read_len(csm_array *i_array, ber_length *o_len)
 
     memset(o_len, 0, sizeof(ber_length));
 
-    if (csm_array_read(i_array, &b))
+    if (csm_array_read_u8(i_array, &b))
     {
         o_len->nbytes = 1;
         o_len->length = b;
@@ -88,7 +92,7 @@ static int csm_ber_read_len(csm_array *i_array, ber_length *o_len)
             {
                 for (uint32_t i = 0; i < numoct; i++)
                 {
-                    if (csm_array_read(i_array, &b))
+                    if (csm_array_read_u8(i_array, &b))
                     {
                         o_len->length = (o_len->length << 8U) | b;
                         o_len->nbytes++;
@@ -136,16 +140,14 @@ static int csm_ber_read_len(csm_array *i_array, ber_length *o_len)
 int csm_ber_decode_object_identifier(ber_object_identifier *oid, csm_array *array)
 {
     int ret = FALSE;
-    if (array->size == 7U)
+    if (array->size >= 7U)
     {
-        const uint8_t header_size = sizeof(oid->header);
-        // First copy the header
-        csm_array header;
-        csm_array_alloc(&header, oid->header, header_size);
-        ret = csm_array_copy(&header, array);
-        ret = ret && csm_array_jump(array, header_size);
-        ret = ret && csm_array_read(array, &oid->name); // Then copy the object name
-        ret = ret && csm_array_read(array, &oid->id); // Then copy the object id
+        if (memcmp(csm_array_rd_data(array), oid->header, oid->size) == 0)
+        {
+            ret = csm_array_jump(array, oid->size);
+            ret = ret && csm_array_read_u8(array, &oid->name); // Then copy the object name
+            ret = ret && csm_array_read_u8(array, &oid->id); // Then copy the object id
+        }
     }
     return ret;
 }
@@ -198,24 +200,6 @@ void csm_ber_dump(csm_ber *i_ber)
     CSM_TRACE("\r\nValue length: %d\r\n", i_ber->length.length);
 }
 
-/*
-// Private functions
-static int csm_ber_is_universal(csm_ber *ber)
-{
-    return (ber->tag.cls == TAG_UNIVERSAL) ? TRUE : FALSE;
-}
-
-static int csm_ber_has_data(csm_ber *ber)
-{
-    int ret = FALSE;
-    if ((ber->tag.cls == TAG_APPLICATION) || (ber->tag.cls == TAG_UNIVERSAL))
-    {
-        ret = TRUE;
-    }
-    return ret;
-}
-*/
-
 int csm_ber_decode(csm_ber *ber, csm_array *array)
 {
     int loop = TRUE;
@@ -224,12 +208,6 @@ int csm_ber_decode(csm_ber *ber, csm_array *array)
         if (csm_ber_read_len(array, &ber->length))
         {
             csm_ber_dump(ber);
-            if (ber->tag.isPrimitive)
-            {
-                // This BER contains data, skip it and advance the pointer to the next BER header
-                loop = csm_array_jump(array, ber->length.length);
-            }
-            // otherwise, loop again to decode next header
         }
         else
         {

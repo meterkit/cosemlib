@@ -156,7 +156,24 @@ void csm_init()
         csm_asso_init(&assos[i]);
     }
 }
-
+/*
+LN referencing with no ciphering,
+lowest level security;
+60 1D A1 09 06 07 60 85 74 05 08 01 01 BE 10 04
+0E 01 00 00 00 06 5F 1F 04 00 00 7E 1F 04 B0
+LN referencing with no ciphering,
+low level security;
+60 36 A1 09 06 07 60 85 74 05 08 01 01 8A 02 07
+80 8B 07 60 85 74 05 08 02 01 AC 0A 80 08 31 32
+33 34 35 36 37 38 BE 10 04 0E 01 00 00 00 06 5F
+1F 04 00 00 7E 1F 04 B0
+LN referencing with no ciphering,
+high level security;
+60 36 A1 09 06 07 60 85 74 05 08 01 01 8A 02 07
+80 8B 07 60 85 74 05 08 02 05 AC 0A 80 08 4B 35
+36 69 56 61 67 59 BE 10 04 0E 01 00 00 00 06 5F
+1F 04 00 00 7E 1F 04 B0
+*/
 
 int main(int argc, const char * argv[])
 {

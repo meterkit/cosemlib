@@ -38,6 +38,7 @@ typedef struct in_addr IN_ADDR;
 typedef struct
 {
    SOCKET sock;
+   uint8_t connected; // 0 = not connected, otherwise 1
 } peer;
 
 static void init(void)
@@ -61,22 +62,6 @@ static void end(void)
 }
 
 
-static void clear_peers(peer *clients, int actual)
-{
-   int i = 0;
-   for(i = 0; i < actual; i++)
-   {
-      closesocket(clients[i].sock);
-   }
-}
-
-static void remove_peers(peer *clients, int to_remove, int *actual)
-{
-   /* we remove the client in the array */
-   memmove(clients + to_remove, clients + to_remove + 1, (*actual - to_remove - 1) * sizeof(peer));
-   /* number client - 1 */
-   (*actual)--;
-}
 
 /*
 static void broadcast(peer *clients, peer sender, int actual, const char *buffer, char from_server)
@@ -162,11 +147,16 @@ static void app(data_handler data_func)
 {
    SOCKET sock = init_connection();
    char buffer[BUF_SIZE];
-   /* the index for the array */
-   int actual = 0;
-   int max = sock;
+
+   unsigned int max = sock;
    /* an array for all clients */
    peer peers[MAX_CLIENTS];
+
+   // Init properly
+   for (int i = 0; i < MAX_CLIENTS; i++)
+   {
+       peers[i].connected = 0U;
+   }
 
    fd_set working_set;
    fd_set master_set;
@@ -178,83 +168,101 @@ static void app(data_handler data_func)
 
    puts("[TCP Server] TCP Server started");
 
-   while(1)
-   {
-
-
-      /* add socket of each client */
-      /*
-      for(i = 0; i < actual; i++)
-      {
-         FD_SET(peers[i].sock, &master_set);
-      }
-      */
-
-      memcpy(&working_set, &master_set, sizeof(master_set));
-
-      if(select(max + 1, &working_set, NULL, NULL, NULL) == -1)
-      {
-         perror("select()");
-         exit(errno);
-      }
-
-
-      if(FD_ISSET(sock, &master_set))
-      {
-         /* new client */
-         SOCKADDR_IN csin = { 0 };
-         int sinsize = sizeof csin;
-         int csock = accept(sock, (SOCKADDR *)&csin, &sinsize);
-         if(csock == SOCKET_ERROR)
-         {
-            perror("accept()");
-            continue;
-         }
-
-         /* what is the new maximum fd ? */
-         max = csock > max ? csock : max;
-         FD_SET(csock, &master_set);
-
-         peer c = { csock };
-         peers[actual] = c;
-         actual++;
-
-         puts("[TCP server] New connection!");
-      }
-
-     for(int i = 0; i < actual; i++)
-     {
-        /* a client is talking */
-        if(FD_ISSET(peers[i].sock, &master_set))
+    while(1)
+    {
+        // update max
+        max = sock;
+        for (int i = 0; i < MAX_CLIENTS; i++)
         {
-           int c = read_peer(peers[i].sock, buffer);
-           /* client disconnected */
-           if(c == 0)
+           if (peers[i].connected)
            {
-              closesocket(peers[i].sock);
-              remove_peers(peers, i, &actual);
-              puts("Client disconnected !");
-           }
-           else
-           {
-               puts("[TCP server] New data received!");
-               if (data_func != NULL)
-               {
-                   // FIXME: change channel number with instance when multi threaded server is available
-                   int ret = data_func(0U, buffer, c);
-                   if (ret > 0)
-                   {
-                        write_peer(peers[i].sock, buffer, ret);
-                   }
-               }
-
-               //broadcast(peers, client, actual, buffer, 0);
+               /* what is the new maximum fd ? */
+               max = peers[i].sock > max ? peers[i].sock : max;
            }
         }
-    }
-   }
 
-   clear_peers(peers, actual);
+        memcpy(&working_set, &master_set, sizeof(master_set));
+
+        if(select(max + 1, &working_set, NULL, NULL, NULL) == -1)
+        {
+            perror("select()");
+            exit(errno);
+        }
+
+
+        if(FD_ISSET(sock, &master_set))
+        {
+            /* new client */
+            SOCKADDR_IN csin = { 0 };
+            int sinsize = sizeof csin;
+            SOCKET csock = accept(sock, (SOCKADDR *)&csin, &sinsize);
+
+            if(csock == INVALID_SOCKET)
+            {
+                perror("accept()");
+                continue;
+            }
+
+            FD_SET(csock, &master_set);
+            peer c = { csock, 1U };
+            for (int i = 0; i < MAX_CLIENTS; i++)
+            {
+                if (!peers[i].connected)
+                {
+                    peers[i] = c;
+                    puts("[TCP server] New connection!");
+                    break;
+                }
+            }
+        }
+
+        for(int i = 0; i < MAX_CLIENTS; i++)
+        {
+            if (peers[i].connected)
+            {
+                /* a client is talking */
+                if(FD_ISSET(peers[i].sock, &master_set))
+                {
+                   int c = read_peer(peers[i].sock, buffer);
+                   /* client disconnected */
+                   if(c == 0)
+                   {
+                       FD_CLR(peers[i].sock, &master_set);
+                      end_connection(peers[i].sock);
+                      peers[i].sock = INVALID_SOCKET;
+                      peers[i].connected = 0U;
+
+                      puts("Client disconnected !");
+                   }
+                   else
+                   {
+                       puts("[TCP server] New data received!");
+                       if (data_func != NULL)
+                       {
+                           // FIXME: change channel number with instance when multi threaded server is available
+                           int ret = data_func(0U, buffer, c);
+                           if (ret > 0)
+                           {
+                                write_peer(peers[i].sock, buffer, ret);
+                           }
+                       }
+
+                       //broadcast(peers, client, actual, buffer, 0);
+                   }
+                }
+            }
+        }
+    }
+
+   // Clear peers
+   for(int i = 0; i < MAX_CLIENTS; i++)
+   {
+       if (peers[i].connected)
+       {
+            closesocket(peers[i].sock);
+       }
+   }
+   // End server
    end_connection(sock);
 }
 

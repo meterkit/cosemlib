@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include "csm_array.h"
 
+
+enum xdlms_tag
+{
+    AXDR_INITIATE_REQUEST   = 0x01U,
+};
+
 enum csm_conformance_mask
 {
     /* -- the bit is set when the corresponding service or functionality is available

@@ -26,9 +26,11 @@ OTHER_FILES += README.md
 # ====================================================
 # Cosem library
 # ====================================================
-SOURCES += csm_array.c csm_ber.c csm_channel.c csm_association.c csm_services.c
+SOURCES += csm_array.c csm_ber.c csm_channel.c csm_association.c csm_services.c \
+    csm_axdr_codec.c
 
-HEADERS += csm_array.h csm_config.h csm_ber.h csm_channel.h csm_association.h csm_definitions.h csm_services.h
+HEADERS += csm_array.h csm_config.h csm_ber.h csm_channel.h csm_association.h csm_definitions.h csm_services.h \
+    csm_axdr_codec.h
 
 
 # ====================================================
