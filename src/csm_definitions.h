@@ -8,6 +8,7 @@
 enum xdlms_tag
 {
     AXDR_INITIATE_REQUEST   = 0x01U,
+    AXDR_INITIATE_RESPONSE  = 0x08U
 };
 
 enum csm_conformance_mask

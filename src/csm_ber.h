@@ -115,5 +115,9 @@ typedef struct
 void csm_ber_dump(csm_ber *i_ber);
 int csm_ber_decode_object_identifier(ber_object_identifier *oid, csm_array *array);
 int csm_ber_decode(csm_ber *ber, csm_array *array);
+int csm_ber_write_len(csm_array *array, uint16_t len);
+
+// TODO: shortcut, but not very generic
+int csm_ber_write_integer(csm_array *array, uint8_t value);
 
 #endif // CSM_BER_H

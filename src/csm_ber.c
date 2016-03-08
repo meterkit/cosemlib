@@ -70,14 +70,38 @@ static int csm_ber_read_tag(csm_array *i_array, ber_tag *o_tag)
     return ret;
 }
 
-static int csm_ber_read_len(csm_array *i_array, ber_length *o_len)
+int csm_ber_write_len(csm_array *array, uint16_t len)
+{
+    uint8_t byte;
+    uint8_t nbBytes = 1U;
+    int ret = TRUE;
+
+    if (len > 127U)
+    {
+        nbBytes++;
+        byte = 0U;
+        byte = (LEN_MASK | nbBytes);
+        ret = csm_array_write_u8(array, byte);
+
+        // Encode length first part
+        byte = (len >> 8U) & LEN_MASK;
+        ret = ret && csm_array_write_u8(array, byte);
+    }
+
+    byte = len & LEN_MASK;
+    ret = ret && csm_array_write_u8(array, byte);
+
+    return ret;
+}
+
+static int csm_ber_read_len(csm_array *array, ber_length *o_len)
 {
     int ret = FALSE;
     uint8_t b;
 
     memset(o_len, 0, sizeof(ber_length));
 
-    if (csm_array_read_u8(i_array, &b))
+    if (csm_array_read_u8(array, &b))
     {
         o_len->nbytes = 1;
         o_len->length = b;
@@ -88,11 +112,11 @@ static int csm_ber_read_len(csm_array *i_array, ber_length *o_len)
 
             o_len->length = 0;
 
-            if (numoct > sizeof(o_len->length))
+            if (numoct <= sizeof(o_len->length))
             {
                 for (uint32_t i = 0; i < numoct; i++)
                 {
-                    if (csm_array_read_u8(i_array, &b))
+                    if (csm_array_read_u8(array, &b))
                     {
                         o_len->length = (o_len->length << 8U) | b;
                         o_len->nbytes++;
@@ -144,7 +168,7 @@ int csm_ber_decode_object_identifier(ber_object_identifier *oid, csm_array *arra
     {
         if (memcmp(csm_array_rd_data(array), oid->header, oid->size) == 0)
         {
-            ret = csm_array_jump(array, oid->size);
+            ret = csm_array_reader_jump(array, oid->size);
             ret = ret && csm_array_read_u8(array, &oid->name); // Then copy the object name
             ret = ret && csm_array_read_u8(array, &oid->id); // Then copy the object id
         }
@@ -220,4 +244,14 @@ int csm_ber_decode(csm_ber *ber, csm_array *array)
     }
 
     return loop;
+}
+
+int csm_ber_write_integer(csm_array *array, uint8_t value)
+{
+    int ret = csm_ber_write_len(array, 3U); // 3 bytes = integer tag, integer length and result boolean
+    ret = ret && csm_array_write_u8(array, (uint8_t)BER_TYPE_INTEGER);
+    ret = ret && csm_array_write_u8(array, (uint8_t)1U); // size of the integer, here 1 byte
+    ret = ret && csm_array_write_u8(array, value);
+
+    return ret;
 }

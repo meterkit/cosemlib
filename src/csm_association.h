@@ -24,37 +24,8 @@ enum auth_level
 {
     NO_LEVEL    = 0U,
     LOW_LEVEL   = 1U,
-    HIGH_LEVEL  = 2U
+    HIGH_LEVEL  = 5U
 };
-
-/*
-AARQ ::= [APPLICATION 0] IMPLICIT SEQUENCE
-{
--- [APPLICATION 0] == [ 60H ] = [ 96 ]
-protocol-version                   [0] IMPLICIT        BIT STRING {version1 (0)} DEFAULT {version1},
-application-context-name           [1]                 Application-context-name,
-called-AP-title                    [2]                 AP-title OPTIONAL,
-called-AE-qualifier                [3]                 AE-qualifier OPTIONAL,
-called-AP-invocation-id            [4]                 AP-invocation-identifier OPTIONAL,
-called-AE-invocation-id            [5]                 AE-invocation-identifier OPTIONAL,
-calling-AP-title                   [6]                 AP-title OPTIONAL,
-calling-AE-qualifier               [7]                 AE-qualifier OPTIONAL,
-calling-AP-invocation-id           [8]                 AP-invocation-identifier OPTIONAL,
-calling-AE-invocation-id           [9]                 AE-invocation-identifier OPTIONAL,
--- The following field shall not be present if only the kernel is used.
-sender-acse-requirements           [10] IMPLICIT      ACSE-requirements OPTIONAL,
--- The following field shall only be present if the authentication functional unit is selected.
-mechanism-name                     [11] IMPLICIT      Mechanism-name OPTIONAL,
--- The following field shall only be present if the authentication functional unit is selected.
-calling-authentication-value       [12] EXPLICIT      Authentication-value OPTIONAL,
-implementation-information         [29] IMPLICIT      Implementation-data OPTIONAL,
-user-information                   [30] EXPLICIT      Association-information OPTIONAL
-}
-
--- The user-information field shall carry an InitiateRequest APDU encoded in A-XDR, and then
--- encoding the resulting OCTET STRING in BER.
-
-*/
 
 typedef enum
 {
@@ -62,6 +33,8 @@ typedef enum
     CSM_ASSO_AARE                   = TAG_APPLICATION + TAG_CONSTRUCTED + 1U,   ///< Application number 1
     CSM_ASSO_PROTO_VER              = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE,
     CSM_ASSO_APP_CONTEXT_NAME       = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  1U,
+
+    // AARQ tags
     CSM_ASSO_CALLED_AP_TITLE        = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  2U,
     CSM_ASSO_CALLED_AE_QUALIFIER    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  3U,
     CSM_ASSO_CALLED_AP_INVOC_ID     = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  4U,
@@ -74,9 +47,20 @@ typedef enum
     CSM_ASSO_MECHANISM_NAME         = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE   + 11U,
     CSM_ASSO_CALLING_AUTH_VALUE     = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED + 12U,
     CSM_ASSO_IMPLEMENTATION_INFO    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED + 29U,
-    CSM_ASSO_USER_INFORMATION       = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED + 30U
+    CSM_ASSO_USER_INFORMATION       = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED + 30U,
+
+    // AARE tags
+    CSM_ASSO_RESULT_FIELD           = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  2U,
+    CSM_ASSO_RESULT_SRC_DIAG        = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  3U,
+    CSM_ASSO_RESULT_SERVICE_USER    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  1U,
 } csm_asso_tag;
 
+
+enum asso_error
+{
+    CSM_ASSO_ERR_NULL   = 0U,
+    CSM_ASSO_ERR_AUTH_FAILURE = 13U
+};
 
 typedef struct
 {
@@ -105,6 +89,7 @@ typedef struct
     enum state_cf state_cf;
     enum referencing ref;
     enum auth_level auth_level;
+    enum asso_error error;
     uint8_t  auth_value[SIZE_OF_AUTH_VALUE];
     uint8_t dedicated_key[SIZE_OF_DEDICATED_KEY];
     uint32_t proposed_conformance;

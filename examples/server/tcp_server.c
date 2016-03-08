@@ -32,8 +32,6 @@ typedef struct in_addr IN_ADDR;
 #define PORT	 	4059
 #define MAX_CLIENTS 10
 
-#define BUF_SIZE	1024
-
 
 typedef struct
 {
@@ -121,11 +119,11 @@ static void end_connection(int sock)
    closesocket(sock);
 }
 
-static int read_peer(SOCKET sock, char *buffer)
+static int read_peer(SOCKET sock, char *buffer, int max_size)
 {
    int n = 0;
 
-   if((n = recv(sock, buffer, BUF_SIZE, 0)) < 0)
+   if((n = recv(sock, buffer, max_size, 0)) < 0)
    {
       perror("recv()");
       /* if recv error we disconnect the client */
@@ -143,10 +141,9 @@ static void write_peer(SOCKET sock, const char *buffer, size_t size)
    }
 }
 
-static void app(data_handler data_func)
+static void app(data_handler data_func, char *buffer, int buf_size)
 {
    SOCKET sock = init_connection();
-   char buffer[BUF_SIZE];
 
    unsigned int max = sock;
    /* an array for all clients */
@@ -223,7 +220,7 @@ static void app(data_handler data_func)
                 /* a client is talking */
                 if(FD_ISSET(peers[i].sock, &master_set))
                 {
-                   int c = read_peer(peers[i].sock, buffer);
+                   int c = read_peer(peers[i].sock, buffer, buf_size);
                    /* client disconnected */
                    if(c == 0)
                    {
@@ -267,11 +264,11 @@ static void app(data_handler data_func)
 }
 
 
-int tcp_server_init(data_handler data_func)
+int tcp_server_init(data_handler data_func, char *buffer, int buf_size)
 {
    init();
 
-   app(data_func);
+   app(data_func, buffer, buf_size);
 
    end();
 

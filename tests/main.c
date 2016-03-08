@@ -2,10 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "unity_fixture.h"
+// Cosem stack
 #include "csm_array.h"
 #include "csm_ber.h"
 #include "csm_channel.h"
+#include "csm_config.h"
+
+#include "unity_fixture.h"
 #include "tcp_server.h"
 
 /*
@@ -63,13 +66,19 @@ uint16_t get_uint16(char *buff)
     return val;
 }
 
+void set_uint16(char *buff, uint16_t size)
+{
+    buff[0] = (size >> 8U) & 0xFFU;
+    buff[1] = size & 0xFFU;
+}
+
 uint8_t is_bit_set(uint8_t value, uint8_t bit)
 {
     return ((value & (1U<<bit)) == 0U) ? 0U : 1U;
 }
 
 static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
-static const uint16_t COSEM_WRAPPER_SIZE = 8U;
+#define COSEM_WRAPPER_SIZE 8U
 /**
  * @brief datalink_layer
  * This link layer manages the data between the transport (TCP/IP) and the Cosem stack
@@ -131,8 +140,21 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
                 assos[i].config = &assos_config[i];
                 // Then decode the packet, the reply, if any is located in the buffer
                 // The reply is valid if the return code is > 0
-                csm_array_alloc(&packet, (uint8_t *)&buffer[COSEM_WRAPPER_SIZE], apdu_size);
+                csm_array_init(&packet, (uint8_t *)&buffer[COSEM_WRAPPER_SIZE], apdu_size);
                 ret = csm_channel_execute(&channels[channel], &assos[i], &llc, &packet);
+
+                if (ret > 0)
+                {
+                    // Swap SSAP and DSAP
+                    set_uint16(&buffer[2], llc.dsap);
+                    set_uint16(&buffer[4], llc.ssap);
+
+                    // Update Cosem Wrapper length
+                    set_uint16(&buffer[6], (uint16_t) ret);
+
+                    // Add wrapper size to the data packet size
+                    ret += COSEM_WRAPPER_SIZE;
+                }
             }
         }
         else
@@ -175,6 +197,8 @@ high level security;
 1F 04 00 00 7E 1F 04 B0
 */
 
+#define BUF_SIZE (COSEM_PDU_SIZE + COSEM_WRAPPER_SIZE)
+
 int main(int argc, const char * argv[])
 {
 
@@ -197,6 +221,9 @@ int main(int argc, const char * argv[])
 
     csm_init();
 
-    return tcp_server_init(datalink_layer);
+
+    char buffer[BUF_SIZE];
+
+    return tcp_server_init(datalink_layer, buffer, BUF_SIZE);
 }
 
