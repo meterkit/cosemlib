@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2016, Anthony Rabine
+ * See LICENSE.txt
+ *
+ * Implementation of a protected array with read/write pointers
+ */
+
 #ifndef CSM_ARRAY_H
 #define CSM_ARRAY_H
 
@@ -14,7 +21,7 @@ typedef struct {
     uint8_t *buff;
 } csm_array;
 
-void csm_array_init(csm_array *io_array, uint8_t *i_buff, uint32_t i_size);
+void csm_array_init(csm_array *io_array, uint8_t *buffer, uint32_t max_size, uint32_t used_size);
 int csm_array_get(const csm_array *i_array, uint32_t i_index, uint8_t *io_byte);
 
 // Copy an array to another

@@ -187,7 +187,7 @@ static void app(data_handler data_func, char *buffer, int buf_size)
         }
 
 
-        if(FD_ISSET(sock, &master_set))
+        if(FD_ISSET(sock, &working_set))
         {
             /* new client */
             SOCKADDR_IN csin = { 0 };
@@ -218,7 +218,7 @@ static void app(data_handler data_func, char *buffer, int buf_size)
             if (peers[i].connected)
             {
                 /* a client is talking */
-                if(FD_ISSET(peers[i].sock, &master_set))
+                if(FD_ISSET(peers[i].sock, &working_set))
                 {
                    int c = read_peer(peers[i].sock, buffer, buf_size);
                    /* client disconnected */

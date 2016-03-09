@@ -5,10 +5,28 @@
 #include "csm_array.h"
 
 
+/**
+ * @brief The xdlms_tag enum
+ *
+ *  GreenBook 8
+ * 9.5       Abstract syntax of COSEM APDUs
+ *
+ */
 enum xdlms_tag
 {
-    AXDR_INITIATE_REQUEST   = 0x01U,
-    AXDR_INITIATE_RESPONSE  = 0x08U
+    AXDR_INITIATE_REQUEST   = 1U,
+    AXDR_INITIATE_RESPONSE  = 8U,
+    AXDR_GET_REQUEST        = 192U,
+    AXDR_GET_RESPONSE       = 196
+
+/*
+    get-request                        [192] IMPLICIT      Get-Request,
+    set-request                        [193] IMPLICIT      Set-Request,
+    event-notification-request         [194] IMPLICIT      EventNotificationRequest,
+    action-request                     [195] IMPLICIT      Action-Request,
+    get-response                       [196] IMPLICIT      Get-Response,
+    set-response                       [197] IMPLICIT      Set-Response,
+    */
 };
 
 enum csm_conformance_mask
@@ -19,35 +37,24 @@ enum csm_conformance_mask
     general-protection                 (1),
     general-block-transfer             (2),
     */
-    CSM_READ                             = 0x00100000U, // bit 3  - read
-    CSM_WRITE                            = 0x00080000U, // bit 4  - write
-    CSM_UNCONFIRMED_WRITE                = 0x00040000U, // bit 5  - unconfirmed-write
-    CSM_ATTRIBUTE0_SUPPORTED_WITH_SET    = 0x00008000U, // bit 8  - attribute0-supported-with-set
-    CSM_PRIORITY_MGT_SUPPORTED           = 0x00004000U, // bit 9  - priority-mgmt-supported
-    CSM_ATTRIBUTE0_SUPPORTED_WITH_GET    = 0x00002000U, // bit 10 - attribute0-supported-with-get
-    CSM_BLOCK_TRANSFER_WITH_GET_OR_READ  = 0x00001000U, // bit 11 - block-transfer-with-get-or-read
-    CSM_BLOCK_TRANSFER_WITH_SET_OR_WRITE = 0x00000800U, // bit 12 - block-transfer-with-set-or-write
-    CSM_BLOCK_TRANSFER_WITH_ACTION       = 0x00000400U, // bit 13 - block-transfer-with-action
-    CSM_MULTIPLE_REFERENCES              = 0x00000200U, // bit 14 - multiple-references
-    CSM_INFORMATION_REPORT               = 0x00000100U, // bit 15 - information-report
-    CSM_DATA_NOTIFICATION                = 0x00000080U, // bit 16 - data-notification
-    CSM_PARAMETERIZED_ACCESS             = 0x00000020U, // bit 18 - parameterized-access
-    CSM_GET                              = 0x00000010U, // bit 19 - get
-    CSM_SET                              = 0x00000008U, // bit 20 - set
-    CSM_SELECTIVE_ACCESS                 = 0x00000004U, // bit 21 - selective-access
-    CSM_EVENT_NOTIFICATION               = 0x00000002U, // bit 22 - event-notification
-    CSM_ACTION                           = 0x00000001U, // bit 23 - action
-};
-
-
-enum csm_auth_level
-{
-    CSM_LOWEST_AUTHENTICATION           = 0x00U,
-    CSM_LOW_AUTHENTICATION              = 0x01U,
-    CSM_HIGH_AUTHENTICATION             = 0x02U,
-    CSM_HIGH_AUTHENTICATION_WITH_MD5    = 0x03U,
-    CSM_HIGH_AUTHENTICATION_WITH_SHA1   = 0x04U,
-    CSM_HIGH_AUTHENTICATION_WITH_GMAC   = 0x05U
+    CSM_CBLOCK_READ                             = 0x00100000U, // bit 3  - read
+    CSM_CBLOCK_WRITE                            = 0x00080000U, // bit 4  - write
+    CSM_CBLOCK_UNCONFIRMED_WRITE                = 0x00040000U, // bit 5  - unconfirmed-write
+    CSM_CBLOCK_ATTRIBUTE0_SUPPORTED_WITH_SET    = 0x00008000U, // bit 8  - attribute0-supported-with-set
+    CSM_CBLOCK_PRIORITY_MGT_SUPPORTED           = 0x00004000U, // bit 9  - priority-mgmt-supported
+    CSM_CBLOCK_ATTRIBUTE0_SUPPORTED_WITH_GET    = 0x00002000U, // bit 10 - attribute0-supported-with-get
+    CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ  = 0x00001000U, // bit 11 - block-transfer-with-get-or-read
+    CSM_CBLOCK_BLOCK_TRANSFER_WITH_SET_OR_WRITE = 0x00000800U, // bit 12 - block-transfer-with-set-or-write
+    CSM_CBLOCK_BLOCK_TRANSFER_WITH_ACTION       = 0x00000400U, // bit 13 - block-transfer-with-action
+    CSM_CBLOCK_MULTIPLE_REFERENCES              = 0x00000200U, // bit 14 - multiple-references
+    CSM_CBLOCK_INFORMATION_REPORT               = 0x00000100U, // bit 15 - information-report
+    CSM_CBLOCK_DATA_NOTIFICATION                = 0x00000080U, // bit 16 - data-notification
+    CSM_CBLOCK_PARAMETERIZED_ACCESS             = 0x00000020U, // bit 18 - parameterized-access
+    CSM_CBLOCK_GET                              = 0x00000010U, // bit 19 - get
+    CSM_CBLOCK_SET                              = 0x00000008U, // bit 20 - set
+    CSM_CBLOCK_SELECTIVE_ACCESS                 = 0x00000004U, // bit 21 - selective-access
+    CSM_CBLOCK_EVENT_NOTIFICATION               = 0x00000002U, // bit 22 - event-notification
+    CSM_CBLOCK_ACTION                           = 0x00000001U, // bit 23 - action
 };
 
 
@@ -90,6 +97,12 @@ typedef struct
     csm_array *access_params;
 
 } csm_selective_access;
+
+typedef struct
+{
+    uint16_t ssap; //< Client
+    uint16_t dsap; //< Server
+} csm_llc;
 
 /**
  * @brief Generic Codec error codes

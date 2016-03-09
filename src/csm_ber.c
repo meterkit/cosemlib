@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2016, Anthony Rabine
+ * See LICENSE.txt
+ *
+ * BER decoder/encoder/helper
+ */
 
 #include <string.h>
 #include "csm_ber.h"

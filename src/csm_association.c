@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2016, Anthony Rabine
+ * See LICENSE.txt
+ *
+ * Implementation of the Cosem ACSE services
+ */
+
 #include "csm_association.h"
 #include "string.h"
 #include "csm_axdr_codec.h"
@@ -156,13 +163,13 @@ static csm_acse_code acse_oid_decoder(csm_asso_state *state, csm_ber *ber, csm_a
         {
             switch (oid.id)
             {
-                case LOW_LEVEL:
-                    state->auth_level = LOW_LEVEL;
+                case CSM_AUTH_LOW_LEVEL:
+                    state->auth_level = CSM_AUTH_LOW_LEVEL;
                     ret = CSM_ACSE_OK;
                     CSM_LOG("[ACSE] Low level authentication");
                     break;
-                case HIGH_LEVEL:
-                    state->auth_level = HIGH_LEVEL;
+                case CSM_AUTH_HIGH_LEVEL_GMAC:
+                    state->auth_level = CSM_AUTH_HIGH_LEVEL_GMAC;
                     ret = CSM_ACSE_OK;
                     CSM_LOG("[ACSE] High level authentication");
                     break;
@@ -486,11 +493,10 @@ static csm_acse_code acse_result_encoder(csm_asso_state *state, csm_ber *ber, cs
 
     CSM_LOG("[ACSE] Encoding result tag ...");
 
-    uint8_t result = 1U; // success
+    uint8_t result = 0U; // accepted
     if (state->state_cf == CF_IDLE)
     {
-        // Failure
-        result = 0U;
+        result = 1U; // rejected-permanent
     }
 
     if (csm_ber_write_integer(array, result))
@@ -678,7 +684,7 @@ static const csm_asso_codec aare_codec_chain[] =
 void csm_asso_init(csm_asso_state *state)
 {
     state->state_cf = CF_IDLE;
-    state->auth_level = NO_LEVEL;
+    state->auth_level = CSM_AUTH_LOWEST_LEVEL;
     state->ref = NO_REF;
     state->error = CSM_ASSO_ERR_NULL;
 }
@@ -690,11 +696,12 @@ int csm_asso_is_granted(csm_asso_state *state)
     if (state->state_cf == CF_IDLE)
     {
         // Test the password if required
-        if (state->auth_level == LOW_LEVEL)
+        if (state->auth_level == CSM_AUTH_LOW_LEVEL)
         {
             if (memcmp(state->auth_value, state->config->password, SIZE_OF_AUTH_VALUE) == 0)
             {
                 ret = TRUE;
+                state->state_cf = CF_ASSOCIATED;
                 state->error = CSM_ASSO_ERR_NULL;
             }
             else
@@ -820,7 +827,7 @@ int csm_asso_execute(csm_asso_state *asso, csm_array *packet)
                 {
                     bytes_to_reply = packet->wr_index;
                     CSM_LOG("[ACSE] AARE length: %d", bytes_to_reply);
-                    csm_array_dump(packet);
+                 //   csm_array_dump(packet);
                 }
             }
             else

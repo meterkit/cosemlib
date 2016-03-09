@@ -8,8 +8,10 @@
 #include "csm_channel.h"
 #include "csm_config.h"
 
+// Meter environment
 #include "unity_fixture.h"
 #include "tcp_server.h"
+#include "csm_database.h"
 
 /*
 static void RunAllTests(void)
@@ -37,17 +39,17 @@ const csm_asso_config assos_config[] =
 {
     // Client public association
     { {16U, 1U}, PHY_REMOTE_TCP1 | PHY_REMOTE_TCP2 ,
-      CSM_GET | CSM_BLOCK_TRANSFER_WITH_GET_OR_READ,
+      CSM_CBLOCK_GET | CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ,
       0U, // No auto-connected
-      CSM_LOWEST_AUTHENTICATION,             // No Authentication
+      CSM_AUTH_LOWEST_LEVEL,             // No Authentication
       { 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U }, // Password.
     },
 
     // Client manual meter reader association
     { {1U, 1U}, PHY_REMOTE_TCP1 ,
-      CSM_GET | CSM_BLOCK_TRANSFER_WITH_GET_OR_READ | CSM_SELECTIVE_ACCESS,
+      CSM_CBLOCK_GET | CSM_CBLOCK_SET |CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ | CSM_CBLOCK_SELECTIVE_ACCESS,
       0U, // No auto-connected
-      CSM_LOW_AUTHENTICATION, // Low Level Authentication
+      CSM_AUTH_LOW_LEVEL, // Low Level Authentication
       { 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x31U }, // Password. 00000001
     }
 };
@@ -79,6 +81,8 @@ uint8_t is_bit_set(uint8_t value, uint8_t bit)
 
 static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
 #define COSEM_WRAPPER_SIZE 8U
+#define BUF_SIZE (COSEM_PDU_SIZE + COSEM_WRAPPER_SIZE)
+
 /**
  * @brief datalink_layer
  * This link layer manages the data between the transport (TCP/IP) and the Cosem stack
@@ -98,7 +102,6 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
     int ret = -1;
     uint16_t version;
     uint16_t apdu_size;
-    csm_llc llc;
     csm_array packet;
 
     // The TCP/IP Cosem packet is sent with a header. See GreenBook 8 7.3.3.2 The wrapper protocol data unit (WPDU)
@@ -112,8 +115,8 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
     if ((size > COSEM_WRAPPER_SIZE) && (channel < NUMBER_OF_CHANNELS))
     {
         version = get_uint16(&buffer[0]);
-        llc.ssap = get_uint16(&buffer[2]);
-        llc.dsap = get_uint16(&buffer[4]);
+        channels[channel].request.llc.ssap = get_uint16(&buffer[2]);
+        channels[channel].request.llc.dsap = get_uint16(&buffer[4]);
         apdu_size = get_uint16(&buffer[6]);
 
         // Sanity check of the packet
@@ -125,8 +128,8 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
             // Find the valid association.
             for (i = 0U; i < NUMBER_OF_ASSOS; i++)
             {
-                if ((llc.ssap == assos_config[i].llc.ssap) &&
-                    (llc.dsap == assos_config[i].llc.dsap) &&
+                if ((channels[channel].request.llc.ssap == assos_config[i].llc.ssap) &&
+                    (channels[channel].request.llc.dsap == assos_config[i].llc.dsap) &&
                     is_bit_set(assos_config[i].channels, channel))
                 {
                     break;
@@ -140,14 +143,14 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
                 assos[i].config = &assos_config[i];
                 // Then decode the packet, the reply, if any is located in the buffer
                 // The reply is valid if the return code is > 0
-                csm_array_init(&packet, (uint8_t *)&buffer[COSEM_WRAPPER_SIZE], apdu_size);
-                ret = csm_channel_execute(&channels[channel], &assos[i], &llc, &packet);
+                csm_array_init(&packet, (uint8_t *)&buffer[COSEM_WRAPPER_SIZE], BUF_SIZE, apdu_size);
+                ret = csm_channel_execute(&channels[channel], &assos[i], &packet);
 
                 if (ret > 0)
                 {
                     // Swap SSAP and DSAP
-                    set_uint16(&buffer[2], llc.dsap);
-                    set_uint16(&buffer[4], llc.ssap);
+                    set_uint16(&buffer[2], channels[channel].request.llc.dsap);
+                    set_uint16(&buffer[4], channels[channel].request.llc.ssap);
 
                     // Update Cosem Wrapper length
                     set_uint16(&buffer[6], (uint16_t) ret);
@@ -171,8 +174,16 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
 }
 
 // Main stack initialization
+
+static const csm_db_access db_access = {
+    csm_db_extract_data,
+    csm_db_insert_data
+};
+
 void csm_init()
 {
+    csm_services_init(&db_access);
+
     for (uint32_t i = 0U; i < NUMBER_OF_ASSOS; i++)
     {
         csm_asso_init(&assos[i]);
@@ -196,8 +207,6 @@ high level security;
 36 69 56 61 67 59 BE 10 04 0E 01 00 00 00 06 5F
 1F 04 00 00 7E 1F 04 B0
 */
-
-#define BUF_SIZE (COSEM_PDU_SIZE + COSEM_WRAPPER_SIZE)
 
 int main(int argc, const char * argv[])
 {

@@ -21,7 +21,7 @@ TEST(CosemArray, BasicTest)
     csm_array array;
     csm_array array2;
 
-    csm_array_init(&array, (uint8_t*)&basic_array[0], size);
+    csm_array_init(&array, (uint8_t*)&basic_array[0], size, size);
 
     TEST_ASSERT_EQUAL(size, array.size);
 
@@ -38,7 +38,7 @@ TEST(CosemArray, OverLimits)
     uint32_t size = sizeof(basic_array);
     csm_array array;
     csm_array array2;
-    csm_array_init(&array, (uint8_t*)&basic_array[0], size);
+    csm_array_init(&array, (uint8_t*)&basic_array[0], size, size);
 
     csm_array_mid(&array, &array2, 6, 8);
     //csm_array_dump(&array2);

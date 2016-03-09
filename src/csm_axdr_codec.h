@@ -1,41 +1,59 @@
+/**
+ * Copyright (c) 2016, Anthony Rabine
+ * See LICENSE.txt
+ *
+ * AXDR utility function to serialize data
+ */
+
 #ifndef AXDR_CODEC_H
 #define AXDR_CODEC_H
 
 #include "csm_array.h"
 #include "csm_definitions.h"
 
-enum axdr_tag
-{
-    AXDR_TAG_NULL   =   0x00U,
-};
-
 /*
-static const std::uint8_t cSequenceOf	 = 0x01U;
-static const std::uint8_t cSequence		 = 0x02U;
-static const std::uint8_t cBoolean		 = 0x03U;
-static const std::uint8_t cBitString	 = 0x04U;
-static const std::uint8_t cInteger32	 = 0x05U;
-static const std::uint8_t cUnsigned32	 = 0x06U;
-static const std::uint8_t cFloatingPoint = 0x07U;
-static const std::uint8_t cOctetsString	 = 0x09U;
-static const std::uint8_t cVisibleString = 0x0AU;
-static const std::uint8_t cUtf8String    = 0x0BU;
-static const std::uint8_t cBcd			 = 0x0DU;
-static const std::uint8_t cInteger8		 = 0x0FU;
-static const std::uint8_t cInteger16	 = 0x10U;
-static const std::uint8_t cUnsigned8	 = 0x11U;
-static const std::uint8_t cUnsigned16	 = 0x12U;
-static const std::uint8_t cCompactArray	 = 0x13U;
-static const std::uint8_t cInteger64	 = 0x14U;
-static const std::uint8_t cUnsigned64	 = 0x15U;
-static const std::uint8_t cEnumerated	 = 0x16U;
-static const std::uint8_t cFloat32		 = 0x17U;
-static const std::uint8_t cFloat64		 = 0x18U;
-static const std::uint8_t cUtc			 = 0x19U;
-static const std::uint8_t cDate			 = 0x1AU;
-static const std::uint8_t cTime			 = 0x1BU;
+Data ::= CHOICE
+{
+null-data                          [0]   IMPLICIT   NULL,
+array                              [1]   IMPLICIT   SEQUENCE OF Data,
+structure                          [2]   IMPLICIT   SEQUENCE OF Data,
+boolean                            [3]   IMPLICIT   BOOLEAN,
+bit-string                         [4]   IMPLICIT   BIT STRING,
+double-long                        [5]   IMPLICIT   Integer32,
+double-long-unsigned               [6]   IMPLICIT   Unsigned32,
+octet-string                       [9]   IMPLICIT   OCTET STRING,
+visible-string                     [10]  IMPLICIT   VisibleString,
+utf8-string                        [12]  IMPLICIT   UTF8String,
+bcd                                [13]  IMPLICIT   Integer8,
+integer                            [15]  IMPLICIT   Integer8,
+long                               [16]  IMPLICIT   Integer16,
+unsigned                           [17]  IMPLICIT   Unsigned8,
+long-unsigned        [18]  IMPLICIT   Unsigned16,
+compact-array                      [19]  IMPLICIT   SEQUENCE
+{
+contents-description                [0]              TypeDescription,
+array-contents                      [1]   IMPLICIT   OCTET STRING
+},
+long64                             [20]  IMPLICIT   Integer64,
+long64-unsigned                    [21]  IMPLICIT   Unsigned64,
+enum                               [22]  IMPLICIT   Unsigned8,
+float32                            [23]  IMPLICIT   OCTET STRING (SIZE(4)),
+float64                            [24]  IMPLICIT   OCTET STRING (SIZE(8)),
+date-time                          [25]  IMPLICIT   OCTET STRING (SIZE(12)),
+date                               [26]  IMPLICIT   OCTET STRING (SIZE(5)),
+time                               [27]  IMPLICIT   OCTET STRING (SIZE(4)),
+dont-care                          [255] IMPLICIT   NULL
+}
 */
 
+enum axdr_tag
+{
+    AXDR_TAG_NULL       = 0U,
+    AXDR_OCTET_STRING   = 9U
+};
+
 int axdr_decode_null(csm_array *array);
+
+int axdr_encode_octet_string(csm_array *array, const uint8_t *buffer, uint32_t size);
 
 #endif // AXDR_CODEC_H

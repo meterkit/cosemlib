@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2016, Anthony Rabine
+ * See LICENSE.txt
+ *
+ * Implementation of the Cosem ACSE services
+ */
+
+
 #ifndef CSM_ASSOCIATION_H
 #define CSM_ASSOCIATION_H
 
@@ -8,23 +16,42 @@
 
 // States machine of the Control Function
 enum state_cf { CF_INACTIVE, CF_IDLE, CF_ASSOCIATION_PENDING, CF_ASSOCIATED, CF_ASSOCIATION_RELEASE_PENDING };
-// Type of services
-enum type_service { REQUEST, INDICATION, RESPONSE, CONFIRM };
-// Type of COSEM-GET service
-enum type_get { GET_NORMAL, GET_WITH_LIST, GET_ONE_BLOCK, GET_LAST_BLOCK };
 
-enum referencing
+/* GreenBook 8
+ * 9.4.2.2.2        The COSEM application context
+ * Table 74 – COSEM application context names
+
+    Logical_Name_Referencing_No_Ciphering ::= context_id(1)
+    Short_Name_Referencing_No_Ciphering ::= context_id(2)
+    Logical_Name_Referencing_With_Ciphering ::= context_id(3)
+    Short_Name_Referencing_With_Ciphering ::= context_id(4)
+*/
+enum csm_referencing
 {
     NO_REF = 0U,
     LN_REF = 1U,  // Logical Name
-    SN_REF = 2U   // Short Name
+    SN_REF = 2U,  // Short Name
+    LN_REF_WITH_CYPHERING = 3U,
+    SN_REF_WITH_CYPHERING = 4U
 };
 
-enum auth_level
+/*
+    COSEM_lowest_level_security_mechanism_name ::= mechanism_id(0)
+    COSEM_low_level_security_mechanism_name ::= mechanism_id(1)
+    COSEM_high_level_security_mechanism_name ::= mechanism_id(2)
+    COSEM_high_level_security_mechanism_name_using_MD5 ::= mechanism_id(3)
+    COSEM_high_level_security_mechanism_name_using_SHA-1 ::= mechanism_id(4)
+    COSEM_High_Level_Security_Mechanism_Name_Using_GMAC ::= mechanism_id(5)
+    COSEM_High_Level_Security_Mechanism_Name_Using_SHA-256 ::= mechanism_id(6)
+    COSEM_High_Level_Security_Mechanism_Name_Using_ECDSA ::= mechanism_id(7)
+    NOTE 1 With mechanism_id(2), the method of processing the challenge is secret.
+    NOTE 2 The use of authentication mechanisms 3 and 4 are not recommended for new implementations.
+*/
+enum csm_auth_level
 {
-    NO_LEVEL    = 0U,
-    LOW_LEVEL   = 1U,
-    HIGH_LEVEL  = 5U
+    CSM_AUTH_LOWEST_LEVEL       = 0U,
+    CSM_AUTH_LOW_LEVEL          = 1U,
+    CSM_AUTH_HIGH_LEVEL_GMAC    = 5U
 };
 
 typedef enum
@@ -56,17 +83,11 @@ typedef enum
 } csm_asso_tag;
 
 
-enum asso_error
+enum csm_asso_error
 {
     CSM_ASSO_ERR_NULL   = 0U,
     CSM_ASSO_ERR_AUTH_FAILURE = 13U
 };
-
-typedef struct
-{
-    uint16_t ssap; //< Client
-    uint16_t dsap; //< Server
-} csm_llc;
 
 /**
  * @brief Configuration structure of one association
@@ -87,9 +108,9 @@ typedef struct
 typedef struct
 {
     enum state_cf state_cf;
-    enum referencing ref;
-    enum auth_level auth_level;
-    enum asso_error error;
+    enum csm_referencing ref;
+    enum csm_auth_level auth_level;
+    enum csm_asso_error error;
     uint8_t  auth_value[SIZE_OF_AUTH_VALUE];
     uint8_t dedicated_key[SIZE_OF_DEDICATED_KEY];
     uint32_t proposed_conformance;

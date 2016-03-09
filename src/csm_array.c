@@ -9,13 +9,15 @@
 #include <string.h>
 
 
-void csm_array_init(csm_array *io_array, uint8_t *i_buff, uint32_t i_size)
+void csm_array_init(csm_array *io_array, uint8_t *buffer, uint32_t max_size, uint32_t used_size)
 {
     CSM_ASSERT(io_array != NULL);
-    io_array->buff = i_buff;
+    CSM_ASSERT(used_size <= max_size);
+
+    io_array->buff = buffer;
     io_array->rd_index = 0U;
-    io_array->wr_index = 0U;
-    io_array->size = i_size;
+    io_array->wr_index = used_size;
+    io_array->size = max_size;
 }
 
 int csm_array_get(const csm_array *i_array, uint32_t i_index, uint8_t *io_byte)
@@ -59,23 +61,6 @@ int csm_array_write_u8(csm_array *array, uint8_t byte)
     else
     {
         CSM_ERR("[ARRAY] Full");
-    }
-    return ret;
-}
-
-int csm_array_read_u8(csm_array *io_array, uint8_t *io_byte)
-{
-    int ret = 0;
-    CSM_ASSERT(io_array != NULL);
-    if (io_array->rd_index < io_array->size)
-    {
-        *io_byte = io_array->buff[io_array->rd_index];
-        io_array->rd_index++;
-        ret = 1;
-    }
-    else
-    {
-        CSM_ERR("[ARRAY] No more data");
     }
     return ret;
 }
@@ -273,6 +258,23 @@ uint8_t *csm_array_rd_data(csm_array *array)
 uint8_t *csm_array_wr_data(csm_array *array)
 {
     return (array->buff+array->wr_index);
+}
+
+int csm_array_read_u8(csm_array *io_array, uint8_t *io_byte)
+{
+    int ret = 0;
+    CSM_ASSERT(io_array != NULL);
+    if (io_array->rd_index < io_array->size)
+    {
+        *io_byte = io_array->buff[io_array->rd_index];
+        io_array->rd_index++;
+        ret = 1;
+    }
+    else
+    {
+        CSM_ERR("[ARRAY] No more data");
+    }
+    return ret;
 }
 
 int csm_array_read_u32(csm_array *array, uint32_t *value)

@@ -13,17 +13,28 @@ This Cosem stack has the following goals :
   * Memory efficient / no dynamic allocation (static, configurable at build-time)
   * Full traces and memory protected against buffer overflow
 
-## What is working
+## What is working so far
 
   * Utilities (buffer utilities)
   * BER coder/decoder
   * Basic association (LLS)
+  * Get Request of the Clock object
 
-## TODO / Development schedule
+## Version 1.0 development schedule
 
   * Database access layer
   * Provide few cosem objects (Association, Security Setup, Clock, Profile)
-  * Get/Set request
+  * Get/Set request normal
   * Get/Set by block
+  * Get/Set with selective access
   * Object List
-  * HLS/ Security Policy 1 + HAL algorithm layer
+  * HLS GMAC / Security Policy 1 + HAL algorithm layer
+
+## Version 2.0
+
+  * ACCESS service
+  * GBT service
+  * ECDSA + SHA-256 HLS
+  * ECDSA data transport cyphering
+
+

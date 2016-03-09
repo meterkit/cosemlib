@@ -48,3 +48,19 @@ csm_obj_handle csm_db_get_obj_from_obis(const csm_obis_code *obis, uint16_t clas
     return handle;
 }
 
+
+csm_db_code csm_db_extract_data(csm_array *array, const csm_object *object, const csm_selective_access *sel_access)
+{
+    (void) array;
+    (void) object;
+    (void) sel_access;
+    return CSM_ERR_OBJECT_ERROR;
+}
+
+csm_db_code csm_db_insert_data(csm_array *array, const csm_object *object, const csm_selective_access *sel_access)
+{
+    (void) array;
+    (void) object;
+    (void) sel_access;
+    return CSM_ERR_OBJECT_ERROR;
+}

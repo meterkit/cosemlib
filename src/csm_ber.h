@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2016, Anthony Rabine
+ * See LICENSE.txt
+ *
+ * BER decoder/encoder/helper
+ */
+
 #ifndef CSM_BER_H
 #define CSM_BER_H
 
