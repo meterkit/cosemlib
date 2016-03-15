@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html itemscope="" itemtype="http://schema.org/QAPage"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+
+<title>security - How does ASN.1 encode an object identifier? - Stack Overflow</title>
+    <link rel="shortcut icon" href="http://cdn.sstatic.net/stackoverflow/img/favicon.ico?v=4f32ecc8f43d">
+    <link rel="apple-touch-icon image_src" href="http://cdn.sstatic.net/stackoverflow/img/apple-touch-icon.png?v=c78bd457575a">
+    <link rel="search" type="application/opensearchdescription+xml" title="Stack Overflow" href="http://stackoverflow.com/opensearch.xml">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:domain" content="stackoverflow.com">
+    <meta property="og:type" content="website">    
+    <meta property="og:image" itemprop="image primaryImageOfPage" content="http://cdn.sstatic.net/stackoverflow/img/apple-touch-icon@2.png?v=73d79a89bded&amp;a">
+    <meta name="twitter:title" property="og:title" itemprop="title name" content="How does ASN.1 encode an object identifier?">
+    <meta name="twitter:description" property="og:description" itemprop="description" content="I am having trouble understanding the basic concepts of ASN.1.
+
+If a type is an OID, does the corresponding number get actually encoded in the binary data?
+
+For instance in this definition:
+
+id-ad-...">
+    <meta property="og:url" content="http://stackoverflow.com/questions/5929050/how-does-asn-1-encode-an-object-identifier">
+    <link rel="canonical" href="http://stackoverflow.com/questions/5929050/how-does-asn-1-encode-an-object-identifier">
+
+    
+    
+    <script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/ados.js" async="" type="text/javascript"></script><script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/quant.js" async=""></script><script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/beacon.js" async=""></script><script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/analytics.js" async=""></script><script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/jquery.js"></script>
+    <script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/stub.js"></script>
+    <link rel="stylesheet" type="text/css" href="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/all.css">
+
+            <link rel="alternate" type="application/atom+xml" title="Feed for question 'How does ASN.1 encode an object identifier?'" href="http://stackoverflow.com/feeds/question/5929050">
+            <meta name="twitter:app:country" content="US">
+            <meta name="twitter:app:name:iphone" content="Stack Exchange iOS">
+            <meta name="twitter:app:id:iphone" content="871299723">
+            <meta name="twitter:app:url:iphone" content="se-zaphod://stackoverflow.com/questions/5929050/how-does-asn-1-encode-an-object-identifier">
+            <meta name="twitter:app:name:ipad" content="Stack Exchange iOS">
+            <meta name="twitter:app:id:ipad" content="871299723">
+            <meta name="twitter:app:url:ipad" content="se-zaphod://stackoverflow.com/questions/5929050/how-does-asn-1-encode-an-object-identifier">
+            <meta name="twitter:app:name:googleplay" content="Stack Exchange Android">
+            <meta name="twitter:app:url:googleplay" content="http://stackoverflow.com/questions/5929050/how-does-asn-1-encode-an-object-identifier">
+            <meta name="twitter:app:id:googleplay" content="com.stackexchange.marvin">
+        <script>
+        
+            StackExchange.ready(function () {
+                    
+                    StackExchange.using("snippets", function () {
+                        StackExchange.snippets.initSnippetRenderer();
+                    });
+                    
+
+                StackExchange.using("postValidation", function () {
+                    StackExchange.postValidation.initOnBlurAndSubmit($('#post-form'), 2, 'answer');
+                });
+
+                
+                StackExchange.question.init({showAnswerHelp:true,totalCommentCount:0,shownCommentCount:0,highlightColor:'#F4A83D',backgroundColor:'#FFF',questionId:5929050});
+
+                styleCode();
+
+                    StackExchange.realtime.subscribeToQuestion('1', '5929050');
+                                                                    StackExchange.using("gps", function () { StackExchange.gps.trackOutboundClicks('#content', '.post-text'); });
+
+            });
+        </script>
+
+
+    <script>
+        StackExchange.init({"locale":"en","stackAuthUrl":"https://stackauth.com","serverTime":1456498421,"networkMetaHostname":"meta.stackexchange.com","routeName":"Questions/Show","styleCode":true,"enableUserHovercards":true,"snippets":{"enabled":true,"domain":"stacksnippets.net"},"site":{"name":"Stack Overflow","description":"Q&A for professional and enthusiast programmers","isNoticesTabEnabled":true,"recaptchaPublicKey":"6LdchgIAAAAAAJwGpIzRQSOFaO0pU6s44Xt8aTwc","recaptchaAudioLang":"en","enableNewTagCreationWarning":true,"insertSpaceAfterNameTabCompletion":false,"id":1,"enableSocialMediaInSharePopup":true},"user":{"fkey":"6d8561d5b48756c8fabffcf9da2c4ccf","rep":0,"isAnonymous":true,"isAnonymousNetworkWide":true,"ab":{"welcome_email":{"v":"8","g":2}}}});
+        StackExchange.using.setCacheBreakers({"js/prettify-full.en.js":"09e21fdb024e","js/moderator.en.js":"4ae7c877ec03","js/full-anon.en.js":"3eb89ba2e270","js/full.en.js":"9f13c93f0ffa","js/wmd.en.js":"110b1c72e8a8","js/third-party/jquery.autocomplete.min.js":"e5f01e97f7c3","js/third-party/jquery.autocomplete.min.en.js":"","js/mobile.en.js":"fbfb8cdcdb5b","js/help.en.js":"294764787c01","js/tageditor.en.js":"5e355962578f","js/tageditornew.en.js":"3c6b7a654bc2","js/inline-tag-editing.en.js":"de80429b1816","js/revisions.en.js":"c2bb6b44f707","js/review.en.js":"e67a0ba674f1","js/tagsuggestions.en.js":"d1ff9b84abe5","js/post-validation.en.js":"42ef6138796c","js/explore-qlist.en.js":"e71f14781288","js/events.en.js":"be24b4ab3b74","js/keyboard-shortcuts.en.js":"78b0f7f4922e","js/external-editor.en.js":"a2b93f24c78e","js/external-editor.en.js":"a2b93f24c78e","js/snippet-javascript.en.js":"ed9778c326ff","js/snippet-javascript-codemirror.en.js":"9a4e0598b743"});
+        StackExchange.using("gps", function() {
+             StackExchange.gps.init(true);
+        });
+    </script>
+    
+        <script>
+            StackExchange.ready(function () {
+                $('#nav-tour').click(function () {
+                    StackExchange.using("gps", function() {
+                        StackExchange.gps.track("aboutpage.click", { aboutclick_location: "headermain" }, true);
+                    });
+                });
+            });
+        </script>
+    
+    
+<script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/full-anon.js" async=""></script><link href="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/jobs.css" rel="stylesheet" type="text/css"><script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/adFeedback.js" type="text/javascript"></script><link href="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/adFeedback.css" rel="stylesheet"><script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/snippet-javascript.js" async=""></script><script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/post-validation.js" async=""></script><script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/external-editor.js" async=""></script></head>
+<body class="question-page new-topbar">
+    <noscript><div id="noscript-padding"></div></noscript>
+    
+        <script>(function () { var old = $.fn.contents; $.fn.contents = function () { try { return old.apply(this, arguments); } catch (e) { return $([]); } } })()</script>
+        
+
+
+
+
+    <div id="notify-container"></div>
+    <div id="overlay-header"></div>
+    <div id="custom-header"></div>
+
+
+
+
+
+<div class="topbar">
+    <div class="topbar-wrapper">
+
+        <div class="js-topbar-dialog-corral">
+
+
+<div class="topbar-dialog siteSwitcher-dialog dno">
+    <div class="header">
+        <h3><a href="http://stackoverflow.com/">current community</a></h3>
+    </div>
+    <div class="modal-content current-site-container">
+        <ul class="current-site">
+                <li>
+                        <div class="related-links">
+                    <a href="http://chat.stackoverflow.com/" class="js-gps-track" data-gps-track="site_switcher.click({ item_type:6 })">chat</a>
+            </div>
+
+
+
+
+    <a href="http://stackoverflow.com/" class="current-site-link site-link js-gps-track" data-id="1" data-gps-track="
+        site_switcher.click({ item_type:3 })">
+        <div class="site-icon favicon favicon-stackoverflow" title="Stack Overflow"></div>
+        Stack Overflow
+    </a>
+
+                </li>
+                <li class="related-site">
+                        <div class="L-shaped-icon-container">
+        <span class="L-shaped-icon"></span>
+    </div>
+
+                    
+
+
+
+    <a href="http://meta.stackoverflow.com/" class="site-link js-gps-track" data-id="552" data-gps-track="
+            site.switch({ target_site:552, item_type:3 }),
+        site_switcher.click({ item_type:4 })">
+        <div class="site-icon favicon favicon-stackoverflowmeta" title="Meta Stack Overflow"></div>
+        Meta Stack Overflow
+    </a>
+
+                </li>
+                            <li class="related-site">
+                        <div class="L-shaped-icon-container">
+        <span class="L-shaped-icon"></span>
+    </div>
+
+                    <a class="site-link js-gps-track" href="http://careers.stackoverflow.com/?utm_source=stackoverflow.com&amp;utm_medium=site-ui&amp;utm_campaign=multicollider" data-gps-track="site_switcher.click({ item_type:9 })">
+                        <div class="site-icon favicon favicon-careers" title="Stack Overflow Careers"></div>
+                        Stack Overflow Careers
+                    </a>
+                </li>
+        </ul>
+    </div>
+    
+    <div class="header" id="your-communities-header">
+        <h3>
+your communities        </h3>
+            
+    </div>
+    <div class="modal-content" id="your-communities-section">
+            
+            <div class="call-to-login">
+<a href="https://stackoverflow.com/users/signup?ssrc=site_switcher&amp;returnurl=http%3a%2f%2fstackoverflow.com%2fquestions%2f5929050%2fhow-does-asn-1-encode-an-object-identifier" class="login-link js-gps-track" data-gps-track="site_switcher.click({ item_type:10 })">Sign up</a> or <a href="https://stackoverflow.com/users/login?ssrc=site_switcher&amp;returnurl=http%3a%2f%2fstackoverflow.com%2fquestions%2f5929050%2fhow-does-asn-1-encode-an-object-identifier" class="login-link js-gps-track" data-gps-track="site_switcher.click({ item_type:11 })">log in</a> to customize your list.
+            </div>
+    </div>
+    
+    <div class="header">
+        <h3><a href="http://stackexchange.com/sites">more stack exchange communities</a></h3>
+        <a href="http://blog.stackoverflow.com/" class="fr">company blog</a>
+    </div>
+    <div class="modal-content">
+            <div class="child-content"></div>
+    </div>
+</div>
+        </div>
+
+        <div class="network-items">
+
+            <a href="http://stackexchange.com/" class="topbar-icon icon-site-switcher yes-hover js-site-switcher-button js-gps-track" data-gps-track="site_switcher.show" title="A list of all 153 Stack Exchange sites">
+                <span class="hidden-text">Stack Exchange</span>
+            </a>
+
+    <a href="#" class="topbar-icon icon-inbox yes-hover js-inbox-button" title="Recent inbox messages">
+        <span class="hidden-text">Inbox</span>
+        <span class="unread-count" style="display:none"></span>
+    </a>
+    <a href="#" class="topbar-icon icon-achievements yes-hover js-achievements-button" data-unread-class="" title="Recent achievements: reputation, badges, and privileges earned">
+        <span class="hidden-text">Reputation and Badges</span>
+        <span class="unread-count" style="display:none">
+            
+        </span>
+    </a>
+        </div>
+
+        <div class="topbar-links">
+
+                <div class="links-container">
+                <span class="topbar-menu-links">
+                                    <a href="https://stackoverflow.com/users/signup?ssrc=head&amp;returnurl=http%3a%2f%2fstackoverflow.com%2fquestions%2f5929050%2fhow-does-asn-1-encode-an-object-identifier" class="login-link">sign up</a>
+                                <a href="https://stackoverflow.com/users/login?ssrc=head&amp;returnurl=http%3a%2f%2fstackoverflow.com%2fquestions%2f5929050%2fhow-does-asn-1-encode-an-object-identifier" class="login-link">log in</a>
+
+                        <a href="http://stackoverflow.com/tour">tour</a>
+                            <a href="#" class="icon-help js-help-button" title="Help Center and other resources">
+        help
+        <span class="triangle"></span>
+    </a>
+    <div class="topbar-dialog help-dialog js-help-dialog dno">
+        <div class="modal-content">
+            <ul>
+                                    <li>
+                        <a href="http://stackoverflow.com/tour" class="js-gps-track" data-gps-track="help_popup.click({ item_type:1 })">
+                            Tour
+                            <span class="item-summary">
+                                Start here for a quick overview of the site
+                            </span>
+                        </a>
+                    </li>
+                <li>
+                    <a href="http://stackoverflow.com/help" class="js-gps-track" data-gps-track="help_popup.click({ item_type:4 })">
+                        Help Center
+                        <span class="item-summary">
+                            Detailed answers to any questions you might have
+                        </span>
+                    </a>
+                </li>
+                    <li>
+                        <a href="http://meta.stackoverflow.com/" class="js-gps-track" data-gps-track="help_popup.click({ item_type:2 })">
+                            Meta
+                            <span class="item-summary">
+                                Discuss the workings and policies of this site
+                            </span>
+                        </a>
+                    </li>
+                <li>
+                    <a href="http://stackoverflow.com/company/about" class="js-gps-track" data-gps-track="help_popup.click({ item_type:6 })">
+                        About Us
+                        <span class="item-summary">
+                            Learn more about Stack Overflow the company
+                        </span>
+                    </a>
+                </li>
+                <li>
+                    <a href="https://business.stackoverflow.com/?ref=topbar_help" class="js-gps-track" data-gps-track="help_popup.click({ item_type:7 })">
+                        Business
+                        <span class="item-summary">
+                            Learn more about hiring developers or posting ads with us
+                        </span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+                    </span>
+                </div>
+
+            <div class="search-container">
+                <form id="search" action="/search" method="get" autocomplete="off">
+                    <input name="q" placeholder="Search Q&amp;A" tabindex="1" autocomplete="off" maxlength="240" type="text">
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+    <script>
+        StackExchange.ready(function() { StackExchange.topbar.init(); });
+    </script>
+
+    <div class="container">
+        <div id="header">
+            <br class="cbt">
+            <div id="hlogo">
+                <a href="http://stackoverflow.com/">
+                    Stack Overflow
+                </a>
+            </div>
+            <div id="hmenus">
+                <div class="nav mainnavs">
+                    <ul>
+                        <li class="youarehere"><a id="nav-questions" href="http://stackoverflow.com/questions">Questions</a></li>
+                            <li><a id="nav-jobs" href="http://stackoverflow.com/jobs">Jobs</a></li>
+                        <li><a id="nav-tags" href="http://stackoverflow.com/tags">Tags</a></li>
+                        <li><a id="nav-users" href="http://stackoverflow.com/users">Users</a></li>
+                        <li><a id="nav-badges" href="http://stackoverflow.com/help/badges">Badges</a></li>
+                                            </ul>
+                </div>
+                <div class="nav askquestion">
+                    <ul>
+                        <li>
+                            <a id="nav-askquestion" href="http://stackoverflow.com/questions/ask">Ask Question</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+
+
+
+        <div id="content" class="snippet-hidden">
+            
+
+<div itemscope="" itemtype="http://schema.org/Question">
+    <link itemprop="image" href="http://cdn.sstatic.net/stackoverflow/img/apple-touch-icon.png?v=c78bd457575a">
+
+<div id="herobox">
+    <div id="hero-content">
+            <div id="close"><a title="click to minimize">_</a></div>
+        <div id="blurb">
+            Stack Overflow is a community of 4.7 million programmers, just like you, helping each other.
+            <br>
+                <br>Join them; it only takes a minute:<br>
+            <br>
+            <a href="http://stackoverflow.com/users/signup?ssrc=hero&amp;returnurl=http%3a%2f%2fstackoverflow.com%2fquestions%2f5929050%2fhow-does-asn-1-encode-an-object-identifier" id="tell-me-more" class="button">Sign up</a>
+        </div>
+        <div id="desc">
+            <b>Join the Stack Overflow community to:</b>
+            <ol id="hiw">
+                <li id="q">Ask programming questions
+                </li>
+                <li id="an">Answer and help your peers
+                </li>
+                <li id="b">Get recognized for your expertise
+                </li>
+            </ol>
+        </div>
+        <div style="clear: both"></div>
+    </div>
+    <script>
+        StackExchange.ready(function () {
+
+            var location = 0;
+            if ($("body").hasClass("questions-page")) {
+                location = 1;;
+            } else if ($("body").hasClass("question-page")) {
+                location = 1;;
+            } else if ($("body").hasClass("faq-page")) {
+                location = 5;;
+            } else if ($("body").hasClass("home-page")) {
+                location = 3;;
+            }
+
+            $('#tell-me-more').click(function () {
+                StackExchange.using("gps", function () {
+                    StackExchange.gps.track("hero.action", { hero_action_type: 'cta', location: location }, true);
+                });
+            });
+            $('#herobox #close').click(function () {
+                StackExchange.using("gps", function () {
+                    StackExchange.gps.track("hero.action", { hero_action_type: "minimize", location: location }, true);
+                });
+                $.cookie("hero", "mini", { path: "/", expires: 365 });
+                $.ajax({
+                    url: "/hero-mini",
+                    success: function (data) {
+                        $("#herobox").fadeOut("fast", function () {
+                            $("#herobox").replaceWith(data);
+                            $("#herobox-mini").fadeIn("fast");
+                        });
+                    }
+                });
+                return false;
+            });
+        });
+
+    </script>
+</div>
+			<div id="question-header">
+                <h1 itemprop="name"><a href="http://stackoverflow.com/questions/5929050/how-does-asn-1-encode-an-object-identifier" class="question-hyperlink">How does ASN.1 encode an object identifier?</a></h1>
+		</div>
+			<div id="mainbar">
+
+			
+
+<div class="question" data-questionid="5929050" id="question">
+
+    <div class="everyonelovesstackoverflow adzerk-vote" id="careers1"><a href="http://engine.adzerk.net/r?e=eyJhdiI6NDE0LCJhdCI6NCwiYnQiOjAsImNtIjozMjI1MTQsImNoIjoxMTc4LCJjayI6e30sImNyIjoxMjY5MTg0LCJkaSI6ImViZTJhODdmMDE4OTQ5NzhhYWQ5MGRmZTVkMzM5NDgzIiwiZG0iOjEsImZjIjoxMzY3OTM3LCJmbCI6ODY0MjI1LCJpcCI6IjEwOS4yLjI0OC42NiIsIm53IjoyMiwicGMiOjAsImVjIjowLCJwciI6MTYwNCwicnQiOjEsInJmIjoiaHR0cHM6Ly93d3cuZ29vZ2xlLmZyIiwic3QiOjgyNzcsInVrIjoidWUxLTk1YTBjY2U4NTcxMjRkMjhiNGNmMTg3OTg1MDMzMTgyIiwiem4iOjQzLCJ0cyI6MTQ1NjQ5ODQyNDA5NiwiYmYiOnRydWUsInBuIjoiY2FyZWVyczEiLCJ1ciI6Imh0dHA6Ly9zdGFja292ZXJmbG93LmNvbS9qb2JzL3JlbW90ZT91dG1fc291cmNlPXN0YWNrb3ZlcmZsb3cuY29tJnV0bV9tZWRpdW09YWQmdXRtX2NhbXBhaWduPWNhbmRpZGF0ZXMtd2ZoJnV0bV9jb250ZW50PWxiLXdmaC1raWQtd29yay1vbi13b3JrIn0&amp;s=Xk_mMTyTVK2jCa0oEVyAYIK8SSY" rel="nofollow" target="_blank" title=""><img src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/ca0f847878fc4be5bac353194231ef81.png" title="" alt="" border="0" height="90" width="728"></a><img src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/i_003.gif" style="position:absolute;" border="0" height="0px" width="0px"><div class="adzerk-vote-controls" style="display: none;"><div class="adzerk-vote-option adzerk-vote-up"><div class="adzerk-vote-icon"></div></div><div class="adzerk-vote-option adzerk-vote-down"><div class="adzerk-vote-icon"></div></div></div><div class="adzerk-vote-survey" style="display:none;"><form><span>No problem. We won't show you that ad again. Why didn't you like it?</span><ul><li><label><input value="12" name="downvoteReason" type="radio">Uninteresting</label></li><li><label><input value="13" name="downvoteReason" type="radio">Misleading</label></li><li><label><input value="14" name="downvoteReason" type="radio">Offensive</label></li><li><label><input value="15" name="downvoteReason" type="radio">Repetitive</label></li><li><label><input value="16" name="downvoteReason" type="radio">Other</label></li></ul><a href="#" class="adzerk-vote-cancel">Oops! I didn't mean to do this.</a></form></div></div>    <table>
+        <tbody><tr>
+            <td class="votecell">
+                
+
+<div class="vote">
+        <input name="_id_" value="5929050" type="hidden">
+        <a class="vote-up-off" title="This question shows research effort; it is useful and clear">up vote</a>
+        <span itemprop="upvoteCount" class="vote-count-post ">12</span>
+        <a class="vote-down-off" title="This question does not show any research effort; it is unclear or not useful">down vote</a>
+
+        <a class="star-off" href="#" title="This is a favorite question (click again to undo)">favorite</a>
+        <div class="favoritecount"><b>4</b></div>
+
+
+</div>
+
+            </td>
+            
+<td class="postcell">
+<div>
+    <div class="post-text" itemprop="text">
+
+<p>I am having trouble understanding the basic concepts of ASN.1.</p>
+
+<p>If a type is an OID, does the corresponding number get actually encoded in the binary data?</p>
+
+<p>For instance in this definition:</p>
+
+<pre><code>id-ad-ocsp         OBJECT IDENTIFIER ::= { id-ad 1 }
+</code></pre>
+
+<p>Does the corresponding 1.3.6.1.5.5.7.48.1 get encoded in the binary exactly like this?</p>
+
+<p>I am asking this because I am trying to understand a specific value I
+ see in a DER file (a certificate), which is 04020500, and I am not sure
+ how to interpret it.</p>
+    </div>
+    <div class="post-taglist">
+        <a href="http://stackoverflow.com/questions/tagged/security" class="post-tag js-gps-track" title="show questions tagged 'security'" rel="tag">security</a> <a href="http://stackoverflow.com/questions/tagged/encoding" class="post-tag js-gps-track" title="show questions tagged 'encoding'" rel="tag">encoding</a> <a href="http://stackoverflow.com/questions/tagged/binary" class="post-tag js-gps-track" title="show questions tagged 'binary'" rel="tag">binary</a> <a href="http://stackoverflow.com/questions/tagged/asn.1" class="post-tag js-gps-track" title="show questions tagged 'asn.1'" rel="tag">asn.1</a> 
+    </div>
+    <table class="fw">
+    <tbody><tr>
+    <td class="vt">
+<div class="post-menu"><a href="http://stackoverflow.com/q/5929050" title="short permalink to this question" class="short-link" id="link-post-5929050">share</a><span class="lsep">|</span><a href="http://stackoverflow.com/posts/5929050/edit" class="suggest-edit-post" title="">improve this question</a></div>        
+    </td>
+    <td class="post-signature" align="right">
+<div class="user-info user-hover">
+    <div class="user-action-time">
+        <a href="http://stackoverflow.com/posts/5929050/revisions" title="show all edits to this post">edited <span title="2011-08-13 12:48:13Z" class="relativetime">Aug 13 '11 at 12:48</span></a>
+    </div>
+    <div class="user-gravatar32">
+        <a href="http://stackoverflow.com/users/600500/pa%c5%adlo-ebermann"><div class="gravatar-wrapper-32"><img src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/5925786f174975db18cbc83dd85e5c1d.jpg" alt="" height="32" width="32"></div></a>
+    </div>
+    <div class="user-details">
+        <a href="http://stackoverflow.com/users/600500/pa%c5%adlo-ebermann">Paŭlo Ebermann</a>
+        <div class="-flair">
+            <span class="reputation-score" title="reputation score 44257" dir="ltr">44.3k</span><span title="9 gold badges"><span class="badge1"></span><span class="badgecount">9</span></span><span title="76 silver badges"><span class="badge2"></span><span class="badgecount">76</span></span><span title="137 bronze badges"><span class="badge3"></span><span class="badgecount">137</span></span>
+        </div>
+    </div>
+</div>    </td>
+    <td class="post-signature owner">
+        <div class="user-info ">
+    <div class="user-action-time">
+        asked <span title="2011-05-08 17:29:04Z" class="relativetime">May 8 '11 at 17:29</span>
+    </div>
+    <div class="user-gravatar32">
+        <a href="http://stackoverflow.com/users/384706/cratylus"><div class="gravatar-wrapper-32"><img src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/4d4c5200e64564047976e390fa9ed1cc.png" alt="" height="32" width="32"></div></a>
+    </div>
+    <div class="user-details">
+        <a href="http://stackoverflow.com/users/384706/cratylus">Cratylus</a>
+        <div class="-flair">
+            <span class="reputation-score" title="reputation score 25789" dir="ltr">25.8k</span><span title="30 gold badges"><span class="badge1"></span><span class="badgecount">30</span></span><span title="121 silver badges"><span class="badge2"></span><span class="badgecount">121</span></span><span title="231 bronze badges"><span class="badge3"></span><span class="badgecount">231</span></span>
+        </div>
+    </div>
+</div>
+    </td>
+    </tr>
+    </tbody></table>
+</div>
+</td>
+        </tr>
+                
+<tr>
+    <td class="votecell"></td>
+    <td>
+	    <div id="comments-5929050" class="comments  dno">
+		    <table>
+                <tbody data-remaining-comments-count="0" data-canpost="false" data-cansee="true" data-comments-unavailable="false" data-addlink-disabled="true">
+
+                        <tr><td></td><td></td></tr>
+                </tbody>
+		    </table>
+	    </div>
+
+        <div id="comments-link-5929050" data-rep="50" data-anon="true">
+
+                <a class="js-add-link comments-link disabled-link " title="Use comments to ask for more information or suggest improvements. Avoid answering questions in comments.">add a comment</a><span class="js-link-separator dno">&nbsp;|&nbsp;</span>
+            <a class="js-show-link comments-link dno" title="expand to show all comments on this post" href="#" onclick=""></a>
+        </div>         
+    </td>
+</tr>        </tbody></table>
+</div>
+
+			<div id="answers">
+
+				<a name="tab-top"></a>
+				<div id="answers-header">
+					<div class="subheader answers-subheader">
+						<h2>
+								3 Answers
+                                <span style="display:none;" itemprop="answerCount">3</span>
+						</h2>
+						<div>
+							<div id="tabs">
+        <a href="http://stackoverflow.com/questions/5929050/how-does-asn-1-encode-an-object-identifier?answertab=active#tab-top" data-nav-xhref="" title="Answers with the latest activity first" data-value="active">
+            active</a>
+        <a href="http://stackoverflow.com/questions/5929050/how-does-asn-1-encode-an-object-identifier?answertab=oldest#tab-top" data-nav-xhref="" title="Answers in the order they were provided" data-value="oldest">
+            oldest</a>
+        <a class="youarehere" href="http://stackoverflow.com/questions/5929050/how-does-asn-1-encode-an-object-identifier?answertab=votes#tab-top" data-nav-xhref="" title="Answers with the highest score first" data-value="votes">
+            votes</a>
+</div>
+						</div>
+					</div>    
+				</div>    
+
+
+
+
+  
+<a name="5929189"></a>
+<div id="answer-5929189" class="answer accepted-answer" data-answerid="5929189" itemscope="" itemtype="http://schema.org/Answer" itemprop="acceptedAnswer">
+    <table>
+        <tbody><tr>
+            <td class="votecell">
+                
+
+<div class="vote">
+        <input name="_id_" value="5929189" type="hidden">
+        <a class="vote-up-off" title="This answer is useful">up vote</a>
+        <span itemprop="upvoteCount" class="vote-count-post ">15</span>
+        <a class="vote-down-off" title="This answer is not useful">down vote</a>
+
+
+
+        <span class="vote-accepted-on load-accepted-answer-date" title="loading when this answer was accepted...">accepted</span>
+
+</div>
+
+            </td>
+            
+
+
+<td class="answercell">
+    <div class="post-text" itemprop="text">
+<p>Yes, the OID is encoded in the binary data. The OID 
+1.3.6.1.5.5.7.48.1 you mention becomes 2b 06 01 05 05 07 30 01 (the 
+first two numbers are encoded in a single byte, all remaining numbers 
+are encoded in a single bytes as well because they're all smaller than 
+128).</p>
+
+<p>A nice description of OID encoding is found <a href="http://msdn.microsoft.com/en-us/library/bb540809%28v=vs.85%29.aspx">here</a>.</p>
+
+<p>But the best way to analyze your ASN.1 data is to paste in into an online decoder, e.g. <a href="http://lapo.it/asn1js/">http://lapo.it/asn1js/</a>.</p>
+    </div>
+    <table class="fw">
+    <tbody><tr>
+    <td class="vt">
+<div class="post-menu"><a href="http://stackoverflow.com/a/5929189" title="short permalink to this answer" class="short-link" id="link-post-5929189">share</a><span class="lsep">|</span><a href="http://stackoverflow.com/posts/5929189/edit" class="suggest-edit-post" title="">improve this answer</a></div>                    </td>
+            
+
+
+    <td class="post-signature" align="right">   
+       
+
+    <div class="user-info ">
+    <div class="user-action-time">
+        answered <span title="2011-05-08 17:57:11Z" class="relativetime">May 8 '11 at 17:57</span>
+    </div>
+    <div class="user-gravatar32">
+        <a href="http://stackoverflow.com/users/413337/codo"><div class="gravatar-wrapper-32"><img src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/783783f968e84cf5047544e9a0f3ccf4.png" alt="" height="32" width="32"></div></a>
+    </div>
+    <div class="user-details">
+        <a href="http://stackoverflow.com/users/413337/codo">Codo</a>
+        <div class="-flair">
+            <span class="reputation-score" title="reputation score 34715" dir="ltr">34.7k</span><span title="7 gold badges"><span class="badge1"></span><span class="badgecount">7</span></span><span title="71 silver badges"><span class="badge2"></span><span class="badgecount">71</span></span><span title="115 bronze badges"><span class="badge3"></span><span class="badgecount">115</span></span>
+        </div>
+    </div>
+</div>
+    </td>
+    </tr>
+    </tbody></table>
+</td>
+        </tr>
+            
+<tr>
+    <td class="votecell"></td>
+    <td>
+	    <div id="comments-5929189" class="comments ">
+		    <table>
+                <tbody data-remaining-comments-count="2" data-canpost="false" data-cansee="true" data-comments-unavailable="false" data-addlink-disabled="true">
+
+
+
+    <tr id="comment-6831181" class="comment ">
+        <td>
+            <table>
+                <tbody>
+                    <tr>
+                        <td class=" comment-score">
+                                &nbsp;&nbsp;
+                        </td>
+                        <td>
+                                &nbsp;
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </td>
+        <td class="comment-text">
+            <div style="display: block;" class="comment-body">
+                <span class="comment-copy">+1 for the asn.1 decoder. thanks. if i'd only known then ... :-)</span>
+                    –&nbsp;<a href="http://stackoverflow.com/users/371181/pete-wilson" title="5959 reputation" class="comment-user">Pete Wilson</a>
+                <span class="comment-date" dir="ltr"><a class="comment-link" href="#comment6831181_5929189"><span title="2011-05-08 18:11:28Z" class="relativetime-clean">May 8 '11 at 18:11</span></a></span>
+                                                                            </div>
+                    </td>
+    </tr>
+    <tr id="comment-6831326" class="comment ">
+        <td>
+            <table>
+                <tbody>
+                    <tr>
+                        <td class=" comment-score">
+                                &nbsp;&nbsp;
+                        </td>
+                        <td>
+                                &nbsp;
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </td>
+        <td class="comment-text">
+            <div style="display: block;" class="comment-body">
+                <span class="comment-copy">But how can I know what is a 
+valid value for a specific OID? In my case for OID 1.3.6.1.5.5.7.48.1.5 
+the value (as I understand) is 04020500. Does it have a specific 
+interpretation?</span>
+                    –&nbsp;<a href="http://stackoverflow.com/users/384706/cratylus" title="25789 reputation" class="comment-user owner">Cratylus</a>
+                <span class="comment-date" dir="ltr"><a class="comment-link" href="#comment6831326_5929189"><span title="2011-05-08 18:27:28Z" class="relativetime-clean">May 8 '11 at 18:27</span></a></span>
+                                                                            </div>
+                    </td>
+    </tr>
+    <tr id="comment-6832706" class="comment ">
+        <td>
+            <table>
+                <tbody>
+                    <tr>
+                        <td class=" comment-score">
+                                &nbsp;&nbsp;
+                        </td>
+                        <td>
+                                &nbsp;
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </td>
+        <td class="comment-text">
+            <div style="display: block;" class="comment-body">
+                <span class="comment-copy">Out of the cntext, it's very difficult to tell what 04020500 is. It doesn't look like an OID at all.</span>
+                    –&nbsp;<a href="http://stackoverflow.com/users/413337/codo" title="34715 reputation" class="comment-user">Codo</a>
+                <span class="comment-date" dir="ltr"><a class="comment-link" href="#comment6832706_5929189"><span title="2011-05-08 21:00:11Z" class="relativetime-clean">May 8 '11 at 21:00</span></a></span>
+                                                                            </div>
+                    </td>
+    </tr>
+    <tr id="comment-6836330" class="comment ">
+        <td>
+            <table>
+                <tbody>
+                    <tr>
+                        <td class=" comment-score">
+                                &nbsp;&nbsp;
+                        </td>
+                        <td>
+                                &nbsp;
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </td>
+        <td class="comment-text">
+            <div style="display: block;" class="comment-body">
+                <span class="comment-copy">It is the value for 
+1.3.6.1.5.5.7.48.1.5. But I can not find what the legit values for this 
+OID is. The RFC says that this OID should have NULL value.I am not sure 
+if 04020500 somehow represents a null value</span>
+                    –&nbsp;<a href="http://stackoverflow.com/users/384706/cratylus" title="25789 reputation" class="comment-user owner">Cratylus</a>
+                <span class="comment-date" dir="ltr"><a class="comment-link" href="#comment6836330_5929189"><span title="2011-05-09 05:51:20Z" class="relativetime-clean">May 9 '11 at 5:51</span></a></span>
+                                                                            </div>
+                    </td>
+    </tr>
+    <tr id="comment-8429194" class="comment ">
+        <td class="comment-actions">
+            <table>
+                <tbody>
+                    <tr>
+                        <td class=" comment-score">
+                                <span title="number of 'useful comment' votes received" class="cool">2</span>
+                        </td>
+                        <td>
+                                &nbsp;
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </td>
+        <td class="comment-text">
+            <div style="display: block;" class="comment-body">
+                <span class="comment-copy">04020500 is an octet string (04) with two bytes (02) encoding a NULL (05 with length 00).</span>
+                    –&nbsp;<a href="http://stackoverflow.com/users/111886/omri-barel" title="5264 reputation" class="comment-user">Omri Barel</a>
+                <span class="comment-date" dir="ltr"><a class="comment-link" href="#comment8429194_5929189"><span title="2011-08-13 13:32:18Z" class="relativetime-clean">Aug 13 '11 at 13:32</span></a></span>
+                                                                            </div>
+                    </td>
+    </tr>
+                </tbody>
+		    </table>
+	    </div>
+
+        <div id="comments-link-5929189" data-rep="50" data-anon="true">
+
+                <a class="js-add-link comments-link  dno" title="Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”."></a><span class="js-link-separator dno">&nbsp;|&nbsp;</span>
+            <a class="js-show-link comments-link " title="expand to show all comments on this post" href="#" onclick="">show <b>2</b> more comments</a>
+        </div>         
+    </td>
+</tr>    </tbody></table>
+</div>
+<div class="everyonelovesstackoverflow adzerk-vote" id="careers3"><a href="http://engine.adzerk.net/r?e=eyJhdiI6NDE0LCJhdCI6NCwiYnQiOjAsImNtIjozMjI1MTQsImNoIjoxMTc4LCJjayI6e30sImNyIjoxMTk1NzgyLCJkaSI6IjliZWFiODRhMGYzOTQ2NDk5N2Q3MzhkNmFkM2IwNTgxIiwiZG0iOjEsImZjIjoxMjY5MTQxLCJmbCI6ODY0MjI1LCJpcCI6IjEwOS4yLjI0OC42NiIsIm53IjoyMiwicGMiOjAsImVjIjowLCJwciI6MTYwNCwicnQiOjEsInJmIjoiaHR0cHM6Ly93d3cuZ29vZ2xlLmZyIiwic3QiOjgyNzcsInVrIjoidWUxLTk1YTBjY2U4NTcxMjRkMjhiNGNmMTg3OTg1MDMzMTgyIiwiem4iOjQ0LCJ0cyI6MTQ1NjQ5ODQyNDA5OSwiYmYiOnRydWUsInBuIjoiY2FyZWVyczMiLCJ1ciI6Imh0dHA6Ly9jYXJlZXJzLnN0YWNrb3ZlcmZsb3cuY29tL3Byb2R1Y3RzP3V0bV9zb3VyY2U9c3RhY2tvdmVyZmxvdy5jb20mdXRtX21lZGl1bT1hZCZ1dG1fY2FtcGFpZ249ZW1wbG95ZXJzLWJlc3Qtd2F5JnV0bV9jb250ZW50PWxiLXVzZSJ9&amp;s=dHvi0iQwO8vEgz9Z8CC4_drGhlE" rel="nofollow" target="_blank" title=""><img src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/b74c41bde9504109a4623df78be18903.png" title="" alt="" border="0" height="90" width="728"></a><img src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/i_002.gif" style="position:absolute;" border="0" height="0px" width="0px"><div class="adzerk-vote-controls" style="display: none;"><div class="adzerk-vote-option adzerk-vote-up"><div class="adzerk-vote-icon"></div></div><div class="adzerk-vote-option adzerk-vote-down"><div class="adzerk-vote-icon"></div></div></div><div class="adzerk-vote-survey" style="display:none;"><form><span>No problem. We won't show you that ad again. Why didn't you like it?</span><ul><li><label><input value="12" name="downvoteReason" type="radio">Uninteresting</label></li><li><label><input value="13" name="downvoteReason" type="radio">Misleading</label></li><li><label><input value="14" name="downvoteReason" type="radio">Offensive</label></li><li><label><input value="15" name="downvoteReason" type="radio">Repetitive</label></li><li><label><input value="16" name="downvoteReason" type="radio">Other</label></li></ul><a href="#" class="adzerk-vote-cancel">Oops! I didn't mean to do this.</a></form></div></div>
+  
+<a name="24720842"></a>
+<div id="answer-24720842" class="answer" data-answerid="24720842" itemscope="" itemtype="http://schema.org/Answer">
+    <table>
+        <tbody><tr>
+            <td class="votecell">
+                
+
+<div class="vote">
+        <input name="_id_" value="24720842" type="hidden">
+        <a class="vote-up-off" title="This answer is useful">up vote</a>
+        <span itemprop="upvoteCount" class="vote-count-post ">6</span>
+        <a class="vote-down-off" title="This answer is not useful">down vote</a>
+
+
+
+
+</div>
+
+            </td>
+            
+
+
+<td class="answercell">
+    <div class="post-text" itemprop="text">
+<p>If all your digits are less than or equal to 127 then you are <em>very</em>
+ lucky because they can be represented with a single octet each. The 
+tricky part is when you have larger numbers which are common, such as <code>1.2.840.113549.1.1.5 (sha1WithRsaEncryption)</code>. These examples focus on decoding, but encoding is just the opposite.</p>
+
+<p><strong>1. First two 'digits' are represented with a single byte</strong></p>
+
+<p>You can decode by reading the first byte into an integer</p>
+
+<pre><code>var firstByteNumber = 42;
+var firstDigit = firstByteNumber / 40;
+var secondDigit = firstByteNumber % 40;
+</code></pre>
+
+<p>Produces the values</p>
+
+<pre><code>1.2
+</code></pre>
+
+<p><strong>2. Subsequent bytes are represented using <a href="http://en.wikipedia.org/wiki/Variable-length_quantity">Variable Length Quantity</a>, also called base 128.</strong> </p>
+
+<p>VLQ has two forms,</p>
+
+<p>Short Form - If the octet starts with 0, then it is simply represented using the remaining 7 bits.</p>
+
+<p>Long Form - If the octet starts with a 1 (most significant bit), 
+combine the next 7 bits of that octet plus the 7 bits of each subsequent
+ octet until you come across an octet with a 0 as the most significant 
+bit (this marks the last octet).</p>
+
+<p>The value 840 would be represented with the following two bytes,</p>
+
+<pre><code>10000110
+01001000
+
+Combine to 00001101001000 and read as int.
+</code></pre>
+
+<hr>
+
+<p>Great resource for BER encoding, <a href="http://luca.ntop.org/Teaching/Appunti/asn1.html">http://luca.ntop.org/Teaching/Appunti/asn1.html</a></p>
+
+<blockquote>
+  <p>The first octet has value 40 * value1 + value2. (This is unambiguous,
+  since value1 is limited to values 0, 1, and 2; value2 is limited to
+  the range 0 to 39 when value1 is 0 or 1; and, according to X.208, n is
+  always at least 2.) </p>
+  
+  <p>The following octets, if any, encode value3, ...,
+  valuen. Each value is encoded base 128, most significant digit first,
+  with as few digits as possible, and the most significant bit of each
+  octet except the last in the value's encoding set to "1." Example: The
+  first octet of the BER encoding of RSA Data Security, Inc.'s object
+  identifier is 40 * 1 + 2 = 42 = 2a16. The encoding of 840 = 6 * 128 +
+  4816 is 86 48 and the encoding of 113549 = 6 * 1282 + 7716 * 128 + d16
+  is 86 f7 0d. This leads to the following BER encoding:</p>
+  
+  <p>06 06 2a 86 48 86 f7 0d</p>
+</blockquote>
+
+<hr>
+
+<p>Finally, here is a OID decoder I just wrote in Perl.</p>
+
+<pre><code>sub getOid {
+    my $bytes = shift;
+
+    #first 2 nodes are 'special';
+    use integer;
+    my $firstByte = shift @$bytes;
+    my $number = unpack "C", $firstByte;
+    my $nodeFirst = $number / 40;
+    my $nodeSecond = $number % 40;
+
+    my @oidDigits = ($nodeFirst, $nodeSecond);
+
+    while (@$bytes) {
+        my $num = convertFromVLQ($bytes);
+        push @oidDigits, $num;
+    }
+
+    return join '.', @oidDigits;
+}
+
+sub convertFromVLQ {
+    my $bytes = shift;
+
+    my $firstByte = shift @$bytes;
+    my $bitString = unpack "B*", $firstByte;
+
+    my $firstBit = substr $bitString, 0, 1;
+    my $remainingBits = substr $bitString, 1, 7;
+
+    my $remainingByte = pack "B*", '0' . $remainingBits;
+    my $remainingInt = unpack "C", $remainingByte;
+
+    if ($firstBit eq '0') {
+        return $remainingInt;
+    }
+    else {
+        my $bitBuilder = $remainingBits;
+
+        my $nextFirstBit = "1";
+        while ($nextFirstBit eq "1") {
+            my $nextByte = shift @$bytes;
+            my $nextBits = unpack "B*", $nextByte;
+
+            $nextFirstBit = substr $nextBits, 0, 1;
+            my $nextSevenBits = substr $nextBits, 1, 7;
+
+            $bitBuilder .= $nextSevenBits;
+        }
+
+        my $MAX_BITS = 32;
+        my $missingBits = $MAX_BITS - (length $bitBuilder);
+        my $padding = 0 x $missingBits;
+        $bitBuilder = $padding . $bitBuilder;
+
+        my $finalByte = pack "B*", $bitBuilder;
+        my $finalNumber = unpack "N", $finalByte;
+        return $finalNumber;
+    }
+
+}
+</code></pre>
+    </div>
+    <table class="fw">
+    <tbody><tr>
+    <td class="vt">
+<div class="post-menu"><a href="http://stackoverflow.com/a/24720842" title="short permalink to this answer" class="short-link" id="link-post-24720842">share</a><span class="lsep">|</span><a href="http://stackoverflow.com/posts/24720842/edit" class="suggest-edit-post" title="">improve this answer</a></div>                    </td>
+    <td class="post-signature" align="right">
+<div class="user-info ">
+    <div class="user-action-time">
+        <a href="http://stackoverflow.com/posts/24720842/revisions" title="show all edits to this post">edited <span title="2014-07-14 03:16:43Z" class="relativetime">Jul 14 '14 at 3:16</span></a>
+    </div>
+    <div class="user-gravatar32">
+        
+    </div>
+    <div class="user-details">
+        
+        <div class="-flair">
+            
+        </div>
+    </div>
+</div>    </td>
+            
+
+
+    <td class="post-signature" align="right">   
+       
+
+    <div class="user-info ">
+    <div class="user-action-time">
+        answered <span title="2014-07-13 08:28:10Z" class="relativetime">Jul 13 '14 at 8:28</span>
+    </div>
+    <div class="user-gravatar32">
+        <a href="http://stackoverflow.com/users/1160036/despertar"><div class="gravatar-wrapper-32"><img src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/4AkVQ.jpg" alt="" height="32" width="32"></div></a>
+    </div>
+    <div class="user-details">
+        <a href="http://stackoverflow.com/users/1160036/despertar">Despertar</a>
+        <div class="-flair">
+            <span class="reputation-score" title="reputation score " dir="ltr">9,565</span><span title="2 gold badges"><span class="badge1"></span><span class="badgecount">2</span></span><span title="39 silver badges"><span class="badge2"></span><span class="badgecount">39</span></span><span title="49 bronze badges"><span class="badge3"></span><span class="badgecount">49</span></span>
+        </div>
+    </div>
+</div>
+    </td>
+    </tr>
+    </tbody></table>
+</td>
+        </tr>
+            
+<tr>
+    <td class="votecell"></td>
+    <td>
+	    <div id="comments-24720842" class="comments ">
+		    <table>
+                <tbody data-remaining-comments-count="0" data-canpost="false" data-cansee="true" data-comments-unavailable="false" data-addlink-disabled="true">
+
+
+
+    <tr id="comment-53423720" class="comment ">
+        <td>
+            <table>
+                <tbody>
+                    <tr>
+                        <td class=" comment-score">
+                                &nbsp;&nbsp;
+                        </td>
+                        <td>
+                                &nbsp;
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </td>
+        <td class="comment-text">
+            <div style="display: block;" class="comment-body">
+                <span class="comment-copy">I am not sure that your code 
+for decoding the first two digits is correct. Consider the example from 
+T-REC-X.690 of { 2 100 3 }. For that the first byte would be 180. So to 
+decode it seems that your solution works if the first byte is less than 
+80. Anything greater than or equal to 80 means that the first digit is 
+2, and the second can be found by subtracting 80.</span>
+                    –&nbsp;<a href="http://stackoverflow.com/users/1198203/peter-friend" title="320 reputation" class="comment-user">Peter Friend</a>
+                <span class="comment-date" dir="ltr"><a class="comment-link" href="#comment53423720_24720842"><span title="2015-09-26 00:53:28Z" class="relativetime-clean">Sep 26 '15 at 0:53</span></a></span>
+                                                                            </div>
+                    </td>
+    </tr>
+                </tbody>
+		    </table>
+	    </div>
+
+        <div id="comments-link-24720842" data-rep="50" data-anon="true">
+
+                <a class="js-add-link comments-link disabled-link " title="Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.">add a comment</a><span class="js-link-separator dno">&nbsp;|&nbsp;</span>
+            <a class="js-show-link comments-link dno" title="expand to show all comments on this post" href="#" onclick=""></a>
+        </div>         
+    </td>
+</tr>    </tbody></table>
+</div>
+
+  
+<a name="25786793"></a>
+<div id="answer-25786793" class="answer" data-answerid="25786793" itemscope="" itemtype="http://schema.org/Answer">
+    <table>
+        <tbody><tr>
+            <td class="votecell">
+                
+
+<div class="vote">
+        <input name="_id_" value="25786793" type="hidden">
+        <a class="vote-up-off" title="This answer is useful">up vote</a>
+        <span itemprop="upvoteCount" class="vote-count-post ">2</span>
+        <a class="vote-down-off" title="This answer is not useful">down vote</a>
+
+
+
+
+</div>
+
+            </td>
+            
+
+
+<td class="answercell">
+    <div class="post-text" itemprop="text">
+<p>OID encoding for dummies :) :</p>
+
+<ul>
+<li>each OID component is encoded to one or more bytes (octets)</li>
+<li>OID encoding is just a concatenation of these OID component encodings</li>
+<li>first two components are encoded in a special way (see below)</li>
+<li>if OID component binary value has less than 7 bits, the encoding is 
+just a single octet, holding the component value (note, most significant
+ bit, leftmost, will always be 0)</li>
+<li>otherwise, if it has 8 and more bits, the value is "spread" into 
+multiple octets - split the binary representation into 7 bit chunks 
+(from right), left-pad the first one with zeroes if needed, and form 
+octets from these septets by adding most significant (left) bit 1, 
+except from the last chunk, which will have bit 0 there.</li>
+<li>first two components (X.Y) are encoded like it is a single component with a value 40*X + Y</li>
+</ul>
+
+<p>This is a rewording of ITU-T recommendation <strong>X.690</strong>, chapter <strong>8.19</strong></p>
+    </div>
+    <table class="fw">
+    <tbody><tr>
+    <td class="vt">
+<div class="post-menu"><a href="http://stackoverflow.com/a/25786793" title="short permalink to this answer" class="short-link" id="link-post-25786793">share</a><span class="lsep">|</span><a href="http://stackoverflow.com/posts/25786793/edit" class="suggest-edit-post" title="">improve this answer</a></div>                    </td>
+            
+
+
+    <td class="post-signature" align="right">   
+       
+
+    <div class="user-info ">
+    <div class="user-action-time">
+        answered <span title="2014-09-11 11:54:04Z" class="relativetime">Sep 11 '14 at 11:54</span>
+    </div>
+    <div class="user-gravatar32">
+        <a href="http://stackoverflow.com/users/234248/mykhal"><div class="gravatar-wrapper-32"><img src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/2e3e7f03ab2e85c1be14975ebc9945bf.png" alt="" height="32" width="32"></div></a>
+    </div>
+    <div class="user-details">
+        <a href="http://stackoverflow.com/users/234248/mykhal">mykhal</a>
+        <div class="-flair">
+            <span class="reputation-score" title="reputation score " dir="ltr">7,790</span><span title="2 gold badges"><span class="badge1"></span><span class="badgecount">2</span></span><span title="41 silver badges"><span class="badge2"></span><span class="badgecount">41</span></span><span title="67 bronze badges"><span class="badge3"></span><span class="badgecount">67</span></span>
+        </div>
+    </div>
+</div>
+    </td>
+    </tr>
+    </tbody></table>
+</td>
+        </tr>
+            
+<tr>
+    <td class="votecell"></td>
+    <td>
+	    <div id="comments-25786793" class="comments  dno">
+		    <table>
+                <tbody data-remaining-comments-count="0" data-canpost="false" data-cansee="true" data-comments-unavailable="false" data-addlink-disabled="true">
+
+                        <tr><td></td><td></td></tr>
+                </tbody>
+		    </table>
+	    </div>
+
+        <div id="comments-link-25786793" data-rep="50" data-anon="true">
+
+                <a class="js-add-link comments-link disabled-link " title="Use comments to ask for more information or suggest improvements. Avoid comments like “+1” or “thanks”.">add a comment</a><span class="js-link-separator dno">&nbsp;|&nbsp;</span>
+            <a class="js-show-link comments-link dno" title="expand to show all comments on this post" href="#" onclick=""></a>
+        </div>         
+    </td>
+</tr>    </tbody></table>
+</div>
+									<a name="new-answer"></a>
+						<form id="post-form" action="/questions/5929050/answer/submit" method="post" class="post-form">
+						    <input id="post-id" value="5929050" type="hidden">
+                            <input id="qualityBanWarningShown" name="qualityBanWarningShown" value="false" type="hidden">
+                            <input name="referrer" value="https://www.google.fr" type="hidden">
+							<h2 class="space">Your Answer</h2>
+
+
+            <script>
+            StackExchange.ifUsing("editor", function () {
+                StackExchange.using("externalEditor", function () {
+                    StackExchange.using("snippets", function () {
+                        StackExchange.snippets.init();
+                    });
+                });
+            }, "code-snippets");
+        </script>
+    
+
+<script>
+    StackExchange.ready(function() {
+        initTagRenderer("".split(" "), "".split(" "));
+       
+        StackExchange.using("externalEditor", function() {
+                // Have to fire editor after snippets, if snippets enabled
+                if (StackExchange.options.snippets.enabled) {
+                    StackExchange.using("snippets", function() {
+                        createEditor();
+                    });
+                }
+                else {
+                    createEditor();
+                }
+            });
+
+            function createEditor() {
+                prepareEditor({
+                    heartbeatType: 'answer',
+                convertImagesToLinks: true,
+                reputationToPostImages: 10,
+                bindNavPrevention: true,
+                postfix: "",
+                    onDemand: true,
+                    discardSelector: ".discard-answer"
+                    ,immediatelyShowMarkdownHelp:true
+                    });
+                
+
+        }
+    });  
+</script>
+
+
+<div id="post-editor" class="post-editor js-post-editor">
+
+    <div style="position: relative;">     
+        <div class="wmd-container">
+            <div id="wmd-button-bar" class="wmd-button-bar"><ul id="wmd-button-row" class="wmd-button-row"><li style="left: 0px;" class="wmd-button" id="wmd-bold-button"><span style="background-position: 0px -20px;"></span></li><li style="left: 25px;" class="wmd-button" id="wmd-italic-button"><span style="background-position: -20px -20px;"></span></li><li style="left: 50px;" class="wmd-spacer" id="wmd-spacer1"><span style="background-position: -40px -20px;"></span></li><li style="left: 75px;" class="wmd-button" id="wmd-link-button"><span style="background-position: -40px -20px;"></span></li><li style="left: 100px;" class="wmd-button" id="wmd-quote-button"><span style="background-position: -60px -20px;"></span></li><li style="left: 125px;" class="wmd-button" id="wmd-code-button"><span style="background-position: -80px -20px;"></span></li><li style="left: 150px;" class="wmd-button" id="wmd-image-button"><span style="background-position: -100px -20px;"></span></li><li style="left: 175px;" class="wmd-spacer" id="wmd-spacer2"><span style="background-position: -120px -20px;"></span></li><li style="left: 200px;" class="wmd-button" id="wmd-olist-button"><span style="background-position: -120px -20px;"></span></li><li style="left: 225px;" class="wmd-button" id="wmd-ulist-button"><span style="background-position: -140px -20px;"></span></li><li style="left: 250px;" class="wmd-button" id="wmd-heading-button"><span style="background-position: -160px -20px;"></span></li><li style="left: 275px;" class="wmd-button" id="wmd-hr-button"><span style="background-position: -180px -20px;"></span></li><li style="left: 300px;" class="wmd-spacer" id="wmd-spacer3"><span style="background-position: -200px -20px;"></span></li><li style="left: 325px;" class="wmd-button" id="wmd-undo-button"><span style="background-position: -200px -20px;"></span></li><li style="left: 350px;" class="wmd-button" id="wmd-redo-button"><span style="background-position: -220px -20px;"></span></li></ul></div>
+            <textarea id="wmd-input" class="wmd-input" name="post-text" cols="92" rows="15" tabindex="101" data-min-length=""></textarea>
+        </div>
+    </div>
+
+    <div class="fl" style="margin-top: 8px; height:24px;">&nbsp;</div>
+    <div id="draft-saved" class="draft-saved community-option fl" style="margin-top: 8px; height:24px; display:none;">draft saved</div>
+
+    <div id="draft-discarded" class="draft-discarded community-option fl" style="margin-top: 8px; height:24px; display:none;">draft discarded</div>
+
+
+
+    <div id="wmd-preview" class="wmd-preview"></div>
+    <div></div>
+    <div class="edit-block">
+        <input id="fkey" name="fkey" value="6d8561d5b48756c8fabffcf9da2c4ccf" type="hidden">
+        <input id="author" name="author" type="text">
+    </div>
+
+
+
+</div>
+							<div style="position: relative;">
+								
+								            <div class="form-item new-post-login">
+        
+                <div class="new-login-form">
+                    <div class="new-login-left">
+                        <h3>Sign up or <a id="login-link" href="http://stackoverflow.com/users/login?ssrc=question_page&amp;returnurl=http%3a%2f%2fstackoverflow.com%2fquestions%2f5929050%2fhow-does-asn-1-encode-an-object-identifier%23new-answer">log in</a></h3>
+                        <script>
+                            StackExchange.ready(function () {
+                                StackExchange.helpers.onClickDraftSave('#login-link');
+                            });
+                        </script>
+                        <div class="preferred-login google-login">
+                            <p><span class="icon"></span><span>Sign up using Google</span></p>
+                        </div>
+                        <div class="preferred-login facebook-login">
+                            <p><span class="icon"></span><span>Sign up using Facebook</span></p>
+                        </div>
+                        <div class="preferred-login stackexchange-login">
+                            <p><span class="icon"></span><span>Sign up using Email and Password</span></p>
+                        </div>
+                    </div>
+                    <input name="manual-openid" class="manual-openid" type="hidden">
+                    <input name="use-facebook" class="use-facebook" value="false" type="hidden">
+                    <input name="use-google" class="use-google" value="false" type="hidden">
+                    <input class="submit-openid" value="Submit" style="display:none" type="button">
+                    <div class="new-login-right">
+                                <h3>Post as a guest</h3>
+    <div class="form-item">
+        <table>
+        <tbody><tr>
+                    <td class="vm">
+                <div>
+                    <label for="display-name">Name</label>
+                    <input id="display-name" name="display-name" size="30" maxlength="30" tabindex="105" type="text">
+                </div>
+                <div>
+                    <label for="m-address">Email</label>
+                    <input id="m-address" name="m-address" size="30" maxlength="100" tabindex="106" placeholder="required, but never shown" type="email">
+                </div>
+            </td>
+        </tr>
+        </tbody></table>
+    </div>
+
+                    </div>
+                </div>
+            </div>
+            <script>
+                StackExchange.ready(
+                    function () {
+                        StackExchange.openid.initPostLogin('.new-post-login', 'http%3a%2f%2fstackoverflow.com%2fquestions%2f5929050%2fhow-does-asn-1-encode-an-object-identifier%23new-answer', 'question_page');
+                    }
+                );
+            </script>
+            <noscript>
+                        <h3>Post as a guest</h3>
+    <div class="form-item">
+        <table>
+        <tr>
+                    <td class="vm">
+                <div>
+                    <label for="display-name">Name</label>
+                    <input id="display-name" name="display-name" type="text" size="30" maxlength="30" value="" tabindex="105">
+                </div>
+                <div>
+                    <label for="m-address">Email</label>
+                    <input id="m-address" name="m-address" type="email" size="30" maxlength="100" value="" tabindex="106" placeholder="required, but never shown" />
+                </div>
+            </td>
+        </tr>
+        </table>
+    </div>
+
+            </noscript>
+
+							</div>
+           
+															<div class="form-submit cbt">
+									<input id="submit-button" value="Post Your Answer" tabindex="110" type="submit">
+									<a href="#" class="discard-answer dno">discard</a>
+
+<p class="privacy-policy-agreement">
+By posting your answer, you agree to the <a href="http://stackexchange.com/legal/privacy-policy" target="_blank">privacy policy</a> and <a href="http://stackexchange.com/legal/terms-of-service" target="_blank">terms of service</a>.</p>
+<input name="legalLinksShown" value="1" type="hidden">								</div>
+						</form>
+
+
+
+						<h2 class="bottom-notice" data-loc="1">
+Not the answer you're looking for?							Browse other questions tagged <a href="http://stackoverflow.com/questions/tagged/security" class="post-tag" title="show questions tagged 'security'" rel="tag">security</a> <a href="http://stackoverflow.com/questions/tagged/encoding" class="post-tag" title="show questions tagged 'encoding'" rel="tag">encoding</a> <a href="http://stackoverflow.com/questions/tagged/binary" class="post-tag" title="show questions tagged 'binary'" rel="tag">binary</a> <a href="http://stackoverflow.com/questions/tagged/asn.1" class="post-tag" title="show questions tagged 'asn.1'" rel="tag">asn.1</a>  or <a href="http://stackoverflow.com/questions/ask">ask your own question</a>.						</h2>
+			</div>
+		</div>
+				<div id="sidebar" class="show-votes">
+						    <div class="module question-stats">
+			        <table id="qinfo">
+			            <tbody><tr>
+			                <td>
+			                    <p class="label-key">asked</p>
+			                </td>
+			                <td style="padding-left: 10px">
+			                    <p class="label-key" title="2011-05-08 17:29:04Z"><b>4 years ago</b></p>
+			                </td>
+			            </tr>
+			            <tr>
+			                <td>
+			                    <p class="label-key">viewed</p>
+			                </td>
+
+			                <td style="padding-left: 10px">
+			                    <p class="label-key">
+			                        <b>10949 times</b>
+			                    </p>
+			                </td>
+			            </tr>
+			                <tr>
+			                    <td>
+			                        <p class="label-key">active</p>
+			                    </td>
+			                    <td style="padding-left: 10px">
+			                        <p class="label-key"><b><a href="http://stackoverflow.com/questions/5929050/how-does-asn-1-encode-an-object-identifier?lastactivity" class="lastactivity-link" title="2014-09-11 11:54:04Z">1 year ago</a></b></p>
+			                    </td>
+			                </tr>
+			        </tbody></table>
+			    </div>
+						
+			<div class="everyonelovesstackoverflow" id="careers2">
+        </div>
+        <div class=" tagthemedcsharp tag-themed csharp tagged" id="hireme"><a href="http://stackoverflow.com/jobs/tag/c%23" target="_blank" data-tz="1" data-ti="2" class="top"><span>Want a <span class="header-tag">c#</span> job?</span></a><div class="middle"><ul class="jobs"><li><a data-at="0" data-tz="3" data-ti="143924" href="http://stackoverflow.com/jobs/57453/senior-software-developer-criteo" target="_blank" title="Senior Software Developer at Criteo. Click to learn more.">Senior Software Developer<br><div class="company">Criteo</div><div class="location" title="Paris, France / relocation">Paris, France / relocation</div><span class="post-tag highlight js-gps-track">c#</span><span class="post-tag js-gps-track">c++</span></a></li><li><a data-at="0" data-tz="3" data-ti="209524" href="http://stackoverflow.com/jobs/109524/ing%C3%A9nieur-d%C3%A9veloppeur-logiciel-net-editeur-genetec" target="_blank" title="Ingénieur Développeur Logiciel .NET - Editeur International at GENETEC. Click to learn more.">Ingénieur Développeur Logiciel .NET - Editeur International<br><div class="company">GENETEC</div><div class="location" title="Paris, France">Paris, France</div><span class="post-tag highlight js-gps-track">c#</span><span class="post-tag js-gps-track">.net</span></a></li><li><a data-at="0" data-tz="3" data-ti="133497" href="http://stackoverflow.com/jobs/47026/criteoseniordevelopercs-senior-software-criteo" target="_blank" title="// CriteoSeniorDeveloper.cs - Senior Software Engineer in Paris, France at Criteo. Click to learn more.">// CriteoSeniorDeveloper.cs - Senior Software Engineer in Paris, France<br><div class="company">Criteo</div><div class="location" title="Paris, France / relocation">Paris, France / relocation</div><span class="post-tag highlight js-gps-track">c#</span><span class="post-tag js-gps-track">c++</span></a></li><li><a data-at="0" data-tz="3" data-ti="194096" href="http://stackoverflow.com/jobs/108183/recherche-jedi-du-c-sharp-finaxys" target="_blank" title="Recherche Jedi du C#! at FINAXYS. Click to learn more.">Recherche Jedi du C#!<br><div class="company">FINAXYS</div><div class="location" title="Neuilly-sur-Seine, France">Neuilly-sur-Seine, France</div><span class="post-tag highlight js-gps-track">c#</span><span class="post-tag js-gps-track">asp.net-mvc</span></a></li></ul></div><img class="impression" src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/i.gif" style="display:none;"></div>
+			  
+    
+            
+
+				<div class="module sidebar-related">
+					<h4 id="h-related">Related</h4>
+                    <div class="related js-gps-related-questions" data-tracker="rq=1">
+                        <div class="spacer js-gps-track">
+<a href="http://stackoverflow.com/q/332872?rq=1" title="Vote score (upvotes - downvotes)">
+    <div class="answer-votes answered-accepted extra-large">1491
+    </div>
+</a><a href="http://stackoverflow.com/questions/332872/encode-url-in-javascript?rq=1" class="question-hyperlink">Encode URL in JavaScript?</a>
+</div>
+<div class="spacer js-gps-track">
+<a href="http://stackoverflow.com/q/3637545?rq=1" title="Vote score (upvotes - downvotes)">
+    <div class="answer-votes answered-accepted default">2
+    </div>
+</a><a href="http://stackoverflow.com/questions/3637545/how-to-create-an-asn-1-der-encoded-blob-simply?rq=1" class="question-hyperlink">How to create an ASN.1 DER-encoded blob simply</a>
+</div>
+<div class="spacer js-gps-track">
+<a href="http://stackoverflow.com/q/6110403?rq=1" title="Vote score (upvotes - downvotes)">
+    <div class="answer-votes answered-accepted default">1
+    </div>
+</a><a href="http://stackoverflow.com/questions/6110403/asn-1-compiler-with-support-for-extended-xer-rxer?rq=1" class="question-hyperlink">ASN.1 compiler with support for Extended XER/RXER</a>
+</div>
+<div class="spacer js-gps-track">
+<a href="http://stackoverflow.com/q/12860226?rq=1" title="Vote score (upvotes - downvotes)">
+    <div class="answer-votes default">1
+    </div>
+</a><a href="http://stackoverflow.com/questions/12860226/oddity-when-encoding-large-integers-using-asn-1?rq=1" class="question-hyperlink">Oddity when encoding large integers using asn.1</a>
+</div>
+<div class="spacer js-gps-track">
+<a href="http://stackoverflow.com/q/15670228?rq=1" title="Vote score (upvotes - downvotes)">
+    <div class="answer-votes answered-accepted default">0
+    </div>
+</a><a href="http://stackoverflow.com/questions/15670228/twos-complement-in-asn-1-unaligned-per?rq=1" class="question-hyperlink">Two's complement in ASN.1 Unaligned PER</a>
+</div>
+<div class="spacer js-gps-track">
+<a href="http://stackoverflow.com/q/18453894?rq=1" title="Vote score (upvotes - downvotes)">
+    <div class="answer-votes default">2
+    </div>
+</a><a href="http://stackoverflow.com/questions/18453894/confused-about-ber-basic-encoding-rules?rq=1" class="question-hyperlink">Confused about BER (Basic Encoding Rules)</a>
+</div>
+<div class="spacer js-gps-track">
+<a href="http://stackoverflow.com/q/19347498?rq=1" title="Vote score (upvotes - downvotes)">
+    <div class="answer-votes answered-accepted default">1
+    </div>
+</a><a href="http://stackoverflow.com/questions/19347498/asn-1-set-type-restrictions?rq=1" class="question-hyperlink">ASN.1 SET type restrictions</a>
+</div>
+<div class="spacer js-gps-track">
+<a href="http://stackoverflow.com/q/28823094?rq=1" title="Vote score (upvotes - downvotes)">
+    <div class="answer-votes default">0
+    </div>
+</a><a href="http://stackoverflow.com/questions/28823094/asn-1-encodings-ber-per-etc-in-c-sharp?rq=1" class="question-hyperlink">ASN.1 encodings BER, PER etc. in C#</a>
+</div>
+<div class="spacer js-gps-track">
+<a href="http://stackoverflow.com/q/32326141?rq=1" title="Vote score (upvotes - downvotes)">
+    <div class="answer-votes answered-accepted default">0
+    </div>
+</a><a href="http://stackoverflow.com/questions/32326141/given-the-object-identifier-how-do-we-read-the-corresponding-value-from-a-asn-1?rq=1" class="question-hyperlink">Given the object identifier, how do we read the corresponding value from a ASN.1 DER encoded binary file?</a>
+</div>
+<div class="spacer js-gps-track">
+<a href="http://stackoverflow.com/q/33712716?rq=1" title="Vote score (upvotes - downvotes)">
+    <div class="answer-votes default">0
+    </div>
+</a><a href="http://stackoverflow.com/questions/33712716/identify-unknown-asn-1-objects?rq=1" class="question-hyperlink">Identify unknown ASN.1 Objects</a>
+</div>
+
+                    </div>
+				</div>
+            
+<div id="hot-network-questions" class="module">
+    <h4>
+        <a href="http://stackexchange.com/questions?tab=hot" class="js-gps-track" data-gps-track="posts_hot_network.click({ item_type:1, location:11 })">
+            Hot Network Questions
+        </a>
+    </h4>
+    <ul>
+            <li>
+                <div class="favicon favicon-unix" title="Unix &amp; Linux Stack Exchange"></div><a href="http://unix.stackexchange.com/questions/265951/date-1-month-ago-not-working-in-aix" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:106 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Date "1 month ago" not working in AIX
+                </a>
+
+            </li>
+            <li>
+                <div class="favicon favicon-gaming" title="Arqade"></div><a href="http://gaming.stackexchange.com/questions/256653/can-i-get-banned-for-using-lsi-league-summoner-information" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:41 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Can I get banned for using LSI (League Summoner Information)?
+                </a>
+
+            </li>
+            <li>
+                <div class="favicon favicon-german" title="German Language Stack Exchange"></div><a href="http://german.stackexchange.com/questions/28375/german-words-with-three-of-the-same-letters-in-a-row" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:253 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    German words with three of the same letters in a row?
+                </a>
+
+            </li>
+            <li>
+                <div class="favicon favicon-movies" title="Movies &amp; TV Stack Exchange"></div><a href="http://movies.stackexchange.com/questions/49350/is-bones-a-vegetarian-or-not" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:367 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Is Bones a vegetarian or not?
+                </a>
+
+            </li>
+            <li>
+                <div class="favicon favicon-english" title="English Language &amp; Usage Stack Exchange"></div><a href="http://english.stackexchange.com/questions/309133/what-is-a-word-similar-to-amateur-yet-having-a-strong-connotation-of-someone-w" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:97 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    What is a word similar to "amateur" yet having a strong connotation of someone who likes something?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-tridion" title="Tridion Stack Exchange"></div><a href="http://tridion.stackexchange.com/questions/14039/invalid-grant-error-while-running-experiment-in-smart-target" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:485 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Invalid_grant Error while Running Experiment in Smart Target
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-biology" title="Biology Stack Exchange"></div><a href="http://biology.stackexchange.com/questions/43695/why-do-living-fossils-like-crocodiles-remain-so-constant-and-not-evolve" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:375 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Why do living fossils like crocodiles remain so constant and not evolve?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-academia" title="Academia Stack Exchange"></div><a href="http://academia.stackexchange.com/questions/63980/is-it-ok-to-add-citations-from-low-impact-factor-journals" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:415 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Is it OK to add citations from low impact factor journals?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-philosophy" title="Philosophy Stack Exchange"></div><a href="http://philosophy.stackexchange.com/questions/32400/why-are-western-philosophers-not-fair-to-indian-philosophers" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:265 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Why are western Philosophers not fair to Indian philosophers?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-movies" title="Movies &amp; TV Stack Exchange"></div><a href="http://movies.stackexchange.com/questions/49342/jack-and-chrissy-reference-in-friends-by-chandler" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:367 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Jack and Chrissy reference in Friends by Chandler
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-worldbuilding" title="Worldbuilding Stack Exchange"></div><a href="http://worldbuilding.stackexchange.com/questions/36780/what-can-prevent-moderately-advanced-humans-from-driving-megafauna-to-extinction" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:579 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    What can prevent moderately advanced humans from driving megafauna to extinction?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-puzzling" title="Puzzling Stack Exchange"></div><a href="http://puzzling.stackexchange.com/questions/27995/linked-pictures" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:559 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Linked pictures
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-ell" title="English Language Learners Stack Exchange"></div><a href="http://ell.stackexchange.com/questions/82562/is-there-an-figure-of-speech-for-illlness-which-passes-without-a-special-treatm" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:481 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Is there an figure of speech for "illlness which passes without a special treatment"?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-chemistry" title="Chemistry Stack Exchange"></div><a href="http://chemistry.stackexchange.com/questions/46942/what-does-the-circle-in-a-drawing-of-benzene-ring-represent" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:431 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    What does the circle in a drawing of benzene ring represent?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-chinese" title="Chinese Language Stack Exchange"></div><a href="http://chinese.stackexchange.com/questions/17308/difference-between-%e5%89%8d%e9%9d%a2-and-%e9%9d%a2%e5%89%8d" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:371 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Difference between 前面 and 面前
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-webmasters" title="Webmasters Stack Exchange"></div><a href="http://webmasters.stackexchange.com/questions/90339/why-are-urls-case-sensitive" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:45 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Why are URLs case-sensitive?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-english" title="English Language &amp; Usage Stack Exchange"></div><a href="http://english.stackexchange.com/questions/309885/whats-a-word-for-making-a-weapon-inoperable-for-public-display" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:97 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    What's a word for making a weapon inoperable for public display?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-money" title="Personal Finance &amp; Money Stack Exchange"></div><a href="http://money.stackexchange.com/questions/60905/confusion-about-tax-bracket" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:93 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Confusion about tax bracket?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-diy" title="Home Improvement Stack Exchange"></div><a href="http://diy.stackexchange.com/questions/85211/is-there-a-freezing-water-resistant-metal-pipe" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:73 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Is there a freezing water resistant metal pipe?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-unix" title="Unix &amp; Linux Stack Exchange"></div><a href="http://unix.stackexchange.com/questions/265620/on-unix-systems-why-do-we-have-to-explicitly-open-and-close-files-to-be" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:106 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    On Unix systems, why do we have to explicitly 
+`open()` and `close()` files to be able to `read()` or `write()` them?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-tex" title="TeX - LaTeX Stack Exchange"></div><a href="http://tex.stackexchange.com/questions/296100/why-to-waste-space-above-my-picture" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:85 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Why to waste space above my picture?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-superuser" title="Super User"></div><a href="http://superuser.com/questions/1045239/what-is-a-simple-way-to-let-a-command-run-for-5-minutes" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:3 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    What is a simple way to let a command run for 5 minutes?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-scifi" title="Science Fiction &amp; Fantasy Stack Exchange"></div><a href="http://scifi.stackexchange.com/questions/120477/what-are-these-spaceship-silhouettes" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:186 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    What are these spaceship silhouettes?
+                </a>
+
+            </li>
+            <li style="display: list-item;" class="dno js-hidden">
+                <div class="favicon favicon-programmers" title="Programmers Stack Exchange"></div><a href="http://programmers.stackexchange.com/questions/311155/will-a-computer-attempt-to-divide-by-zero" class="js-gps-track" data-gps-track="site.switch({ item_type:11, target_site:131 }); posts_hot_network.click({ item_type:2, location:11 })">
+                    Will a computer attempt to divide by Zero
+                </a>
+
+            </li>
+    </ul>
+
+        
+</div>
+		</div>
+	
+<div id="feed-link">
+    <div id="feed-link-text">
+        <a href="http://stackoverflow.com/feeds/question/5929050" title="feed of this question and its answers">
+            <span class="feed-icon"></span>question feed
+        </a>
+    </div>
+</div>	<script>
+StackExchange.ready(function(){$.get('/posts/5929050/ivc/648c');});
+</script>
+<noscript>
+    <div><img src="/posts/5929050/ivc/648c" class="dno" alt="" width="0" height="0"></div>
+</noscript><div style="display:none" id="prettify-lang"></div></div>
+
+
+        </div>
+    </div><script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/p.js" async=""></script>
+    <div id="footer" class="categories">
+        <div class="footerwrap">
+            <div id="footer-menu">
+                <div class="top-footer-links">
+                    <a href="http://stackoverflow.com/company/about">about us</a>
+                        <a href="http://stackoverflow.com/tour">tour</a>
+                    <a href="http://stackoverflow.com/help">help</a>
+                    <a href="http://blog.stackoverflow.com/?blb=1">blog</a>
+                        <a href="http://chat.stackoverflow.com/">chat</a>
+                    <a href="http://data.stackexchange.com/">data</a>
+                    <a href="http://stackexchange.com/legal">legal</a>
+                    <a href="http://stackexchange.com/legal/privacy-policy">privacy policy</a>
+                    <a href="http://stackoverflow.com/company/work-here">work here</a>
+                    <a href="http://stackexchange.com/mediakit">advertising info</a>
+
+                    <a onclick='StackExchange.switchMobile("on")'>mobile</a>
+                    <b><a href="http://stackoverflow.com/contact">contact us</a></b>
+                        <b><a href="http://meta.stackoverflow.com/">feedback</a></b>
+                    
+                </div>
+                <div id="footer-sites">
+                    <table>
+    <tbody><tr>
+            <th colspan="3">
+                Technology
+            </th>
+            <th>
+                Life / Arts
+            </th>
+            <th>
+                Culture / Recreation
+            </th>
+            <th>
+                Science
+            </th>
+            <th>
+                Other
+            </th>
+    </tr>
+    <tr>
+            <td>
+                <ol>
+                        <li><a href="http://stackoverflow.com/" title="professional and enthusiast programmers">Stack Overflow</a></li>
+                        <li><a href="http://serverfault.com/" title="system and network administrators">Server Fault</a></li>
+                        <li><a href="http://superuser.com/" title="computer enthusiasts and power users">Super User</a></li>
+                        <li><a href="http://webapps.stackexchange.com/" title="power users of web applications">Web Applications</a></li>
+                        <li><a href="http://askubuntu.com/" title="Ubuntu users and developers">Ask Ubuntu</a></li>
+                        <li><a href="http://webmasters.stackexchange.com/" title="pro webmasters">Webmasters</a></li>
+                        <li><a href="http://gamedev.stackexchange.com/" title="professional and independent game developers">Game Development</a></li>
+                        <li><a href="http://tex.stackexchange.com/" title="users of TeX, LaTeX, ConTeXt, and related typesetting systems">TeX - LaTeX</a></li>
+                            </ol></td><td><ol>
+                        <li><a href="http://programmers.stackexchange.com/" title="professional programmers interested in conceptual questions about software development">Programmers</a></li>
+                        <li><a href="http://unix.stackexchange.com/" title="users of Linux, FreeBSD and other Un*x-like operating systems">Unix &amp; Linux</a></li>
+                        <li><a href="http://apple.stackexchange.com/" title="power users of Apple hardware and software">Ask Different (Apple)</a></li>
+                        <li><a href="http://wordpress.stackexchange.com/" title="WordPress developers and administrators">WordPress Development</a></li>
+                        <li><a href="http://gis.stackexchange.com/" title="cartographers, geographers and GIS professionals">Geographic Information Systems</a></li>
+                        <li><a href="http://electronics.stackexchange.com/" title="electronics and electrical engineering professionals, students, and enthusiasts">Electrical Engineering</a></li>
+                        <li><a href="http://android.stackexchange.com/" title="enthusiasts and power users of the Android operating system">Android Enthusiasts</a></li>
+                        <li><a href="http://security.stackexchange.com/" title="information security professionals">Information Security</a></li>
+                            </ol></td><td><ol>
+                        <li><a href="http://dba.stackexchange.com/" title="database professionals who wish to improve their database skills and learn from others in the community">Database Administrators</a></li>
+                        <li><a href="http://drupal.stackexchange.com/" title="Drupal developers and administrators">Drupal Answers</a></li>
+                        <li><a href="http://sharepoint.stackexchange.com/" title="SharePoint enthusiasts">SharePoint</a></li>
+                        <li><a href="http://ux.stackexchange.com/" title="user experience researchers and experts">User Experience</a></li>
+                        <li><a href="http://mathematica.stackexchange.com/" title="users of Mathematica">Mathematica</a></li>
+                        <li><a href="http://salesforce.stackexchange.com/" title="Salesforce administrators, implementation experts, developers and anybody in-between">Salesforce</a></li>
+                        <li><a href="http://expressionengine.stackexchange.com/" title="administrators, end users, developers and designers for ExpressionEngine® CMS">ExpressionEngine® Answers</a></li>
+                    
+                        <li>
+                            <a href="http://stackexchange.com/sites#technology" class="more">
+                                more (13)
+                            </a>
+                        </li>
+                </ol>
+            </td>
+            <td>
+                <ol>
+                        <li><a href="http://photo.stackexchange.com/" title="professional, enthusiast and amateur photographers">Photography</a></li>
+                        <li><a href="http://scifi.stackexchange.com/" title="science fiction and fantasy enthusiasts">Science Fiction &amp; Fantasy</a></li>
+                        <li><a href="http://graphicdesign.stackexchange.com/" title="Graphic Design professionals, students, and enthusiasts">Graphic Design</a></li>
+                        <li><a href="http://movies.stackexchange.com/" title="movie and tv enthusiasts">Movies &amp; TV</a></li>
+                        <li><a href="http://cooking.stackexchange.com/" title="professional and amateur chefs">Seasoned Advice (cooking)</a></li>
+                        <li><a href="http://diy.stackexchange.com/" title="contractors and serious DIYers">Home Improvement</a></li>
+                        <li><a href="http://money.stackexchange.com/" title="people who want to be financially literate">Personal Finance &amp; Money</a></li>
+                        <li><a href="http://academia.stackexchange.com/" title="academics and those enrolled in higher education">Academia</a></li>
+                    
+                        <li>
+                            <a href="http://stackexchange.com/sites#lifearts" class="more">
+                                more (9)
+                            </a>
+                        </li>
+                </ol>
+            </td>
+            <td>
+                <ol>
+                        <li><a href="http://english.stackexchange.com/" title="linguists, etymologists, and serious English language enthusiasts">English Language &amp; Usage</a></li>
+                        <li><a href="http://skeptics.stackexchange.com/" title="scientific skepticism">Skeptics</a></li>
+                        <li><a href="http://judaism.stackexchange.com/" title="those who base their lives on Jewish law and tradition and anyone interested in learning more">Mi Yodeya (Judaism)</a></li>
+                        <li><a href="http://travel.stackexchange.com/" title="road warriors and seasoned travelers">Travel</a></li>
+                        <li><a href="http://christianity.stackexchange.com/" title="committed Christians, experts in Christianity and those interested in learning more">Christianity</a></li>
+                        <li><a href="http://gaming.stackexchange.com/" title="passionate videogamers on all platforms">Arqade (gaming)</a></li>
+                        <li><a href="http://bicycles.stackexchange.com/" title="people who build and repair bicycles, people who train cycling, or commute on bicycles">Bicycles</a></li>
+                        <li><a href="http://rpg.stackexchange.com/" title="gamemasters and players of tabletop, paper-and-pencil role-playing games">Role-playing Games</a></li>
+                    
+                        <li>
+                            <a href="http://stackexchange.com/sites#culturerecreation" class="more">
+                                more (21)
+                            </a>
+                        </li>
+                </ol>
+            </td>
+            <td>
+                <ol>
+                        <li><a href="http://math.stackexchange.com/" title="people studying math at any level and professionals in related fields">Mathematics</a></li>
+                        <li><a href="http://stats.stackexchange.com/" title="people interested in statistics, machine learning, data analysis, data mining, and data visualization">Cross Validated (stats)</a></li>
+                        <li><a href="http://cstheory.stackexchange.com/" title="theoretical computer scientists and researchers in related fields">Theoretical Computer Science</a></li>
+                        <li><a href="http://physics.stackexchange.com/" title="active researchers, academics and students of physics">Physics</a></li>
+                        <li><a href="http://mathoverflow.net/" title="professional mathematicians">MathOverflow</a></li>
+                        <li><a href="http://chemistry.stackexchange.com/" title="scientists, academics, teachers and students">Chemistry</a></li>
+                        <li><a href="http://biology.stackexchange.com/" title="biology researchers, academics, and students">Biology</a></li>
+                    
+                        <li>
+                            <a href="http://stackexchange.com/sites#science" class="more">
+                                more (5)
+                            </a>
+                        </li>
+                </ol>
+            </td>
+            <td>
+                <ol>
+                        <li><a href="http://stackapps.com/" title="apps, scripts, and development with the Stack Exchange API">Stack Apps</a></li>
+                        <li><a href="http://meta.stackexchange.com/" title="meta-discussion of the Stack Exchange family of Q&amp;A websites">Meta Stack Exchange</a></li>
+                        <li><a href="http://area51.stackexchange.com/" title="proposing new sites in the Stack Exchange network">Area 51</a></li>
+                        <li><a href="http://careers.stackoverflow.com/">Stack Overflow Careers</a></li>
+                    
+                </ol>
+            </td>
+    </tr>
+</tbody></table>
+                </div>
+            </div>
+
+            <div id="copyright">
+                site design / logo © 2016 Stack Exchange Inc; user contributions licensed under <a href="https://creativecommons.org/licenses/by-sa/3.0/" rel="license">cc by-sa 3.0</a> 
+                with <a href="http://blog.stackoverflow.com/2009/06/attribution-required/" rel="license">attribution required</a>
+            </div>
+            <div id="svnrev">
+                rev 2016.2.26.3299
+            </div>
+            
+        </div>
+    </div>
+    <noscript>
+        <div id="noscript-warning">Stack Overflow works best with JavaScript enabled<img src="http://pixel.quantserve.com/pixel/p-c1rF4kxgLUzNc.gif" alt="" class="dno"></div>
+    </noscript>
+        <script>setTimeout(function () { $("#adzerk-user-match").remove(); }, 2000);</script>
+
+    <script>
+        (function (i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () { (i[r].q = i[r].q || []).push(arguments) }, i[r].l = 1 * new Date(); a = s.createElement(o),
+            m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m);
+        })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+        ga('create', 'UA-5620270-1');
+                        ga('set', 'dimension2', '|security|encoding|binary|asn.1|');         ga('send', 'pageview');
+        var _qevents = _qevents || [],
+            _comscore = _comscore || [];
+        (function () {
+            var ssl='https:'==document.location.protocol,
+                s=document.getElementsByTagName('script')[0],
+                qc=document.createElement('script');
+            qc.async=true;
+            qc.src=(ssl?'https://secure':'http://edge')+'.quantserve.com/quant.js';
+            s.parentNode.insertBefore(qc, s);
+            var sc=document.createElement('script');
+            sc.async=true;
+            sc.src=(ssl?'https://sb':'http://b') + '.scorecardresearch.com/beacon.js';
+            s.parentNode.insertBefore(sc, s);
+        })();
+        _comscore.push({ c1: "2", c2: "17440561" });
+        _qevents.push({ qacct: "p-c1rF4kxgLUzNc" });
+    </script>
+            
+    
+<script src="security%20-%20How%20does%20ASN.1%20encode%20an%20object%20identifier%20%20-%20Stack%20Overflow_fichiers/ados_002.js" async=""></script></body></html>

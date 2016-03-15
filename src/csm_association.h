@@ -1,10 +1,12 @@
 /**
  * Copyright (c) 2016, Anthony Rabine
- * See LICENSE.txt
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
  *
  * Implementation of the Cosem ACSE services
  */
-
 
 #ifndef CSM_ASSOCIATION_H
 #define CSM_ASSOCIATION_H
@@ -95,12 +97,34 @@ enum csm_asso_error
 typedef struct
 {
     csm_llc llc;
-    uint8_t channels;               ///< Bit mask of allowed channels ; up to 8 physical channels
     uint32_t conformance;          ///< All services and functionalities authorized.
     uint8_t  is_auto_connected;    ///< Boolean to indicate if the association is auto connected or not;
     uint8_t  authentication_mask;  ///< The mask of authentication authorized.
     uint8_t  password[SIZE_OF_AUTH_VALUE];         ///< Password of association.
 } csm_asso_config;
+
+/*
+9.2.7.2.4.2         The security header
+The security header SH includes the security control byte concatenated with the invocation counter:
+SH = SC II IC. The security control byte is shown in Table 37 where:
+•     Bit 3…0: Security_Suite_Id, see 9.2.3.7;
+•     Bit 4: “A” subfield: indicates that authentication is applied;
+•     Bit 5: “E” subfield: indicates that encryption is applied;
+•     Bit 6: Key_Set subfield: 0 = Unicast, 1 = Broadcast;
+•     Bit 7: Indicates the use of compression.
+*/
+typedef union
+{
+    uint8_t sh_byte;
+    struct
+    {
+        uint8_t compression:1;
+        uint8_t key_set:1;
+        uint8_t encryption:1;
+        uint8_t authentication:1;
+        uint8_t security_suite:4;
+    } sh_bit_field;
+} csm_security_header;
 
 /**
  * @brief State and information of the currently open association

@@ -12,6 +12,8 @@
 #include "unity_fixture.h"
 #include "tcp_server.h"
 #include "csm_database.h"
+#include "os.h"
+#include "bitfield.h"
 
 /*
 static void RunAllTests(void)
@@ -29,16 +31,10 @@ static const uint8_t association[] = {  0x60U,  0x36U, 0xA1U,   0x09U,   0x06U, 
                                        0x1FU,   0x04U,   0x00U,   0x00U,  0x30U, 0x1DU, 0xFFU, 0xFFU
  };
 
-enum phy_channels
-{
-    PHY_REMOTE_TCP1 = 0x01U,
-    PHY_REMOTE_TCP2 = 0x02U,
-};
-
 const csm_asso_config assos_config[] =
 {
     // Client public association
-    { {16U, 1U}, PHY_REMOTE_TCP1 | PHY_REMOTE_TCP2 ,
+    { {16U, 1U},
       CSM_CBLOCK_GET | CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ,
       0U, // No auto-connected
       CSM_AUTH_LOWEST_LEVEL,             // No Authentication
@@ -46,7 +42,7 @@ const csm_asso_config assos_config[] =
     },
 
     // Client manual meter reader association
-    { {1U, 1U}, PHY_REMOTE_TCP1 ,
+    { {1U, 1U},
       CSM_CBLOCK_GET | CSM_CBLOCK_SET |CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ | CSM_CBLOCK_SELECTIVE_ACCESS,
       0U, // No auto-connected
       CSM_AUTH_LOW_LEVEL, // Low Level Authentication
@@ -61,32 +57,16 @@ csm_channel channels[2];
 
 #define NUMBER_OF_CHANNELS (sizeof(channels) / sizeof(csm_channel))
 
-uint16_t get_uint16(char *buff)
-{
-    uint16_t val = ((uint16_t)buff[0]) << 8U;
-    val += buff[1] & 0xFFU;
-    return val;
-}
-
-void set_uint16(char *buff, uint16_t size)
-{
-    buff[0] = (size >> 8U) & 0xFFU;
-    buff[1] = size & 0xFFU;
-}
-
-uint8_t is_bit_set(uint8_t value, uint8_t bit)
-{
-    return ((value & (1U<<bit)) == 0U) ? 0U : 1U;
-}
 
 static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
 #define COSEM_WRAPPER_SIZE 8U
 #define BUF_SIZE (COSEM_PDU_SIZE + COSEM_WRAPPER_SIZE)
 
+
 /**
- * @brief datalink_layer
+ * @brief tcp_data_handler
  * This link layer manages the data between the transport (TCP/IP) and the Cosem stack
- * The function is called by the TCP/IP server upon reception of a neww packet.
+ * The function is called by the TCP/IP server upon reception of a new packet.
  * The passed buffer must be filled by the reply, if any, and return the according number
  * of bytes to transfer back to the sender.
  *
@@ -97,7 +77,7 @@ static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
  * @param size
  * @return > 0 the number of bytes to reply back to the sender
  */
-int datalink_layer(uint8_t channel, char *buffer, size_t size)
+int tcp_data_handler(uint8_t channel, uint8_t *buffer, size_t size)
 {
     int ret = -1;
     uint16_t version;
@@ -114,10 +94,10 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
 
     if ((size > COSEM_WRAPPER_SIZE) && (channel < NUMBER_OF_CHANNELS))
     {
-        version = get_uint16(&buffer[0]);
-        channels[channel].request.llc.ssap = get_uint16(&buffer[2]);
-        channels[channel].request.llc.dsap = get_uint16(&buffer[4]);
-        apdu_size = get_uint16(&buffer[6]);
+        version = GET_BE16(&buffer[0]);
+        channels[channel].request.llc.ssap = GET_BE16(&buffer[2]);
+        channels[channel].request.llc.dsap = GET_BE16(&buffer[4]);
+        apdu_size = GET_BE16(&buffer[6]);
 
         // Sanity check of the packet
         if ((size == (apdu_size + COSEM_WRAPPER_SIZE)) &&(version == COSEM_WRAPPER_VERSION))
@@ -129,8 +109,7 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
             for (i = 0U; i < NUMBER_OF_ASSOS; i++)
             {
                 if ((channels[channel].request.llc.ssap == assos_config[i].llc.ssap) &&
-                    (channels[channel].request.llc.dsap == assos_config[i].llc.dsap) &&
-                    is_bit_set(assos_config[i].channels, channel))
+                    (channels[channel].request.llc.dsap == assos_config[i].llc.dsap))
                 {
                     break;
                 }
@@ -141,19 +120,21 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
                 // Association found, use this one
                 // Link the state with the configuration structure
                 assos[i].config = &assos_config[i];
+                channels[channel].asso = &assos[i];
+
                 // Then decode the packet, the reply, if any is located in the buffer
                 // The reply is valid if the return code is > 0
                 csm_array_init(&packet, (uint8_t *)&buffer[COSEM_WRAPPER_SIZE], BUF_SIZE, apdu_size);
-                ret = csm_channel_execute(&channels[channel], &assos[i], &packet);
+                ret = csm_channel_execute(&channels[channel].request, &assos[i], &packet);
 
                 if (ret > 0)
                 {
                     // Swap SSAP and DSAP
-                    set_uint16(&buffer[2], channels[channel].request.llc.dsap);
-                    set_uint16(&buffer[4], channels[channel].request.llc.ssap);
+                    SET_BE16(&buffer[2], channels[channel].request.llc.dsap);
+                    SET_BE16(&buffer[4], channels[channel].request.llc.ssap);
 
                     // Update Cosem Wrapper length
-                    set_uint16(&buffer[6], (uint16_t) ret);
+                    SET_BE16(&buffer[6], (uint16_t) ret);
 
                     // Add wrapper size to the data packet size
                     ret += COSEM_WRAPPER_SIZE;
@@ -173,21 +154,78 @@ int datalink_layer(uint8_t channel, char *buffer, size_t size)
     return ret;
 }
 
-// Main stack initialization
+uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
+{
+    uint8_t ret = FALSE;
+    switch(event)
+    {
+    case CONN_DISCONNECTED:
+    {
+        if (channel > INVALID_CHANNEL_ID)
+        {
+            channel--; // transform id into index
+            csm_channel_disconnect(&channels[channel]);
+            ret = TRUE;
+            CSM_ERR("[LLC] Channel %d disconnected", channel);
+        }
+        else
+        {
+            CSM_ERR("[LLC] Channel id invalid");
+        }
+        break;
+    }
 
+    case CONN_NEW:
+    {
+        // search for a valid free channel
+        for (uint32_t i = 0U; i < NUMBER_OF_CHANNELS; i++)
+        {
+            if (channels[i].id == INVALID_CHANNEL_ID)
+            {
+                ret = i + 1U; // transform into channel id
+                CSM_LOG("[LLC] Grant connection to channel %d", channel);
+                break;
+            }
+        }
+
+        if (!ret)
+        {
+            CSM_ERR("[LLC] Cannot find free channel slot");
+        }
+
+        break;
+    }
+
+    default:
+        CSM_ERR("[LLC] Received spurious event");
+        break;
+    }
+    return ret;
+}
+
+
+// Database access layer
 static const csm_db_access db_access = {
     csm_db_extract_data,
     csm_db_insert_data
 };
 
+// Application & stack initialization
 void csm_init()
 {
+    // 1. DLMS/Cosem stack initialization
     csm_services_init(&db_access);
 
     for (uint32_t i = 0U; i < NUMBER_OF_ASSOS; i++)
     {
         csm_asso_init(&assos[i]);
     }
+
+    for (uint32_t i = 0U; i < NUMBER_OF_CHANNELS; i++)
+    {
+        csm_channel_init(&channels[i]);
+    }
+
 }
 /*
 LN referencing with no ciphering,
@@ -233,6 +271,6 @@ int main(int argc, const char * argv[])
 
     char buffer[BUF_SIZE];
 
-    return tcp_server_init(datalink_layer, buffer, BUF_SIZE);
+    return tcp_server_init(tcp_data_handler, tcp_conn_handler, buffer, BUF_SIZE);
 }
 

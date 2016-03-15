@@ -1,6 +1,9 @@
 /**
  * Copyright (c) 2016, Anthony Rabine
- * See LICENSE.txt
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
  *
  * Implementation of the Cosem ACSE services
  */
@@ -142,19 +145,31 @@ static csm_acse_code acse_oid_decoder(csm_asso_state *state, csm_ber *ber, csm_a
         {
             switch (oid.id)
             {
-                case LN_REF:
-                    state->ref = LN_REF;
-                    ret = CSM_ACSE_OK;
-                    CSM_LOG("[ACSE] LogicalName referencing");
-                    break;
-                case SN_REF:
-                    state->ref = SN_REF;
-                    ret = CSM_ACSE_OK;
-                    CSM_LOG("[ACSE] ShortName referencing");
-                    break;
-                default:
-                    CSM_LOG("[ACSE] Referencing not supported");
-                    break;
+            case LN_REF:
+                state->ref = LN_REF;
+                ret = CSM_ACSE_OK;
+                CSM_LOG("[ACSE] LogicalName referencing");
+                break;
+            case SN_REF:
+                state->ref = SN_REF;
+                ret = CSM_ACSE_OK;
+                CSM_LOG("[ACSE] ShortName referencing");
+                break;
+            case LN_REF_WITH_CYPHERING:
+                state->ref = LN_REF_WITH_CYPHERING;
+                ret = CSM_ACSE_OK;
+                CSM_LOG("[ACSE] LogicalName referencing with cyphering");
+                break;
+
+            case SN_REF_WITH_CYPHERING:
+                state->ref = SN_REF_WITH_CYPHERING;
+                ret = CSM_ACSE_OK;
+                CSM_LOG("[ACSE] ShortName referencing with cyphering");
+                break;
+
+            default:
+                CSM_LOG("[ACSE] Referencing not supported");
+                break;
             }
         }
         // in the case of low-level-security: 2, 16, 756, 5, 8, 2, 1;

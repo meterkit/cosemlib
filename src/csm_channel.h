@@ -11,17 +11,22 @@
 #include "csm_association.h"
 #include "csm_services.h"
 
+#define INVALID_CHANNEL_ID 0U
+
 
 typedef struct
 {
-    uint8_t channel;        //< Physical channel - set one bit only
+    uint8_t id; // dynamically assigned id to indicate if the channel is free or used
+
     csm_request request;
+    csm_asso_state *asso;   //< Association for that channel
 
 } csm_channel;
 
 
-int csm_channel_init(csm_channel *channel);
-int csm_channel_execute(csm_channel *channel, csm_asso_state *asso, csm_array *packet);
+void csm_channel_init(csm_channel *channel);
+void csm_channel_disconnect(csm_channel *channel);
+int csm_channel_execute(csm_request *request, csm_asso_state *asso, csm_array *packet);
 
 
 #endif // CSM_CHANNEL_H

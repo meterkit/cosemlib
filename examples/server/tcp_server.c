@@ -36,7 +36,7 @@ typedef struct in_addr IN_ADDR;
 typedef struct
 {
    SOCKET sock;
-   uint8_t connected; // 0 = not connected, otherwise 1
+   uint8_t connected; // 0 = not connected, otherwise identifier
 } peer;
 
 static void init(void)
@@ -141,7 +141,7 @@ static void write_peer(SOCKET sock, const char *buffer, size_t size)
    }
 }
 
-static void app(data_handler data_func, char *buffer, int buf_size)
+static void app(data_handler data_func, conn_handler conn_func, char *buffer, int buf_size)
 {
    SOCKET sock = init_connection();
 
@@ -200,16 +200,27 @@ static void app(data_handler data_func, char *buffer, int buf_size)
                 continue;
             }
 
-            FD_SET(csock, &master_set);
-            peer c = { csock, 1U };
-            for (int i = 0; i < MAX_CLIENTS; i++)
+            // Grand access to the application layer
+            uint8_t channel = conn_func(0U, CONN_NEW);
+            if (channel > 0)
             {
-                if (!peers[i].connected)
+                FD_SET(csock, &master_set);
+                peer c = { csock, (uint8_t)channel };
+                for (int i = 0; i < MAX_CLIENTS; i++)
                 {
-                    peers[i] = c;
-                    puts("[TCP server] New connection!");
-                    break;
+                    if (!peers[i].connected)
+                    {
+                        peers[i] = c;
+                        puts("[TCP server] New connection!");
+                        break;
+                    }
                 }
+            }
+            else
+            {
+                // Reject connection
+                end_connection(csock);
+                puts("[TCP server] New connection rejected");
             }
         }
 
@@ -226,10 +237,13 @@ static void app(data_handler data_func, char *buffer, int buf_size)
                    {
                        FD_CLR(peers[i].sock, &master_set);
                       end_connection(peers[i].sock);
-                      peers[i].sock = INVALID_SOCKET;
-                      peers[i].connected = 0U;
 
                       puts("Client disconnected !");
+                      conn_func(peers[i].connected, CONN_DISCONNECTED);
+
+                      // Make sure structure elements are cleared
+                      peers[i].sock = INVALID_SOCKET;
+                      peers[i].connected = 0U;
                    }
                    else
                    {
@@ -237,7 +251,7 @@ static void app(data_handler data_func, char *buffer, int buf_size)
                        if (data_func != NULL)
                        {
                            // FIXME: change channel number with instance when multi threaded server is available
-                           int ret = data_func(0U, buffer, c);
+                           int ret = data_func(0U, (uint8_t*)buffer, c);
                            if (ret > 0)
                            {
                                 write_peer(peers[i].sock, buffer, ret);
@@ -264,11 +278,11 @@ static void app(data_handler data_func, char *buffer, int buf_size)
 }
 
 
-int tcp_server_init(data_handler data_func, char *buffer, int buf_size)
+int tcp_server_init(data_handler data_func, conn_handler conn_func, char *buffer, int buf_size)
 {
    init();
 
-   app(data_func, buffer, buf_size);
+   app(data_func, conn_func, buffer, buf_size);
 
    end();
 

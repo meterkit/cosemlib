@@ -1,0 +1,145 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="de" lang="de"><head>
+<title>Are examples for information exchange available?</title>
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7">
+<meta http-equiv="content-language" content="de">
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<meta http-equiv="expires" content="0">
+<meta name="author" content="">
+<meta name="description" content="">
+<meta name="keywords" content="" lang="de">
+<meta name="generator" content="web to date 8.0">
+<link rel="stylesheet" type="text/css" href="Are%20examples%20for%20information%20exchange%20available_fichiers/sf.css">
+<link rel="stylesheet" type="text/css" href="Are%20examples%20for%20information%20exchange%20available_fichiers/sd.css">
+<link rel="stylesheet" type="text/css" href="Are%20examples%20for%20information%20exchange%20available_fichiers/sc.css">
+<script type="text/javascript" src="Are%20examples%20for%20information%20exchange%20available_fichiers/jq.js"></script>
+</head>
+
+<body>
+<div id="logo"><p><br>
+<br>
+&nbsp;&nbsp; <font size="5" face="Verdana"></font></p>
+
+
+</div>
+
+<div id="maintopic">
+<a href="http://www.dlms.com/productsandservices/index.html">Products and Services</a>
+<a href="http://www.dlms.com/information/index.html">Information</a>
+<a href="http://www.dlms.com/organization/index.html">Organization</a>
+<a href="http://www.dlms.com/documentation/index.html">Documentation</a>
+<a href="http://www.dlms.com/conformance/index.html">Conformance</a>
+<a class="active" href="http://www.dlms.com/faqanswers/index.html">FAQ - Answers</a>
+<a href="http://www.dlms.com/news/index.html">News</a>
+<a href="http://dlms.com/phpBB3">Collaboration Tools</a>
+</div>
+
+<div id="youarehere">
+<a href="http://www.dlms.com/index2.php">Home page</a>
+
+<a href="http://www.dlms.com/faqanswers/index.html">FAQ - Answers</a>
+<a href="http://www.dlms.com/faqanswers/questionsonthedlmscosemspecification/index.html">Questions on the DLMS/COSEM specification</a>
+</div>
+
+<div id="eyecatcher"></div>
+<div id="topic"><h1>FAQ - Answers</h1><br>
+
+<a href="http://www.dlms.com/faqanswers/generalquestions/index.html">General questions</a>
+<a class="active" href="http://www.dlms.com/faqanswers/questionsonthedlmscosemspecification/index.html">Questions on the DLMS/COSEM specification</a>
+<a href="http://www.dlms.com/faqanswers/questionsonconformancetesting/index.html">Questions on Conformance Testing</a>
+<a href="http://www.dlms.com//conformance/test/index.html">Conformance Testing tips and tricks</a>
+<a href="http://www.dlms.com/faqanswers/forum/index.php">Forum</a>
+<br><br>
+<a href="http://www.dlms.com/index3.html">Index</a>
+<a href="http://www.dlms.com/imprint.html">Imprint, IPR</a>
+<a href="http://www.dlms.com/contact.html">Contact</a>
+<br><br>
+
+</div>
+
+
+
+
+<form class="search" action="../../fts.php" method="get">
+<input class="search" name="criteria" maxlength="30" type="text">
+<input src="Are%20examples%20for%20information%20exchange%20available_fichiers/psearch.gif" type="image">
+</form>
+<div id="content">
+<h1>Are examples for information exchange available?</h1>
+<p style=""><b>Examples for DLMS/COSEM information exchange<br><br></b>prepared by Gyozo Kmethy</p>
+<p style=""><b><br><br>SNRM/UA frame exchange with HDLC parameter negotiation<br><br></b>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA00A00020023219318717E<br></p>
+<p style="">Comments:<br>7E// HDLC frame opening flag<br>A00A// frame type and length<br>0002// destination address (server) upper HDLC address 0x0001<br>0023// destination address (server) lower HDLC address 0x0011<br>21// source address (client) 0x01<br>93// frame type SNRM (Set Normal Response Mode) <br>// information field with HDLC parameters not present, defaults are proposed<br>1871// Frame check sequence<br>7E// HDLC frame closing flag<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA023210002002373F6C58180140502008006020080070400000001080400000001CE6A7E<br></p>
+<p style="">Comments: <br>7E// HDLC frame opening flag<br>A023// frame type and length<br>21// destination address (client) 0x01<br>0002// source address (server) upper HDLC address 0x0001<br>0023// source address (server) lower HDLC address 0x0011<br>73// frame type UA (Unnumbered acknowledge)<br>F6C5// Header check sequence<br>818014//format identifier / group identifier / group length<br>05020080//parameter identifier/length/value – maximum information field length transmit<br>06020080//parameter identifier/length /value – maximum information field length receive <br>070400000001//parameter identifier/length/value – window size transmit<br>080400000001//parameter identifier/length/value – window size receive<br>CE6A // Frame check sequence<br>7E // HDLC frame closing flag <br><br></p>
+<h2><a name="0000009b6f0dc9695"></a>AARQ/AARE exchange</h2>
+<p style=""><b><br></b>Sent frame: SNRM<br></p>
+<p style="color: #34CB71;">7EA00A00020023219318717E<br></p>
+<p style="">Received frame: UA<br></p>
+<p style="color: #FF0080;">7EA023210002002373F6C581801405020080060200800704000000010804<br>00000001CE6A7E<br></p>
+<p style="">Sent frame: AARQ<br></p>
+<p style="color: #34CB71;">7EA02E0002002321107ECBE6E600601DA109060760857405080101BE10<br>040E01000000065F1F040000301DFFFFD4C57E<br></p>
+<p style="">Comments:<br>7E// opening flag<br>A02E// frame type and length<br>0002002321// destination and source addresses<br>10// frame type I frame<br>7ECB// Header check sequence<br>E6E600// LLC bytes<br>601D// AARQ tag and length<br>A109060760857405080101//Application context name tag, length and encoded value<br>// This application association is established with lowest level security, so authentication components are not present<br>BE10// tag and length for AARQ user field<br>040E// encoding the choice for user-information (OCTET STRING, universal) and length<br>01// tag for xDLMS-Initiate request<br>00// usage field for dedicated-key component – not used<br>00// usage field for the response allowed component – not used<br>00// usage field of the proposed-quality-of-service component – not used<br>06// proposed dlms version number 6<br>5F1F// tag for conformance block<br>04// length of the conformance block<br>00// encoding the number of unused bits in the bit string <br>00301D//conformance block<br>FFFF// client-max-receive-pdu-size<br>D4C5// HDLC frame check sequence<br>7E// closing flag<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA03A2100020023309941E6E7006129A109060760857405080101A20302<br>0100A305A103020100BE10040E0800065F1F040000301D190000070C527E<br></p>
+<p style="">Comments:<br>7EA03A2100020023309941//HDLC frame header<br>E6E700// LLC bytes<br>6129//AARE tag and length<br>A109060760857405080101//Application context name tag, length and encoded value<br>A203// tag and length of the result component<br>02//encoding the choice for result (INTEGER, universal)<br>0100// length and value of result (accepted)<br>A305// tag and length for the result-source-diagnostic component<br>A103// tag and length of the acse-service-user choice<br>02// encoding the choice for result-source-diagnostic (INTEGER, universal)<br>0100// length and value of result-souce-diagnostic<br>BE10//tag and length for AARE user-field<br>040E// encoding the choice for user-information (OCTET STRING, universal) and length <br>08// tag for xDLMS-Initate.response <br>00// usage field of the negotiated-quality-of-service component<br>06// negotiated dlms version number 6<br>5F1F// tag for conformance block<br>04// length of the conformance block<br>00// encoding the number of unused bits in the bit string <br>00301D//negotiated conformance block<br>1900// server-max-receive-pdu-size <br>0007// VAA name (0x0007 for LN referencing)<br>0C52// HDLC frame check sequence<br>7E// closing flag <br><br></p>
+<h2><a name="0000009b6f0dca096"></a>Reading and setting the clock</h2>
+<p style=""><b><br></b>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA0199575546835E6E600C0018100080000010000FF01000DFD7E<br></p>
+<p style="">Comments:<br>7EA0199575546835// HDLC header<br>E6E600// LLC bytes<br>C001// GET.request.normal<br>81// invoke-id and priority<br>0008// interface class 8, clock<br>0000010000FF// logical name, OBIS code of the clock<br>0100// asking for 1st attribute, logical name<br>0DFD7E// HDLC frame closing<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA018759574E9E8E6E700C401810009060000010000FFFD497E<br></p>
+<p style="">Comments:<br>7EA018759574E9E8E6E700<br>C401//GET.response.normal<br>81// invoke-id and priority<br>00// Get-Data-Result choice data<br>0906// octet string (6)<br>0000010000FF// logical name, OBIS code of the clock<br>FD497E// HDLC closing<br><br>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA0199575767837E6E600C0018100080000010000FF020065D77E<br></p>
+<p style="">Comments:<br>7EA0199575767837E6E600<br>C0018100080000010000FF0200// GET.request normal, 2nd attribute, time<br>65D77E<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA01E7595966F67E6E700C4018100090C07D20C04030A060BFF007800F3307E<br></p>
+<p style="">Comments:<br>7EA01E7595966F67E6E700// HDLC header<br>C401// GET.response.normal<br>8100<br>090C// octet string (12)<br>07D2// year 2002<br>0C// month December<br>04// day 4th<br>03// day of the week, Wednesday<br>0A060B// time 10:06:12<br>FF// hundredths not specified<br>0078// deviation 120 minutes<br>00// status OK<br>F3307E<br><br>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA027957598B8DBE6E600C1018100080000010000FF0200090C07D20C04030A060BFF00780062FB7E<br></p>
+<p style="">Comments:<br>7EA027957598B8DBE6E600<br>C101// SET.normal request<br>81<br>0008<br>0000010000FF<br>0200// set the 2nd attribute, time<br>090C07D20C04030A060BFF007800// just SET the value read before<br>62FB7E<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA0107595B85101E6E700C501810036CF7E<br></p>
+<p style="">Comments:<br>7EA0107595B85101E6E700<br>C5018100// SET. response normal, success<br>36CF7E<br><br>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA0199575BA183BE6E600C0018100080000010000FF0300BDCE7E<br></p>
+<p style="">Comments:<br>7EA0199575BA183BE6E600<br>C0018100080000010000FF0300// GET.request normal, 3d attribute, <br>//time_zone<br>BDCE7E<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA0137595DA8864E6E700C4018100100078563A7E<br></p>
+<p style="">Comments:<br>7EA0137595DA8864E6E700<br>C4018100// GET.response normal<br>10// integer 16<br>0078// 120 minutes<br>563A7E<br><br>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA01C9575DC7F53E6E600C1018100080000010000FF030010007801177E<br></p>
+<p style="">Comments:<br>7EA01C9575DC7F53E6E600<br>C1018100080000010000FF// SET.request normal<br>0300// third attribute<br>100078 //integer 16, 120 minutes <br>01177E<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA0107595FC7105E6E700C501810036CF7E<br></p>
+<p style="">Comments:<br>7EA0107595FC7105E6E700<br>C5018100// SET.response normal, success<br>36CF7E<br><br>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA0199575FE383FE6E600C0018100080000010000FF0400B5837E<br></p>
+<p style="">Comments:<br>7EA0199575FE383FE6E600<br>C0018100080000010000FF0400// GET.request normal, 4th attribute, status<br>B5837E<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA01275951E1BF8E6E700C40181001100AC5B7E<br></p>
+<p style="">Comments:<br>7EA01275951E1BF8E6E700<br>C40181<br>001100// Data, unsigned8, OK<br>AC5B7E<br><br>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA0199575104831E6E600C0018100080000010000FF05006D9A7E<br></p>
+<p style="">Comments:<br>7EA0199575104831E6E600C0018100080000010000FF0500// GET.request normal, 5th attribute, <br>// daylight savings begin6D9A7E<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA01E75953053A7E6E700C4018100090CFF4F19F3007000000000000F090A7E<br></p>
+<p style="">Comments:<br>7EA01E75953053A7E6E700<br>C40181<br>00090C// data, octet string(12)<br>FFFFFFFFFFFFFFFFFF800000// insignificant value<br>090A7E<br><br>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA0199575325833E6E600C0018100080000010000FF060005B07E<br></p>
+<p style="">Comments:<br>7EA0199575325833E6E600C0018100080000010000FF0600// GET.request normal, 6th attribute, <br>// daylight_savings_end05B07E<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA01E75955247E7E6E700C4018100090CFF4F19F3007000000000000F090A7E<br></p>
+<p style="">Comments:<br>7EA01E75955247E7E6E700<br>C40181<br>00090C// data, octet string (12)<br>FFFFFFFFFFFFFFFFFF800000// insignificant value<br>090A7E<br><br>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA0199575546835E6E600C0018100080000010000FF0700DDA97E<br></p>
+<p style="">Comments:<br>7EA0199575546835E6E600C0018100080000010000FF0700// GET.request normal, 7th attribute, //daylight savings deviationDDA97E<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA0127595744734E6E700C40181000F002D547E<br></p>
+<p style="">Comment:<br>7EA0127595744734E6E700<br>C40181<br>000F00//data, integer8, 0<br>2D547E<br><br>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA0199575767837E6E600C0018100080000010000FF0800152A7E<br></p>
+<p style="">Comments:<br>7EA0199575767837E6E600<br>C0018100080000010000FF0800// GET.request normal, 8th attribute,<br>//daylight_savings_enabled<br>152A7E<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA0127595965BF0E6E700C401810003008DFD7E<br></p>
+<p style="">Comments:<br>7EA0127595965BF0E6E700<br>C40181<br>000300// data, boolean, FALSE<br>8DFD7E<br><br>Sent frame:<br></p>
+<p style="color: #34CB71;">7EA0199575980839E6E600C0018100080000010000FF0900CD337E<br></p>
+<p style="">Comments:<br>7EA0199575980839E6E600<br>C0018100080000010000FF0900// GET.request normal, 9th attribute,<br>//clock_base<br>CD337E<br><br>Received frame:<br></p>
+<p style="color: #FF0080;">7EA0127595B82738E6E700C401810016012D077E<br></p>
+<p style="">Comments:<br>7EA0127595B82738E6E700<br>C40181<br>001601// data, enumerated, 1, internal crystal<br>2D077E</p>
+<p><a href="javascript:history.back();">back</a></p><div id="more">
+
+<br><br>
+
+</div>
+</div>
+
+<div id="sidebar">
+<div class="sb">
+<p><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br></p><br>
+</div>
+</div>
+
+
+</body></html>

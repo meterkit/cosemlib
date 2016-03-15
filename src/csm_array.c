@@ -1,6 +1,9 @@
 /**
  * Copyright (c) 2016, Anthony Rabine
- * See LICENSE.txt
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
  *
  * Implementation of a protected array with read/write pointers
  */

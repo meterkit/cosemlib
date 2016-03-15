@@ -8,6 +8,7 @@ QMAKE_CFLAGS_RELEASE    += -Os -pedantic -std=c99 -Wall
 
 win32 {
     LIBS +=  libws2_32 -lpsapi
+    DEFINES += CONFIG_NATIVE_WINDOWS
 }
 
 
@@ -15,11 +16,15 @@ VPATH += src
 VPATH += tests
 VPATH += unity
 VPATH += examples/server
+VPATH += examples/crypto
+VPATH += sys
 
 INCLUDEPATH += src
 INCLUDEPATH += tests
 INCLUDEPATH += unity
 INCLUDEPATH += examples/server
+INCLUDEPATH += examples/crypto
+INCLUDEPATH += sys
 
 OTHER_FILES += README.md
 
@@ -30,8 +35,7 @@ SOURCES += csm_array.c csm_ber.c csm_channel.c csm_association.c csm_services.c 
     csm_axdr_codec.c
 
 HEADERS += csm_array.h csm_config.h csm_ber.h csm_channel.h csm_association.h csm_definitions.h csm_services.h \
-    csm_axdr_codec.h
-
+    csm_axdr_codec.h csm_system.h
 
 # ====================================================
 # Implementation example: cosem database and transport
@@ -43,9 +47,9 @@ HEADERS += tcp_server.h csm_database.h csm_data_id_gen.h
 # ====================================================
 # Implementation example: operating system
 # ====================================================
-SOURCES += clock.c
+SOURCES += clock.c os.c system.c bitfield.c
 
-HEADERS += clock.h
+HEADERS += clock.h os.h bitfield.h
 
 # ====================================================
 # Implementation example: meter application
@@ -54,6 +58,14 @@ HEADERS += clock.h
 SOURCES += calendar.c
 
 HEADERS += calendar.h
+
+# ====================================================
+# Implementation example: crypto algorithms
+# ====================================================
+
+SOURCES += aes-gcm.c aes-internal.c aes-internal-dec.c aes-internal-enc.c aes-unwrap.c aes-wrap.c
+
+HEADERS += aes.h aes_i.h aes_wrap.h
 
 # ====================================================
 # Test files
@@ -75,5 +87,4 @@ HEADERS += unity.h \
            unity_fixture.h \
            unity_fixture_internals.h \
            unity_fixture_malloc_overrides.h
-
 
