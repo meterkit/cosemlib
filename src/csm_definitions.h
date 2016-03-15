@@ -17,7 +17,7 @@ enum xdlms_tag
     AXDR_INITIATE_REQUEST   = 1U,
     AXDR_INITIATE_RESPONSE  = 8U,
     AXDR_GET_REQUEST        = 192U,
-    AXDR_GET_RESPONSE       = 196
+    AXDR_GET_RESPONSE       = 196,
 
 /*
     get-request                        [192] IMPLICIT      Get-Request,

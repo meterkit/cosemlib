@@ -13,15 +13,22 @@ int csm_channel_execute(csm_request *request, csm_asso_state *asso, csm_array *p
 {
     int ret = FALSE;
 
-    if (asso->state_cf == CF_ASSOCIATED)
+    uint8_t tag;
+    if (csm_array_get(packet, 0U, &tag))
     {
-        ret = csm_services_execute(asso, request, packet);
+        switch (tag)
+        {
+        case CSM_ASSO_AARE:
+        case CSM_ASSO_AARQ:
+        case CSM_ASSO_RLRE:
+        case CSM_ASSO_RLRQ:
+            ret = csm_asso_execute(asso, packet);
+            break;
+        default:
+            ret = csm_services_execute(asso, request, packet);
+            break;
+        }
     }
-    else
-    {
-        ret = csm_asso_execute(asso, packet);
-    }
-
     return ret;
 }
 

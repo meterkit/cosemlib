@@ -60,6 +60,8 @@ typedef enum
 {
     CSM_ASSO_AARQ                   = TAG_APPLICATION + TAG_CONSTRUCTED + 0U,   ///< Application number 0
     CSM_ASSO_AARE                   = TAG_APPLICATION + TAG_CONSTRUCTED + 1U,   ///< Application number 1
+    CSM_ASSO_RLRQ                   = TAG_APPLICATION + TAG_CONSTRUCTED + 2U,   ///< Application number 2
+    CSM_ASSO_RLRE                   = TAG_APPLICATION + TAG_CONSTRUCTED + 3U,   ///< Application number 3s
     CSM_ASSO_PROTO_VER              = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE,
     CSM_ASSO_APP_CONTEXT_NAME       = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  1U,
 

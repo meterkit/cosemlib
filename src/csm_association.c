@@ -696,6 +696,28 @@ static const csm_asso_codec aare_codec_chain[] =
 
 #define CSM_ACSE_AARE_CHAIN_SIZE   (sizeof(aare_codec_chain)/sizeof(csm_asso_codec))
 
+/*
+RLRQ-apdu ::= [APPLICATION 2] IMPLICIT SEQUENCE
+{
+-- [APPLICATION 2] == [ 62H ] = [ 98 ]
+reason                             [0] IMPLICIT        Release-request-reason OPTIONAL,
+user-information  [30] EXPLICIT       Association-information OPTIONAL
+}
+RLRE-apdu ::= [APPLICATION 3] IMPLICIT SEQUENCE
+{
+-- [APPLICATION 3] == [ 63H ] = [ 99 ]
+reason                             [0] IMPLICIT        Release-response-reason OPTIONAL,
+user-information                   [30] EXPLICIT       Association-information OPTIONAL
+}
+-- The user-information field of the RLRQ / RLRE APDU may carry an InitiateRequest APDU encoded in
+-- A-XDR, and then encoding the resulting OCTET STRING in BER, when the AA to be released uses
+-- ciphering.
+
+*/
+
+
+// --------------------------  ASSOCIATION MAIN FUNCTIONS -------------------------------------------
+
 void csm_asso_init(csm_asso_state *state)
 {
     state->state_cf = CF_IDLE;
@@ -855,6 +877,29 @@ int csm_asso_execute(csm_asso_state *asso, csm_array *packet)
         else
         {
             CSM_ERR("[ACSE] BER decoding error");
+        }
+    }
+    else if (asso->state_cf  == CF_ASSOCIATED)
+    {
+        uint8_t byte;
+        // Associated, so maybe it is an RLRQ disconnection packet
+        if (csm_array_get(packet, 0U, &byte))
+        {
+            if (byte == CSM_ASSO_RLRQ)
+            {
+                CSM_LOG("[ACSE] RLRQ Received, send RLRE");
+                asso->state_cf = CF_IDLE;
+                packet->wr_index = 0U;
+                // FIXME: for now, send minimal fixed raw RLRE reply
+                static uint8_t rlre[] = { CSM_ASSO_RLRE, 3U, 0x80U, 0x01U, 0x00U };
+
+                csm_array_write_buff(packet, rlre, 5U);
+                bytes_to_reply = 5U;
+            }
+            else
+            {
+                CSM_ERR("[ACSE] Bad tag received: %X", byte);
+            }
         }
     }
 
