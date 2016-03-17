@@ -40,9 +40,9 @@ HEADERS += csm_array.h csm_config.h csm_ber.h csm_channel.h csm_association.h cs
 # ====================================================
 # Implementation example: cosem database and transport
 # ====================================================
-SOURCES += tcp_server.c csm_database.c csm_db_gen.h
+SOURCES += tcp_server.c csm_database.c csm_clock_objects.c
 
-HEADERS += tcp_server.h csm_database.h csm_data_id_gen.h
+HEADERS += tcp_server.h csm_database.h csm_clock_objects.h csm_db_gen.h
 
 # ====================================================
 # Implementation example: operating system

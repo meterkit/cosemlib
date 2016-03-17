@@ -1,7 +1,34 @@
 #include "csm_services.h"
 #include "csm_axdr_codec.h"
 
-static const csm_db_access *database = NULL;
+static csm_db_access_handler database = NULL;
+
+/*
+ExceptionResponse ::= SEQUENCE
+{
+    state-error                        [0] IMPLICIT ENUMERATED
+    {
+        service-not-allowed                 (1),
+        service-unknown                     (2)
+    },
+    service-error                      [1] IMPLICIT ENUMERATED
+    {
+        operation-not-possible              (1),
+        service-not-supported               (2),
+        other-reason                        (3)
+    }
+}
+*/
+
+// FIXME: add parameters
+int srv_exception_response_encoder(csm_array *array)
+{
+    int valid = csm_array_write_u8(array, AXDR_EXCEPTION_RESPONSE);
+    valid = valid && csm_array_write_u8(array, 1U);
+    valid = valid && csm_array_write_u8(array, 1U);
+    return valid;
+}
+
 
 /*
 Get-Request ::= CHOICE
@@ -16,6 +43,12 @@ Get-Request-Normal ::= SEQUENCE
     invoke-id-and-priority             Invoke-Id-And-Priority,
     cosem-attribute-descriptor         Cosem-Attribute-Descriptor,
     access-selection                   Selective-Access-Descriptor OPTIONAL
+}
+
+Selective-Access-Descriptor ::= SEQUENCE
+{
+    access-selector                    Unsigned8,
+    access-parameters  Data
 }
 
 -- IEC 61334-6:2000 Clause 5 specifies that bits of any byte are numbered from 1 to 8,
@@ -41,35 +74,6 @@ Cosem-Object-Instance-Id ::=           OCTET STRING (SIZE(6))
 Cosem-Object-Attribute-Id ::=          Integer8
 Cosem-Object-Method-Id ::=             Integer8
 
-*/
-
-
-
-static csm_db_code get_service_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
-{
-    csm_db_code code = CSM_ERR_BAD_ENCODING;
-    (void) state;
-
-    CSM_LOG("[SRV] Decoding GET.request");
-
-    int valid = csm_array_read_u8(array, &request->sender_invoke_id); // save the invoke ID to reuse the same
-    valid = valid && csm_array_read_u16(array, &request->object.class_id);
-    valid = valid && csm_array_read_buff(array, &request->object.obis.A, 6U);
-    valid = valid && csm_array_read_u8(array, (uint8_t*)&request->object.attribute.attribute_id);
-
-    if (valid)
-    {
-        code = CSM_OK;
-    }
-
-    return code;
-}
-
-/*
- *
- *
- *
-
 Get-Response-Normal ::= SEQUENCE
 {
 invoke-id-and-priority             Invoke-Id-And-Priority,
@@ -88,10 +92,7 @@ C401//GET.response.normal
 0906// octet string (6)
 0000010000FF// logical name, OBIS code of the clock
 
- */
 
-/*
- *
 Get-Response ::= CHOICE
 {
     get-response-normal                [1] IMPLICIT    Get-Response-Normal,
@@ -99,6 +100,7 @@ Get-Response ::= CHOICE
     get-response-with-list             [3] IMPLICIT    Get-Response-With-List
 }
 */
+
 enum srv_get_response
 {
     SRV_GET_RESPONSE_NORMAL         = 1U,
@@ -106,36 +108,144 @@ enum srv_get_response
     SRV_GET_RESPONSE_WITH_LIST      = 3U
 };
 
-static const uint8_t date_time[12] = {
-    0x07, 0xD2,// year 2002
-    0x0C,// month December
-    0x04,// day 4th
-    0x03,// day of the week, Wednesday
-    0x0A, 0x06, 0x0B,// time 10:06:12
-    0xFF,// hundredths not specified
-    0x00, 0x78,// deviation 120 minutes
-    0x00// status OK
-};
 
-static csm_db_code get_service_encoder(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code srv_get_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
 {
     csm_db_code code = CSM_ERR_BAD_ENCODING;
     (void) state;
 
-    CSM_LOG("[SRV] Encoding GET.response");
+    CSM_LOG("[SRV] Decoding GET.request");
 
-    int valid = csm_array_write_u8(array, AXDR_GET_RESPONSE);
-    valid = valid && csm_array_write_u8(array, SRV_GET_RESPONSE_NORMAL);
-    valid = valid && csm_array_write_u8(array, request->sender_invoke_id);
-    valid = valid && csm_array_write_u8(array, 0U); // data result
-    valid = valid && axdr_encode_octet_string(array, &date_time[0], 12U);
+    int valid = csm_array_read_u8(array, &request->type);
+    valid = valid && csm_array_read_u8(array, &request->sender_invoke_id); // save the invoke ID to reuse the same
+    valid = valid && csm_array_read_u16(array, &request->db_request.data.class_id);
+    valid = valid && csm_array_read_buff(array, &request->db_request.data.obis.A, 6U);
+    valid = valid && csm_array_read_u8(array, (uint8_t*)&request->db_request.data.id);
+    valid = valid && csm_array_read_u8(array, &request->db_request.access.use_sel_access);
 
     if (valid)
     {
-        code = CSM_OK;
+        if (database != NULL)
+        {
+            // Prepare the response
+            array->wr_index = 0U;
+            CSM_LOG("[SRV] Encoding GET.response");
+
+            int valid = csm_array_write_u8(array, AXDR_GET_RESPONSE);
+            valid = valid && csm_array_write_u8(array, SRV_GET_RESPONSE_NORMAL);
+            valid = valid && csm_array_write_u8(array, request->sender_invoke_id);
+            valid = valid && csm_array_write_u8(array, 0U); // data result
+
+            // Actually append the data
+            if (valid)
+            {
+                code = database(array, request);
+            }
+        }
+        else
+        {
+            CSM_ERR("[SRV] Database pointer not set");
+            code = CSM_ERR_OBJECT_ERROR;
+        }
     }
+
+    if (code != CSM_OK)
+    {
+        array->wr_index = 0U;
+        if (srv_exception_response_encoder(array))
+        {
+            code = CSM_OK;
+        }
+        else
+        {
+            CSM_ERR("[SRV] Internal problem, cannot encore exception response");
+        }
+    }
+
     return code;
 }
+
+
+/*
+
+Set-Request ::= CHOICE
+{
+    set-request-normal                         [1] IMPLICIT  Set-Request-Normal,
+    set-request-with-first-datablock           [2] IMPLICIT  Set-Request-With-First-Datablock,
+    set-request-with-datablock                 [3] IMPLICIT  Set-Request-With-Datablock,
+    set-request-with-list                      [4] IMPLICIT  Set-Request-With-List,
+    set-request-with-list-and-first-datablock  [5] IMPLICIT  Set-Request-With-List-And-First-Datablock
+}
+Set-Request-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-attribute-descriptor         Cosem-Attribute-Descriptor,
+    access-selection                   Selective-Access-Descriptor OPTIONAL,
+    value                              Data
+}
+Set-Request-With-First-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-attribute-descriptor         Cosem-Attribute-Descriptor,
+    access-selection                   [0] IMPLICIT Selective-Access-Descriptor OPTIONAL,
+    datablock                          DataBlock-SA
+}
+Set-Request-With-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    datablock                          DataBlock-SA
+}
+Set-Request-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    attribute-descriptor-list          SEQUENCE OF Cosem-Attribute-Descriptor-With-Selection,
+    value-list                         SEQUENCE OF Data
+}
+Set-Request-With-List-And-First-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    attribute-descriptor-list          SEQUENCE OF Cosem-Attribute-Descriptor-With-Selection,
+    datablock                          DataBlock-SA
+}
+Set-Response ::= CHOICE
+{
+    set-response-normal                     [1] IMPLICIT   Set-Response-Normal,
+    set-response-datablock                  [2] IMPLICIT   Set-Response-Datablock,
+    set-response-last-datablock             [3] IMPLICIT   Set-Response-Last-Datablock,
+    set-response-last-datablock-with-list   [4] IMPLICIT   Set-Response-Last-Datablock-With-List,
+    set-response-with-list                  [5] IMPLICIT   Set-Response-With-List
+}
+Set-Response-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    result                             Data-Access-Result
+}
+Set-Response-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    block-number                       Unsigned32
+}
+Set-Response-Last-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    result                             Data-Access-Result,
+    block-number                       Unsigned32
+}
+Set-Response-Last-Datablock-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    result                             SEQUENCE OF Data-Access-Result,
+    block-number                       Unsigned32
+}
+Set-Response-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority   Invoke-Id-And-Priority,
+    result                             SEQUENCE OF Data-Access-Result
+}
+
+ */
+
+
 
 
 typedef csm_db_code (*srv_decoder_func)(csm_asso_state *state, csm_request *request, csm_array *array);
@@ -144,19 +254,20 @@ typedef csm_db_code (*srv_encoder_func)(csm_asso_state *state, csm_request *requ
 typedef struct
 {
     uint8_t tag;
-    srv_decoder_func decoder;
-    srv_encoder_func encoder;
+    srv_decoder_func decoder;   //!< Used by the server implementation
+    srv_encoder_func encoder;   //!< Used by the client implementation
 
 } csm_service_handler;
 
 static const csm_service_handler services[] =
 {
-    { AXDR_GET_REQUEST, get_service_decoder, get_service_encoder }
+    { AXDR_GET_REQUEST, srv_get_request_decoder, NULL },
+
 };
 
 #define NUMBER_OF_SERVICES (sizeof(services) / sizeof(csm_service_handler))
 
-void csm_services_init(const csm_db_access *db_access)
+void csm_services_init(const csm_db_access_handler db_access)
 {
     database = db_access;
 }
@@ -180,19 +291,13 @@ int csm_services_execute(csm_asso_state *state, csm_request *request, csm_array 
                     CSM_LOG("[SRV] Found service");
                     if (srv->decoder(state, request, array) == CSM_OK)
                     {
-                        if (srv->encoder != NULL)
-                        {
-                            array->wr_index = 0U;
-                            if (srv->encoder(state, request, array) == CSM_OK)
-                            {
-                                number_of_bytes = array->wr_index;
-                            }
-                            else
-                            {
-                                CSM_ERR("[SRV] Encoding error!");
-                            }
-                        }
+                        number_of_bytes = array->wr_index;
                     }
+                    else
+                    {
+                        CSM_ERR("[SRV] Encoding error!");
+                    }
+                    break;
                 }
             }
         }

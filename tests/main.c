@@ -204,17 +204,11 @@ uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
 }
 
 
-// Database access layer
-static const csm_db_access db_access = {
-    csm_db_extract_data,
-    csm_db_insert_data
-};
-
 // Application & stack initialization
 void csm_init()
 {
     // 1. DLMS/Cosem stack initialization
-    csm_services_init(&db_access);
+    csm_services_init(csm_db_access_func);
 
     for (uint32_t i = 0U; i < NUMBER_OF_ASSOS; i++)
     {

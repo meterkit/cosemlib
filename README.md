@@ -17,18 +17,20 @@ This Cosem stack has the following goals :
 
   * Utilities (buffer utilities)
   * BER coder/decoder
-  * Basic association (LLS)
+  * Basic association AARQ/AARE/RLRQ/RLRE (LLS)
   * Get Request of the Clock object
+  * Exception response in case of problem
+  * Full extensible/generable database layer to access to Cosem objects
 
 ## Version 1.0 development schedule
 
-  * Database access layer
-  * Provide few cosem objects (Association, Security Setup, Clock, Profile)
-  * Get/Set request normal
+  * Provide few complete cosem objects (Association, Security Setup, Clock, Profile)
+  * Set request normal
   * Get/Set by block
   * Get/Set with selective access
   * Object List
   * HLS GMAC / Security Policy 1 + HAL algorithm layer
+  * Test vectors using BlueBook examples and CTT packets
 
 ## Version 2.0
 

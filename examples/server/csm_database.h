@@ -2,7 +2,7 @@
 #define CSM_DATABASE_H
 
 #include <stdint.h>
-#include "csm_definitions.h"
+#include "csm_services.h"
 
 #define CSM_NO_ACCESS   (uint16_t)0U
 #define CSM_GET         (uint16_t)1U
@@ -39,11 +39,9 @@ typedef enum
 
 typedef struct
 {
-     uint16_t  data_id;         //< Unique nale within a database &
-     uint16_t  access_rights;   //< Give the access right coding number
-     csm_attr  attribute;       //<
-     uint8_t   type;            //< Gives the type of the attribute, for deserialization purpose
-     uint8_t   cat_id;        //< Category of this attribute, can be used freely by the application
+     uint16_t  access_rights;   //!< Give the access right coding number
+     int8_t    number;          //!<
+     uint8_t   type;            //!< Gives the type of the attribute, for deserialization purpose
 } csm_attr_descr;
 
 /**
@@ -52,20 +50,23 @@ typedef struct
 **/
 typedef struct
 {
-    const csm_attr_descr *attr_list;  ///< The table of attributes.
+    const csm_attr_descr *attr_list;  ///< The table of attributes
+    const csm_attr_descr *meth_list;  ///< The table of methods
     uint16_t  class_id;       ///< Class Id
     csm_obis_code   obis_code;          ///< Obis code for Logical Name
     uint8_t   version;       ///< Version
-    uint8_t   nb_attr;  ///< Number of attributes AND methods
+    uint8_t   nb_attr;  ///< Number of attributes
+    uint8_t   nb_meth;  ///< Number of methods
 
 } csm_object_descr;
+
 
 typedef struct
 {
     const csm_object_descr *objects;
-    uint8_t db_id;
+    csm_db_access_handler handler;
     uint8_t nb_objects;
-} csm_db_list;
+} csm_db_element;
 
 /**
  * @brief Handle pointing to a ROM Cosem object
@@ -73,16 +74,13 @@ typedef struct
 typedef struct
 {
     const csm_object_descr *object; ///< Pointer to the cosem object
-    uint8_t db_index; // index in the database
-    uint8_t obj_index; // index of the object in the database
+    uint8_t db_index; // database number (index)
+    uint8_t obj_index; // object index in the database
 } csm_obj_handle;
 
 
-csm_obj_handle csm_db_get_obj_from_obis(const csm_obis_code *obis, uint16_t class_id);
-
 // Database access from Cosem
-csm_db_code csm_db_extract_data(csm_array *array, const csm_object *object, const csm_selective_access *sel_access);
-csm_db_code csm_db_insert_data(csm_array *array, const csm_object *object, const csm_selective_access *sel_access);
+csm_db_code csm_db_access_func(csm_array *array, csm_request *request);
 
 
 #endif // CSM_DATABASE_H

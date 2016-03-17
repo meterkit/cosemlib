@@ -5,20 +5,47 @@
 #include "csm_association.h"
 
 
-enum csm_service { GET, SET, ACTION };
-
+enum csm_service { SRV_GET, SRV_SET, SRV_ACTION };
+enum csm_req_type { RQ_NORMAL, RQ_NEXT, RQ_WITH_LIST };
 
 typedef struct
 {
     enum csm_service service;
     csm_selective_access access;
-    csm_object object;
+    csm_data data;
+} csm_db_request;
+
+typedef struct
+{
+    csm_db_request db_request;
     uint8_t sender_invoke_id;
+    uint8_t type; // Type of the request (normal, next ...)
     csm_llc llc;
 
 } csm_request;
 
-void csm_services_init(const csm_db_access *db_access);
+/**
+ * @brief Generic Codec error codes
+ **/
+typedef enum
+{
+    // These two error codes can be used in priority
+    CSM_OK,                 //!< Request OK
+    CSM_ERR_OBJECT_ERROR,   //!< Generic error coming from the object
+
+    // Some more specific errors
+    CSM_ERR_OBJECT_NOT_FOUND,    //!< Not found in the database, check obis code!
+    CSM_ERR_BAD_ENCODING,        //!< Bad encoding of codec
+    CSM_ERR_UNAUTHORIZED_ACCESS, //!< Attribute access problem
+    CSM_ERR_TEMPORARY_FAILURE,   ///< Temporary failure
+    CSM_ERR_DATA_CONTENT_NOT_OK, ///< Data content is not accepted.
+    CSM_ERR_APDU_BUFFER_FULL,    ///< Apdu is full.
+    CSM_ERR_FRAGMENTATION_USED   ///< Fragmentation used, request not completly performed
+} csm_db_code;
+
+typedef csm_db_code (*csm_db_access_handler)(csm_array *array, csm_request *request);
+
+void csm_services_init(const csm_db_access_handler db_access);
 
 // Return he number of bytes to transfer back, 0 if no response
 int csm_services_execute(csm_asso_state *state, csm_request *request, csm_array *array);

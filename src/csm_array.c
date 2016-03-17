@@ -9,6 +9,7 @@
  */
 
 #include "csm_array.h"
+#include "os.h"
 #include <string.h>
 
 
@@ -286,10 +287,7 @@ int csm_array_read_u32(csm_array *array, uint32_t *value)
     if (csm_array_remaining(array) >= 4U)
     {
         uint8_t *start = csm_array_rd_data(array);
-        *value = ((uint32_t)start[0]) << 24U;
-        *value += ((uint32_t)start[1]) << 16U;
-        *value += ((uint32_t)start[2]) << 8U;
-        *value += ((uint32_t)start[3]);
+        *value = GET_BE32(start);
         ret = csm_array_reader_jump(array, 4U);
     }
     return ret;
@@ -301,8 +299,7 @@ int csm_array_read_u16(csm_array *array, uint16_t *value)
     if (csm_array_remaining(array) >= 2U)
     {
         uint8_t *start = csm_array_rd_data(array);
-        *value += ((uint16_t)start[0]) << 8U;
-        *value += ((uint16_t)start[1]);
+        *value = GET_BE16(start);
         ret = csm_array_reader_jump(array, 2U);
     }
     return ret;

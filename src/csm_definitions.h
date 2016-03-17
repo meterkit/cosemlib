@@ -17,7 +17,8 @@ enum xdlms_tag
     AXDR_INITIATE_REQUEST   = 1U,
     AXDR_INITIATE_RESPONSE  = 8U,
     AXDR_GET_REQUEST        = 192U,
-    AXDR_GET_RESPONSE       = 196,
+    AXDR_GET_RESPONSE       = 196U,
+    AXDR_EXCEPTION_RESPONSE = 216U
 
 /*
     get-request                        [192] IMPLICIT      Get-Request,
@@ -72,23 +73,13 @@ typedef struct
 } csm_obis_code;
 
 
-/**
- * @brief attribute
- */
 typedef struct
 {
-    uint8_t    is_method;       ///< 0 = attribute, 1 = method
-    int8_t     attribute_id;    ///< According to Blue Book 4.1.2 (Referencing method), negative values are possible
-} csm_attr;
-
-
-typedef struct
-{
-    csm_obis_code   obis;
     uint16_t        class_id;
-    csm_attr        attribute;
+    csm_obis_code   obis;
     uint8_t         version;
-} csm_object;
+    int8_t          id;    //!< According to Blue Book 4.1.2 (Referencing method), negative values are private (app specific)
+} csm_data;
 
 typedef struct
 {
@@ -103,34 +94,6 @@ typedef struct
     uint16_t ssap; //< Client
     uint16_t dsap; //< Server
 } csm_llc;
-
-/**
- * @brief Generic Codec error codes
- **/
-typedef enum
-{
-    CSM_OK,            ///< All is OK
-    CSM_ERR_BAD_ENCODING,        ///< Bad encoding of codec
-    CSM_ERR_OBJECT_ERROR,        ///< Generic error coming from the object
-    CSM_ERR_UNAUTHORIZED_ACCESS, ///< Service is unauthorized.
-    CSM_ERR_READ_WRITE_DENIED,   ///< Data access is unauthorized.
-    CSM_ERR_DATA_BAD_ENCODING,   ///< Bad encoding of data.
-    CSM_ERR_TEMPORARY_FAILURE,   ///< Temporary failure.
-    CSM_ERR_DATA_UNDEFINED,      ///< Data is undefined.
-    CSM_ERR_DATA_CONTENT_NOT_OK, ///< Data content is not accepted.
-    CSM_ERR_APDU_BUFFER_FULL,    ///< Apdu is full.
-    CSM_ERR_FRAGMENTATION_USED   ///< Fragmentation used, request not completly performed
-} csm_db_code;
-
-typedef csm_db_code (*extract_data)(csm_array *array, const csm_object *object, const csm_selective_access *sel_access);
-typedef csm_db_code (*insert_data)(csm_array *array, const csm_object *object, const csm_selective_access *sel_access);
-
-
-typedef struct
-{
-    extract_data extract_func;
-    insert_data insert_func;
-} csm_db_access;
 
 
 #endif // CSM_DEFINITIONS_H
