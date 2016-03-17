@@ -41,7 +41,7 @@ const csm_asso_config assos_config[] =
       { 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U }, // Password.
     },
 
-    // Client manual meter reader association
+    // Client management association
     { {1U, 1U},
       CSM_CBLOCK_GET | CSM_CBLOCK_SET |CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ | CSM_CBLOCK_SELECTIVE_ACCESS,
       0U, // No auto-connected

@@ -1,5 +1,5 @@
-#include "csm_database.h"
-#include "csm_clock_objects.h"
+#include "app_database.h"
+#include "app_cosem_clock.h"
 
 /*
 const csm_attr_descr ApplicationEventLogAttributes[] = {

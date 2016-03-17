@@ -1,5 +1,5 @@
 
-#include "csm_db_gen.h"
+#include "app_cosem_object_list.h"
 #include "csm_config.h"
 
 

@@ -1,0 +1,20 @@
+{
+	"name": "example",
+	"version": "1.0",
+	"associations": [
+		{ "name": "Public client", "id": 1 },
+		{ "name": "Management", "id": 2 }
+	],
+	"objects": [
+		{
+			"class_id": "8",
+			"logical_name": "0;0;1;0;0;255",
+			"name": "Clock",
+			"version": 0,
+			"attributes": [
+			],
+			"methods": []
+		}
+		
+	]
+}
