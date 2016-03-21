@@ -4,37 +4,36 @@
 #include <stdint.h>
 #include "csm_services.h"
 
-#define CSM_NO_ACCESS   (uint16_t)0U
-#define CSM_GET         (uint16_t)1U
-#define CSM_SET         (uint16_t)2U
-#define CSM_GET_SET     (uint16_t)3U
+#define DB_ACCESS_GET       (uint16_t)1U
+#define DB_ACCESS_SET       (uint16_t)2U
+#define DB_ACCESS_GETSET    (uint16_t)3U
 
 
 typedef enum
 {
-    CSM_TYPE_NOT_USED = 0U,
-    CSM_TYPE_UNSIGNED8,
-    CSM_TYPE_UNSIGNED16,
-    CSM_TYPE_UNSIGNED32,
-    CSM_TYPE_UNSIGNED64,
-    CSM_TYPE_SIGNED8,
-    CSM_TYPE_SIGNED16,
-    CSM_TYPE_SIGNED32,
-    CSM_TYPE_SIGNED64,
-    CSM_TYPE_OCTET_STRING,
-    CSM_TYPE_DATE_TIME,
-    CSM_TYPE_DATE,
-    CSM_TYPE_TIME,
-    CSM_TYPE_ENUM,
-    CSM_TYPE_STRUCTURE,
-    CSM_TYPE_BIT_STRING,
-    CSM_TYPE_BOOLEAN,
-    CSM_TYPE_ARRAY,
-    CSM_TYPE_PROFILE_BUFFER,
-    CSM_TYPE_VISIBLE_STRING,
-    CSM_TYPE_ATTR_0,
-    CSM_TYPE_ATTR_1
-} csm_data_type;
+    DB_TYPE_NOT_USED = 0U,
+    DB_TYPE_UNSIGNED8,
+    DB_TYPE_UNSIGNED16,
+    DB_TYPE_UNSIGNED32,
+    DB_TYPE_UNSIGNED64,
+    DB_TYPE_SIGNED8,
+    DB_TYPE_SIGNED16,
+    DB_TYPE_SIGNED32,
+    DB_TYPE_SIGNED64,
+    DB_TYPE_OCTET_STRING,
+    DB_TYPE_DATE_TIME,
+    DB_TYPE_DATE,
+    DB_TYPE_TIME,
+    DB_TYPE_ENUM,
+    DB_TYPE_STRUCTURE,
+    DB_TYPE_BIT_STRING,
+    DB_TYPE_BOOLEAN,
+    DB_TYPE_ARRAY,
+    DB_TYPE_PROFILE_BUFFER,
+    DB_TYPE_VISIBLE_STRING,
+    DB_TYPE_ATTR_0,
+    DB_TYPE_ATTR_1
+} db_data_type;
 
 
 typedef struct
@@ -42,7 +41,7 @@ typedef struct
      uint16_t  access_rights;   //!< Give the access right coding number
      int8_t    number;          //!<
      uint8_t   type;            //!< Gives the type of the attribute, for deserialization purpose
-} csm_attr_descr;
+} db_attr_descr;
 
 /**
  * @class CosemObject base object
@@ -50,33 +49,33 @@ typedef struct
 **/
 typedef struct
 {
-    const csm_attr_descr *attr_list;  ///< The table of attributes
-    const csm_attr_descr *meth_list;  ///< The table of methods
+    const db_attr_descr *attr_list;  ///< The table of attributes
+    const db_attr_descr *meth_list;  ///< The table of methods
     uint16_t  class_id;       ///< Class Id
     csm_obis_code   obis_code;          ///< Obis code for Logical Name
     uint8_t   version;       ///< Version
     uint8_t   nb_attr;  ///< Number of attributes
     uint8_t   nb_meth;  ///< Number of methods
 
-} csm_object_descr;
+} db_object_descr;
 
 
 typedef struct
 {
-    const csm_object_descr *objects;
+    const db_object_descr *objects;
     csm_db_access_handler handler;
     uint8_t nb_objects;
-} csm_db_element;
+} db_element;
 
 /**
  * @brief Handle pointing to a ROM Cosem object
  */
 typedef struct
 {
-    const csm_object_descr *object; ///< Pointer to the cosem object
+    const db_object_descr *object; ///< Pointer to the cosem object
     uint8_t db_index; // database number (index)
     uint8_t obj_index; // object index in the database
-} csm_obj_handle;
+} db_obj_handle;
 
 
 // Database access from Cosem

@@ -48,3 +48,4 @@ Temporary Items
 cosemlib.pro.user
 build-cosemlib-Desktop_Qt*
 *.o
+*.user

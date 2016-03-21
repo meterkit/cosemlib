@@ -11,7 +11,7 @@
 // Meter environment
 #include "unity_fixture.h"
 #include "tcp_server.h"
-#include "csm_database.h"
+#include "app_database.h"
 #include "os.h"
 #include "bitfield.h"
 
@@ -261,6 +261,7 @@ int main(int argc, const char * argv[])
 */
 
     csm_init();
+    printf("Starting DLMS/Cosem example\r\nCosem library version: %s\r\n\r\n", COSEMLIB_VERSION);
 
 
     char buffer[BUF_SIZE];

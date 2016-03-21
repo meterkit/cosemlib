@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "csm_array.h"
 
+#define COSEMLIB_VERSION    "1.0"
 
 /**
  * @brief The xdlms_tag enum
@@ -17,7 +18,9 @@ enum xdlms_tag
     AXDR_INITIATE_REQUEST   = 1U,
     AXDR_INITIATE_RESPONSE  = 8U,
     AXDR_GET_REQUEST        = 192U,
+    AXDR_SET_REQUEST        = 193U,
     AXDR_GET_RESPONSE       = 196U,
+    AXDR_SET_RESPONSE       = 197U,
     AXDR_EXCEPTION_RESPONSE = 216U
 
 /*

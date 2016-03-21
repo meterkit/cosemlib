@@ -12,6 +12,11 @@
 			"name": "Clock",
 			"version": 0,
 			"attributes": [
+				{ "id:" 2, "name": "Date-time", "type": "DB_TYPE_DATE_TIME", "access_rights": [
+					{ "association": 1, "access": "get" },
+					{ "association": 2, "access": "getset" }
+					]
+				},
 			],
 			"methods": []
 		}

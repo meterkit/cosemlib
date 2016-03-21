@@ -144,23 +144,6 @@ static inline void WPA_PUT_BE64(u8 *a, u64 val)
 	a[7] = val & 0xff;
 }
 
-
-/**
- * wpa_hexdump_key - conditional hex dump, hide keys
- * @level: priority level (MSG_*) of the message
- * @title: title of for the message
- * @buf: data buffer to be dumped
- * @len: length of the buf
- *
- * This function is used to print conditional debugging and error messages. The
- * output may be directed to stdout, stderr, and/or syslog based on
- * configuration. The contents of buf is printed out has hex dump. This works
- * like wpa_hexdump(), but by default, does not include secret keys (passwords,
- * etc.) in debug output.
- */
-//void wpa_hexdump_key(int level, const char *title, const void *buf, size_t len);
-
-
 // -----------------------------------  Prototypes --------------------------------------------------
 
 /**

@@ -1,4 +1,4 @@
-#include "csm_clock_objects.h"
+#include "db_cosem_clock.h"
 #include "csm_axdr_codec.h"
 
 static const uint8_t date_time[12] = {
@@ -14,14 +14,21 @@ static const uint8_t date_time[12] = {
 
 
 
-csm_db_code csm_db_clock_func(csm_array *array, csm_request *request)
+csm_db_code db_cosem_clock_func(csm_array *array, csm_request *request)
 {
-    // FIXME: filter thanks to the request parameters (service, ...)
-    (void) request;
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
-    if (axdr_encode_octet_string(array, &date_time[0], 12U))
+
+    if (request->db_request.service == SRV_GET)
     {
-        code = CSM_OK;
+        if (axdr_encode_octet_string(array, &date_time[0], 12U))
+        {
+            code = CSM_OK;
+        }
     }
+    else if (request->type == SRV_SET)
+    {
+        // Not implemented
+    }
+
     return code;
 }

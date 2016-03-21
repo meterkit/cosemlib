@@ -40,9 +40,9 @@ HEADERS += csm_array.h csm_config.h csm_ber.h csm_channel.h csm_association.h cs
 # ====================================================
 # Implementation example: cosem database and transport
 # ====================================================
-SOURCES += tcp_server.c app_database.c app_cosem_clock.c
+SOURCES += tcp_server.c db_cosem_clock.c db_cosem_associations.c
 
-HEADERS += tcp_server.h app_database.h app_cosem_clock.h app_cosem_object_list.h
+HEADERS += tcp_server.h db_cosem_clock.h db_cosem_object_list.h db_cosem_associations.h
 
 # ====================================================
 # Implementation example: operating system
@@ -55,9 +55,9 @@ HEADERS += clock.h os.h bitfield.h
 # Implementation example: meter application
 # ====================================================
 
-SOURCES += app_calendar.c
+SOURCES += app_calendar.c app_database.c
 
-HEADERS += app_calendar.h
+HEADERS += app_calendar.h app_database.h
 
 # ====================================================
 # Implementation example: crypto algorithms
