@@ -32,10 +32,10 @@ OTHER_FILES += README.md
 # Cosem library
 # ====================================================
 SOURCES += csm_array.c csm_ber.c csm_channel.c csm_association.c csm_services.c \
-    csm_axdr_codec.c
+    csm_axdr_codec.c csm_security.c
 
 HEADERS += csm_array.h csm_config.h csm_ber.h csm_channel.h csm_association.h csm_definitions.h csm_services.h \
-    csm_axdr_codec.h csm_system.h
+    csm_axdr_codec.h csm_security.h
 
 # ====================================================
 # Implementation example: cosem database and transport
@@ -70,7 +70,7 @@ HEADERS += aes.h aes_i.h aes_wrap.h
 # ====================================================
 # Test files
 # ====================================================
-SOURCES += test_csm_array.c
+SOURCES += test_csm_array.c test_aes128gcm.c
 
 # ====================================================
 # Main entry point of the test project

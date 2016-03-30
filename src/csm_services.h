@@ -4,25 +4,7 @@
 #include "csm_definitions.h"
 #include "csm_association.h"
 
-
-enum csm_service { SRV_GET, SRV_SET, SRV_ACTION };
 enum csm_req_type { RQ_NORMAL, RQ_NEXT, RQ_WITH_LIST };
-
-typedef struct
-{
-    enum csm_service service;
-    csm_selective_access access;
-    csm_data data;
-} csm_db_request;
-
-typedef struct
-{
-    csm_db_request db_request;
-    uint8_t sender_invoke_id;
-    uint8_t type; // Type of the request (normal, next ...)
-    csm_llc llc;
-
-} csm_request;
 
 /**
  * @brief Generic Codec error codes
@@ -49,5 +31,8 @@ void csm_services_init(const csm_db_access_handler db_access);
 
 // Return he number of bytes to transfer back, 0 if no response
 int csm_services_execute(csm_asso_state *state, csm_request *request, csm_array *array);
+
+// Specific method in case of HLS authentication
+int csm_services_hls_execute(csm_asso_state *state, csm_request *request, csm_array *array);
 
 #endif // CSM_SERVICES_H

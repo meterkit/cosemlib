@@ -16,10 +16,8 @@
 
 typedef struct
 {
-    uint8_t id; // dynamically assigned id to indicate if the channel is free or used
-
     csm_request request;
-    csm_asso_state *asso;   //< Association for that channel
+    csm_asso_state *asso;   //!< Association used for that channel
 
 } csm_channel;
 

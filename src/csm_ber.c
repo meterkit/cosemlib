@@ -85,12 +85,11 @@ int csm_ber_write_len(csm_array *array, uint16_t len)
     if (len > 127U)
     {
         nbBytes++;
-        byte = 0U;
-        byte = (LEN_MASK | nbBytes);
+        byte = (LEN_XTND | nbBytes);
         ret = csm_array_write_u8(array, byte);
 
         // Encode length first part
-        byte = (len >> 8U) & LEN_MASK;
+        byte = ((len >> 8U) & LEN_MASK) | LEN_XTND;
         ret = ret && csm_array_write_u8(array, byte);
     }
 

@@ -13,7 +13,7 @@ const db_attr_descr clock_attributes[] = {
 { DB_ACCESS_GETSET, 9, DB_TYPE_ENUM },
 };
 
-const db_attr_descr association1_attributes[] = {
+const db_attr_descr current_association_attributes[] = {
 { DB_ACCESS_GET, 2, DB_TYPE_ARRAY },
 { DB_ACCESS_GET, 3, DB_TYPE_STRUCTURE },
 { DB_ACCESS_GET, 4, DB_TYPE_STRUCTURE },
@@ -21,6 +21,11 @@ const db_attr_descr association1_attributes[] = {
 { DB_ACCESS_GET, 6, DB_TYPE_STRUCTURE },
 { DB_ACCESS_GETSET, 8, DB_TYPE_ENUM },
 { DB_ACCESS_GETSET, 9, DB_TYPE_OCTET_STRING },
+{ DB_ACCESS_GETSET, 1, DB_TYPE_OCTET_STRING },
+};
+
+const db_attr_descr current_association_methods[] = {
+{ DB_ACCESS_GETSET, 1, DB_TYPE_OCTET_STRING },
 };
 
 const db_object_descr clock_objects[] = {
@@ -28,7 +33,7 @@ const db_object_descr clock_objects[] = {
 };
 
 const db_object_descr associations_objects[] = {
-    {&association1_attributes[0], NULL, 15U , { 0U, 0U, 40U, 0U, 0U, 255U } , 0U , 7U, 0U },
+    {&current_association_attributes[0], &current_association_methods[0], 15U , { 0U, 0U, 40U, 0U, 0U, 255U } , 0U , 7U, 1U },
 };
 
 const db_element gDataBaseList[] = {

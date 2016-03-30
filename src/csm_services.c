@@ -162,7 +162,8 @@ enum srv_response
     SRV_GET_RESPONSE_NORMAL         = 1U,
     SRV_GET_RESPONSE_WITH_DATABLOCK = 2U,
     SRV_GET_RESPONSE_WITH_LIST      = 3U,
-    SRV_SET_RESPONSE_NORMAL         = 1U
+    SRV_SET_RESPONSE_NORMAL         = 1U,
+    SRV_ACTION_RESPONSE_NORMAL      = 1U
 };
 
 
@@ -296,25 +297,24 @@ Set-Response-With-List ::= SEQUENCE
 
  */
 
-static csm_db_code srv_set_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code srv_set_or_action(csm_asso_state *state, csm_request *request, csm_array *array)
 {
     csm_db_code code = CSM_ERR_BAD_ENCODING;
     (void) state;
 
-    CSM_LOG("[SRV] Decoding SET.request");
-
     if (srv_decode_request(request, array))
     {
-        request->db_request.service = SRV_SET;
         if (database != NULL)
         {
-            CSM_LOG("[SRV] Encoding SET.response");
+            CSM_LOG("[SRV] Encoding SET/ACTION.response");
             code = database(array, request);
 
             // Encode the response
             array->wr_index = 0U;
-            int valid = csm_array_write_u8(array, AXDR_SET_RESPONSE);
-            valid = valid && csm_array_write_u8(array, SRV_SET_RESPONSE_NORMAL);
+
+            uint8_t service_resp = (request->db_request.service == SRV_SET) ? AXDR_SET_RESPONSE : AXDR_ACTION_RESPONSE;
+            int valid = csm_array_write_u8(array, service_resp);
+            valid = valid && csm_array_write_u8(array, SRV_SET_RESPONSE_NORMAL); // FIXME: use proper service tag
             valid = valid && csm_array_write_u8(array, request->sender_invoke_id);
             valid = srv_data_access_result_encoder(array, code);
 
@@ -350,6 +350,93 @@ static csm_db_code srv_set_request_decoder(csm_asso_state *state, csm_request *r
     return code;
 }
 
+static csm_db_code srv_set_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
+{
+    request->db_request.service = SRV_SET;
+    CSM_LOG("[SRV] Decoding SET.request");
+    return srv_set_or_action(state, request, array);
+}
+
+
+/*
+Action-Request ::= CHOICE
+{
+    action-request-normal                      [1] IMPLICIT Action-Request-Normal,
+    action-request-next-pblock                 [2] IMPLICIT Action-Request-Next-Pblock,
+    action-request-with-list                   [3] IMPLICIT Action-Request-With-List,
+    action-request-with-first-pblock           [4] IMPLICIT Action-Request-With-First-Pblock,
+    action-request-with-list-and-first-pblock  [5] IMPLICIT Action-Request-With-List-And-First-Pblock,
+    action-request-with-pblock                 [6] IMPLICIT Action-Request-With-Pblock
+}
+Action-Request-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority              Invoke-Id-And-Priority,
+    cosem-method-descriptor             Cosem-Method-Descriptor,
+    method-invocation-parameters        Data OPTIONAL
+}
+Action-Request-Next-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    block-number             Unsigned32
+}
+Action-Request-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-method-descriptor-list       SEQUENCE OF Cosem-Method-Descriptor,
+    method-invocation-parameters       SEQUENCE OF Data
+}
+Action-Request-With-First-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-method-descriptor            Cosem-Method-Descriptor,
+    pblock                             DataBlock-SA
+}
+Action-Request-With-List-And-First-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-method-descriptor-list       SEQUENCE OF Cosem-Method-Descriptor,
+    pblock                             DataBlock-SA
+}
+Action-Request-With-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    pblock                             DataBlock-SA
+}
+Action-Response ::= CHOICE
+{
+    action-response-normal             [1] IMPLICIT    Action-Response-Normal,
+    action-response-with-pblock        [2] IMPLICIT    Action-Response-With-Pblock,
+    action-response-with-list          [3] IMPLICIT    Action-Response-With-List,
+    action-response-next-pblock        [4] IMPLICIT    Action-Response-Next-Pblock
+}
+Action-Response-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    single-response                    Action-Response-With-Optional-Data
+}
+Action-Response-With-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    pblock                             DataBlock-SA
+}
+Action-Response-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    list-of-responses                  SEQUENCE OF Action-Response-With-Optional-Data
+}
+Action-Response-Next-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    block-number                       Unsigned32
+}
+
+ */
+static csm_db_code srv_action_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
+{
+    request->db_request.service = SRV_ACTION;
+    CSM_LOG("[SRV] Decoding ACTION.request");
+    return srv_set_or_action(state, request, array);
+}
 
 
 typedef csm_db_code (*srv_decoder_func)(csm_asso_state *state, csm_request *request, csm_array *array);
@@ -367,7 +454,7 @@ static const csm_service_handler services[] =
 {
     { AXDR_GET_REQUEST, srv_get_request_decoder, NULL },
     { AXDR_SET_REQUEST, srv_set_request_decoder, NULL },
-
+    { AXDR_ACTION_REQUEST, srv_action_request_decoder, NULL },
 };
 
 #define NUMBER_OF_SERVICES (sizeof(services) / sizeof(csm_service_handler))
@@ -377,6 +464,13 @@ void csm_services_init(const csm_db_access_handler db_access)
     database = db_access;
 }
 
+int csm_services_hls_execute(csm_asso_state *state, csm_request *request, csm_array *array)
+{
+    // FIXME: restrict only to the current association object and reply_to_hls_authentication method
+    CSM_LOG("[SRV] Received HLS Pass 3");
+
+    return csm_services_execute(state, request, array);
+}
 
 int csm_services_execute(csm_asso_state *state, csm_request *request, csm_array *array)
 {

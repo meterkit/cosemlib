@@ -16,6 +16,8 @@
 #include "csm_ber.h"
 #include "csm_definitions.h"
 
+#define CSM_DEF_CHALLENGE_SIZE  64U
+
 // States machine of the Control Function
 enum state_cf { CF_INACTIVE, CF_IDLE, CF_ASSOCIATION_PENDING, CF_ASSOCIATED, CF_ASSOCIATION_RELEASE_PENDING };
 
@@ -75,80 +77,97 @@ typedef enum
     CSM_ASSO_CALLING_AP_INVOC_ID    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  8U,
     CSM_ASSO_CALLING_AE_INVOC_ID    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  9U,
     CSM_ASSO_SENDER_ACSE_REQU       = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE   + 10U,
-    CSM_ASSO_MECHANISM_NAME         = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE   + 11U,
+    CSM_ASSO_REQ_MECHANISM_NAME     = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE   + 11U,
     CSM_ASSO_CALLING_AUTH_VALUE     = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED + 12U,
     CSM_ASSO_IMPLEMENTATION_INFO    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED + 29U,
     CSM_ASSO_USER_INFORMATION       = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED + 30U,
 
     // AARE tags
+    CSM_ASSO_RESP_AUTH_VALUE        = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  10U,
+    CSM_ASSO_RESP_MECHANISM_NAME    = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE   +  9U,
+    CSM_ASSO_RESPONDER_ACSE_REQ     = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE   +  8U,
+    CSM_ASSO_RESP_AP_TITLE          = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  4U,
     CSM_ASSO_RESULT_FIELD           = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  2U,
     CSM_ASSO_RESULT_SRC_DIAG        = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  3U,
     CSM_ASSO_RESULT_SERVICE_USER    = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  1U,
 } csm_asso_tag;
 
 
-enum csm_asso_error
+/*
+
+    acse-service-user                  [1] INTEGER
+    {
+        null                                             (0),
+        no-reason-given                                  (1),
+        application-context-name-not-supported           (2),
+        calling-AP-title-not-recognized                  (3),
+        calling-AP-invocation-identifier-not-recognized  (4),
+        calling-AE-qualifier-not-recognized              (5),
+        calling-AE-invocation-identifier-not-recognized  (6),
+        called-AP-title-not-recognized                   (7),
+        called-AP-invocation-identifier-not-recognized   (8),
+        called-AE-qualifier-not-recognized               (9),
+        called-AE-invocation-identifier-not-recognized   (10),
+        authentication-mechanism-name-not-recognised     (11),
+        authentication-mechanism-name-required           (12),
+        authentication-failure                           (13),
+        authentication-required                          (14)
+    }
+
+ */
+enum csm_asso_result
 {
-    CSM_ASSO_ERR_NULL   = 0U,
-    CSM_ASSO_ERR_AUTH_FAILURE = 13U
+    CSM_ASSO_ERR_NULL           = 0U,   //!< No error
+    CSM_ASSO_AUTH_UNKNOWN       = 11U,
+    CSM_ASSO_ERR_AUTH_FAILURE   = 13U,
+    CSM_ASSO_AUTH_REQUIRED      = 14U,
 };
 
 /**
- * @brief Configuration structure of one association
+ * @brief Configuration structure of one association, should be fixed in ROM at compile time
  */
 typedef struct
 {
     csm_llc llc;
     uint32_t conformance;          ///< All services and functionalities authorized.
     uint8_t  is_auto_connected;    ///< Boolean to indicate if the association is auto connected or not;
-    uint8_t  authentication_mask;  ///< The mask of authentication authorized.
-    uint8_t  password[SIZE_OF_AUTH_VALUE];         ///< Password of association.
 } csm_asso_config;
 
-/*
-9.2.7.2.4.2         The security header
-The security header SH includes the security control byte concatenated with the invocation counter:
-SH = SC II IC. The security control byte is shown in Table 37 where:
-•     Bit 3…0: Security_Suite_Id, see 9.2.3.7;
-•     Bit 4: “A” subfield: indicates that authentication is applied;
-•     Bit 5: “E” subfield: indicates that encryption is applied;
-•     Bit 6: Key_Set subfield: 0 = Unicast, 1 = Broadcast;
-•     Bit 7: Indicates the use of compression.
-*/
-typedef union
-{
-    uint8_t sh_byte;
-    struct
-    {
-        uint8_t compression:1;
-        uint8_t key_set:1;
-        uint8_t encryption:1;
-        uint8_t authentication:1;
-        uint8_t security_suite:4;
-    } sh_bit_field;
-} csm_security_header;
-
 /**
- * @brief State and information of the currently open association
+ * @brief Temporary structure valid during the ACSE
  */
 typedef struct
 {
+    uint8_t auth_value[CSM_DEF_CHALLENGE_SIZE]; // can be LLS
+    uint8_t auth_value_size;
+    uint32_t proposed_conformance;
+    uint16_t client_max_receive_pdu_size;
+    enum csm_asso_result result;
+} csm_asso_handshake;
+
+/**
+ * @brief State and information of the current association
+ *
+ * This state structure contains valid data for the life of one association
+ *
+ */
+typedef struct
+{
+    // Current state and parameters of the association
     enum state_cf state_cf;
     enum csm_referencing ref;
     enum csm_auth_level auth_level;
-    enum csm_asso_error error;
-    uint8_t  auth_value[SIZE_OF_AUTH_VALUE];
-    uint8_t dedicated_key[SIZE_OF_DEDICATED_KEY];
-    uint32_t proposed_conformance;
-    uint16_t client_max_receive_pdu_size;
+    uint8_t client_app_title[CSM_DEF_APP_TITLE_SIZE];
 
-    // Pointer to the configuration structure
+    // Valid for the ACSE session establishment, for security reasons it should be erased afterall
+    csm_asso_handshake handshake;
+
+    // Pointer to the configuration structure in ROM
     const csm_asso_config *config;
 } csm_asso_state;
 
-
 void csm_asso_init(csm_asso_state *state);
 int csm_asso_execute(csm_asso_state *state, csm_array *packet);
-
+int csm_asso_hls_pass3(csm_array *array, csm_request *request);
 
 #endif // CSM_ASSOCIATION_H

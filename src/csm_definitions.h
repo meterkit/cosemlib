@@ -4,7 +4,9 @@
 #include <stdint.h>
 #include "csm_array.h"
 
-#define COSEMLIB_VERSION    "1.0"
+#define CSM_DEF_LIB_VERSION         "1.0"
+#define CSM_DEF_LLS_SIZE            8U
+#define CSM_DEF_APP_TITLE_SIZE      8U
 
 /**
  * @brief The xdlms_tag enum
@@ -19,18 +21,11 @@ enum xdlms_tag
     AXDR_INITIATE_RESPONSE  = 8U,
     AXDR_GET_REQUEST        = 192U,
     AXDR_SET_REQUEST        = 193U,
+    AXDR_ACTION_REQUEST     = 195U,
     AXDR_GET_RESPONSE       = 196U,
     AXDR_SET_RESPONSE       = 197U,
+    AXDR_ACTION_RESPONSE    = 199U,
     AXDR_EXCEPTION_RESPONSE = 216U
-
-/*
-    get-request                        [192] IMPLICIT      Get-Request,
-    set-request                        [193] IMPLICIT      Set-Request,
-    event-notification-request         [194] IMPLICIT      EventNotificationRequest,
-    action-request                     [195] IMPLICIT      Action-Request,
-    get-response                       [196] IMPLICIT      Get-Response,
-    set-response                       [197] IMPLICIT      Set-Response,
-    */
 };
 
 enum csm_conformance_mask
@@ -97,6 +92,81 @@ typedef struct
     uint16_t ssap; //< Client
     uint16_t dsap; //< Server
 } csm_llc;
+
+enum csm_service { SRV_GET, SRV_SET, SRV_ACTION };
+
+typedef struct
+{
+    enum csm_service service;
+    csm_selective_access access;
+    csm_data data;
+    uint8_t db_type; //!< Database specific, base type of the data
+} csm_db_request;
+
+typedef struct
+{
+    csm_db_request db_request;
+    uint8_t sender_invoke_id;
+    uint8_t type; // Type of the request (normal, next ...)
+    csm_llc llc;
+    uint8_t channel_id; // Channel in use
+
+} csm_request;
+
+// ----------------------------- IMPLEMENTATION SPECIFIC INTERFACE -----------------------------
+
+/* GreenBook 8
+System title 4.3.4
+The system title Sys-T shall  uniquely  identify  each DLMS/COSEM  entity  that may  be  server,  a client
+or a third party that can access servers via clients. The system title:
+  * shall be 8 octets long;
+  * shall be unique.
+The  leading  (i.e.,  the  3  leftmost)  octets  should  hold  the  three-letter  manufacturer  ID1.  This  is  the
+same as the leading three octets of the Logical Device Name, see 4.3.5. The remaining 5 octets shall
+ensure uniqueness.
+*/
+
+// This function makes a copy of the system title locally in RAM
+void csm_sys_set_system_title(const uint8_t *buf);
+
+// This function returns a pointer to the system title buffer string in memory
+const uint8_t *csm_sys_get_system_title();
+
+// Test the LLS password with the one given in reference
+int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf);
+
+// Generate a random number [0..255]
+uint8_t csm_sys_get_random_u8();
+
+// Get the mechanism_id of the specified association
+uint8_t csm_sys_get_mechanism_id(uint8_t sap);
+
+typedef enum
+{
+    CSM_SEC_KEK,    //!< the master key
+    CSM_SEC_GUEK,   //!< global unicast encryption key GUEK
+    CSM_SEC_GBEK,   //!< global broadcast encryption key GBEK
+    CSM_SEC_GAK,    //!< (global) authentication key, GAK
+} csm_sec_key;
+
+/**
+ * @brief csm_sys_gcm_ad
+ * @param key_id
+ * @param crypted
+ * @param crypted_len
+ * @param aad
+ * @param aad_len
+ * @param tag
+ * @param plain
+ * @param ic
+ * @return
+ */
+int csm_sys_gcm_ad(csm_sec_key key_id,
+                   uint8_t *crypted, uint32_t crypted_len,
+                   const uint8_t *aad, uint32_t aad_len,
+                   uint8_t *tag,
+                   uint8_t *plain,
+                   uint32_t ic);
 
 
 #endif // CSM_DEFINITIONS_H

@@ -6,7 +6,7 @@
 void csm_channel_init(csm_channel *channel)
 {
     channel->asso = NULL;
-    channel->id = INVALID_CHANNEL_ID;
+    channel->request.channel_id = INVALID_CHANNEL_ID;
 }
 
 int csm_channel_execute(csm_request *request, csm_asso_state *asso, csm_array *packet)
@@ -25,7 +25,19 @@ int csm_channel_execute(csm_request *request, csm_asso_state *asso, csm_array *p
             ret = csm_asso_execute(asso, packet);
             break;
         default:
-            ret = csm_services_execute(asso, request, packet);
+            if (asso->state_cf == CF_ASSOCIATED)
+            {
+                ret = csm_services_execute(asso, request, packet);
+            }
+            else if (asso->state_cf == CF_ASSOCIATION_PENDING)
+            {
+                // In case of HLS, we have to access to one attribute
+                ret = csm_services_hls_execute(asso, request, packet);
+            }
+            else
+            {
+                CSM_ERR("[CHANNEL] Association is not open");
+            }
             break;
         }
     }
