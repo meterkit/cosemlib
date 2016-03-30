@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h> // to initialize the seed
 
 // Cosem stack
 #include "csm_array.h"
@@ -15,21 +16,14 @@
 #include "os.h"
 #include "bitfield.h"
 
-/*
+#ifdef TESTS
 static void RunAllTests(void)
 {
-  RUN_TEST_GROUP(CosemArray);
+    RUN_TEST_GROUP(CosemArray);
+    RUN_TEST_GROUP(Aes128Gcm);
 }
-*/
 
-static const uint8_t association[] = {  0x60U,  0x36U, 0xA1U,   0x09U,   0x06U,   0x07U,  0x60U,  0x85U,
-                                        0x74U,   0x05U,   0x08U,   0x01U,   0x01U, 0x8AU,   0x02U,   0x07U,
-                                        0x80U, 0x8BU,   0x07U,  0x60U,  0x85U,  0x74U,   0x05U,   0x08U,
-                                         0x02U,   0x01U, 0xACU, 0x0AU,  0x80U,   0x08U,  0x41U,  0x42U,
-                                        0x43U,  0x44U,  0x45U,  0x46U,  0x47U,  0x48U, 0xBEU,  0x10U,
-                                         0x04U, 0x0EU,   0x01U,   0x00U,   0x00U,   0x00U,   0x06U, 0x5FU,
-                                       0x1FU,   0x04U,   0x00U,   0x00U,  0x30U, 0x1DU, 0xFFU, 0xFFU
- };
+#else
 
 const csm_asso_config assos_config[] =
 {
@@ -37,16 +31,12 @@ const csm_asso_config assos_config[] =
     { {16U, 1U},
       CSM_CBLOCK_GET | CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ,
       0U, // No auto-connected
-      CSM_AUTH_LOWEST_LEVEL,             // No Authentication
-      { 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U }, // Password.
     },
 
     // Client management association
     { {1U, 1U},
-      CSM_CBLOCK_GET | CSM_CBLOCK_SET |CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ | CSM_CBLOCK_SELECTIVE_ACCESS,
+      CSM_CBLOCK_GET | CSM_CBLOCK_ACTION | CSM_CBLOCK_SET |CSM_CBLOCK_BLOCK_TRANSFER_WITH_GET_OR_READ | CSM_CBLOCK_SELECTIVE_ACCESS,
       0U, // No auto-connected
-      CSM_AUTH_LOW_LEVEL, // Low Level Authentication
-      { 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x31U }, // Password. 00000001
     }
 };
 
@@ -60,7 +50,7 @@ csm_channel channels[2];
 
 static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
 #define COSEM_WRAPPER_SIZE 8U
-#define BUF_SIZE (COSEM_PDU_SIZE + COSEM_WRAPPER_SIZE)
+#define BUF_SIZE (CSM_DEF_PDU_SIZE + COSEM_WRAPPER_SIZE)
 
 
 /**
@@ -207,6 +197,8 @@ uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
 // Application & stack initialization
 void csm_init()
 {
+    srand(time(NULL)); // seed init
+
     // 1. DLMS/Cosem stack initialization
     csm_services_init(csm_db_access_func);
 
@@ -221,51 +213,25 @@ void csm_init()
     }
 
 }
-/*
-LN referencing with no ciphering,
-lowest level security;
-60 1D A1 09 06 07 60 85 74 05 08 01 01 BE 10 04
-0E 01 00 00 00 06 5F 1F 04 00 00 7E 1F 04 B0
-LN referencing with no ciphering,
-low level security;
-60 36 A1 09 06 07 60 85 74 05 08 01 01 8A 02 07
-80 8B 07 60 85 74 05 08 02 01 AC 0A 80 08 31 32
-33 34 35 36 37 38 BE 10 04 0E 01 00 00 00 06 5F
-1F 04 00 00 7E 1F 04 B0
-LN referencing with no ciphering,
-high level security;
-60 36 A1 09 06 07 60 85 74 05 08 01 01 8A 02 07
-80 8B 07 60 85 74 05 08 02 05 AC 0A 80 08 4B 35
-36 69 56 61 67 59 BE 10 04 0E 01 00 00 00 06 5F
-1F 04 00 00 7E 1F 04 B0
-*/
+
+#endif
 
 int main(int argc, const char * argv[])
 {
-
-  //return UnityMain(argc, argv, RunAllTests);
-
     (void) argc;
     (void) argv;
-/*
-    uint32_t size = sizeof(association);
 
-    // Intermediate buffer
-    uint8_t buffer[size];
-    memcpy(buffer, association, size);
-
-    csm_array array;
-    csm_array_alloc(&array, &buffer[0], size);
-
-    //csm_array_dump(&array2);
-*/
+#ifdef TESTS
+    printf("Starting DLMS/Cosem unit tests\r\nCosem library version: %s\r\n\r\n", CSM_DEF_LIB_VERSION);
+    return UnityMain(argc, argv, RunAllTests);
+#else
 
     csm_init();
-    printf("Starting DLMS/Cosem example\r\nCosem library version: %s\r\n\r\n", COSEMLIB_VERSION);
-
+    printf("Starting DLMS/Cosem example\r\nCosem library version: %s\r\n\r\n", CSM_DEF_LIB_VERSION);
 
     char buffer[BUF_SIZE];
 
     return tcp_server_init(tcp_data_handler, tcp_conn_handler, buffer, BUF_SIZE);
+#endif
 }
 
