@@ -9,7 +9,6 @@
 
 #include "os.h"
 #include "aes.h"
-#include "aes_wrap.h"
 
 /**
  * aes_wrap - Wrap keys with AES Key Wrap Algorithm (RFC3394)
@@ -21,11 +20,11 @@
  * @cipher: Wrapped key, (n + 1) * 64 bits
  * Returns: 0 on success, -1 on failure
  */
-int aes_wrap(const u8 *kek, size_t kek_len, int n, const u8 *plain, u8 *cipher)
+int aes_wrap(void *ctx, const u8 *kek, size_t kek_len, int n, const u8 *plain, u8 *cipher)
 {
 	u8 *a, *r, b[AES_BLOCK_SIZE];
 	int i, j;
-	void *ctx;
+
 	unsigned int t;
 
 	a = cipher;
@@ -35,9 +34,9 @@ int aes_wrap(const u8 *kek, size_t kek_len, int n, const u8 *plain, u8 *cipher)
 	os_memset(a, 0xa6, 8);
 	os_memcpy(r, plain, 8 * n);
 
-	ctx = aes_encrypt_init(kek, kek_len);
-	if (ctx == NULL)
+    if (aes_encrypt_init(ctx, kek, kek_len) == -1) {
 		return -1;
+    }
 
 	/* 2) Calculate intermediate values.
 	 * For j = 0 to 5

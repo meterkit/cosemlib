@@ -26,9 +26,12 @@
 
 
 static uint32_t clock_datetime = 0U; //< This is the system time
+
+/*
 static uint16_t clock_deviation = 0U;
 static uint8_t clock_dst = 0U;
 static uint8_t clock_status;
+*/
 
 /* scalar date routines    --    public domain by Ray Gardner
 ** These will work over the range 1-01-01 thru 14699-12-31

@@ -1,14 +1,8 @@
 
-#include "os.h"
+#include "aes.h"
 #include "unity.h"
 #include "unity_fixture.h"
 
-int aes_gcm_ae(const u8 *key, size_t key_len, const u8 *iv, size_t iv_len,
-	       const u8 *plain, size_t plain_len,
-	       const u8 *aad, size_t aad_len, u8 *crypt, u8 *tag);
-
-int aes_gmac(const u8 *key, size_t key_len, const u8 *iv, size_t iv_len,
-         const u8 *aad, size_t aad_len, u8 *tag);
 
 void hexdump(void *ptr, int buflen)
 {
@@ -54,7 +48,9 @@ TEST(Aes128Gcm, NistVector)
     unsigned char *ciphertext = malloc(len_p);
     unsigned char tag[16]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
-    int i = aes_gcm_ae(key, 16, IV, 12, plaintext, len_p, add_data, len_ad, ciphertext, tag);
+    u8 aes_ctx[AES_PRIV_SIZE];
+
+    int i = aes_gcm_ae(aes_ctx, key, 16, IV, 12, plaintext, len_p, add_data, len_ad, ciphertext, tag);
 
     TEST_ASSERT_EQUAL(i, 0);
 
@@ -120,7 +116,15 @@ TEST(Aes128Gcm, GreenBookHlsMechanism5Vector)
 
     unsigned char tag[16]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
-    int i = aes_gmac(key, 16, IV, 12, aad, len_ad, tag);
+  //  u8 aes_ctx[AES_PRIV_SIZE];
+  //  int i = aes_gmac(aes_ctx, key, 16, IV, 12, aad, len_ad, tag);
+
+    aes_gcm_ctx gcm_ctx;
+    int i = aes_gcm_init(&gcm_ctx, key, 16, IV, 12);
+    //aes_gcm_update(&gcm_ctx, NULL, 0, NULL, aad, len_ad);
+    aes_gcm_update(&gcm_ctx, NULL, 0, NULL, aad, 16);
+    aes_gcm_update(&gcm_ctx, NULL, 0, NULL, &aad[16], 9);
+    aes_gcm_finish(&gcm_ctx, tag, 0, len_ad);
 
     TEST_ASSERT_EQUAL(i, 0);
 

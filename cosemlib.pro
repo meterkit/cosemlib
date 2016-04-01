@@ -65,7 +65,7 @@ HEADERS += app_calendar.h app_database.h
 
 SOURCES += aes-gcm.c aes-internal.c aes-internal-dec.c aes-internal-enc.c aes-unwrap.c aes-wrap.c
 
-HEADERS += aes.h aes_i.h aes_wrap.h
+HEADERS += aes.h aes_i.h
 
 # ====================================================
 # Test files
