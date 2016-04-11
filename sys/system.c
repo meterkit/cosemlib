@@ -1,8 +1,16 @@
-
+// Cosem library
 #include "csm_config.h"
 #include "csm_association.h"
-#include "os.h"
+#include "csm_definitions.h"
 
+// OS/System definitions
+#include "os.h"
+#include "server_config.h"
+
+// Ciphering library
+#include "gcm.h"
+
+// Standard libraries
 #include <string.h>
 #include <stdlib.h>
 
@@ -15,10 +23,16 @@ an integer counter.
 
 static uint8_t system_title[8] = { 0x4DU, 0x4DU, 0x4DU, 0x00U, 0x00U, 0xBCU, 0x61U, 0x4EU };
 
+// FIXME:
+// 1. Store the key in a configuration file as they can be updated on the field
+// 2. Create a key-ring per association (SAP)
 static const uint8_t key_kek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
 static const uint8_t key_guek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
 static const uint8_t key_gbek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
 static const uint8_t key_gak[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
+
+// Keep a context by channel to be thread safe
+mbedtls_gcm_context chan_ctx[NUMBER_OF_CHANNELS];
 
 void csm_sys_set_system_title(const uint8_t *buf)
 {
@@ -31,23 +45,14 @@ const uint8_t *csm_sys_get_system_title()
 }
 
 
-// External AES128 implementation
-int aes_gcm_ad(const u8 *key, size_t key_len, const u8 *iv, size_t iv_len,
-           const u8 *crypt, size_t crypt_len,
-           const u8 *aad, size_t aad_len, const u8 *tag, u8 *plain);
 
-int csm_sys_gcm_ad(csm_sec_key key_id,
-                   uint8_t *crypted, uint32_t crypted_len,
-                   const uint8_t *aad, uint32_t aad_len,
-                   uint8_t *tag,
-                   uint8_t *plain,
-                   uint32_t ic)
+int csm_sys_gcm_init(uint8_t channel, csm_sec_key key_id, uint32_t ic, const uint8_t *aad, uint32_t aad_len)
 {
     const uint8_t *key = NULL;
-    uint8_t iv[12];
+    uint8_t IV[12];
 
-    memcpy(&iv[0], &system_title[0], sizeof(system_title));
-    PUT_BE32(&system_title[8], ic);
+    memcpy(&IV[0], &system_title[0], sizeof(system_title));
+    PUT_BE32(&IV[8], ic);
 
     switch(key_id)
     {
@@ -66,9 +71,24 @@ int csm_sys_gcm_ad(csm_sec_key key_id,
         break;
     }
 
-    return aes_gcm_ad(key, 16, iv, 12, crypted, crypted_len, aad, aad_len, tag, plain);
+    mbedtls_gcm_init(&chan_ctx[channel]);
+    mbedtls_gcm_setkey(&chan_ctx[channel], MBEDTLS_CIPHER_ID_AES, key, 128);
+    int res = mbedtls_gcm_starts(&chan_ctx[channel], MBEDTLS_GCM_ENCRYPT, IV, 12, aad, aad_len);
+    return (res == 0) ? TRUE : FALSE;
 }
 
+int csm_sys_gcm_update(uint8_t channel, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt)
+{
+    mbedtls_gcm_update(&chan_ctx[channel], plain_len, plain, crypt);
+    return TRUE;
+}
+
+// Sizes are total sizes of plain and AAD
+int csm_sys_gcm_finish(uint8_t channel, uint8_t *tag)
+{
+    mbedtls_gcm_finish(&chan_ctx[channel], tag, 16);
+    return TRUE;
+}
 
 struct cfg_cosem
 {

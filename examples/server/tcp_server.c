@@ -29,7 +29,6 @@ typedef struct in_addr IN_ADDR;
 #endif
 
 #define CRLF		"\r\n"
-#define PORT	 	4059
 #define MAX_CLIENTS 10
 
 
@@ -84,7 +83,7 @@ static void broadcast(peer *clients, peer sender, int actual, const char *buffer
 }
 */
 
-static int init_connection(void)
+static int init_connection(int tcp_port)
 {
    SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
    SOCKADDR_IN sin = { 0 };
@@ -96,7 +95,7 @@ static int init_connection(void)
    }
 
    sin.sin_addr.s_addr = htonl(INADDR_ANY);
-   sin.sin_port = htons(PORT);
+   sin.sin_port = htons(tcp_port);
    sin.sin_family = AF_INET;
 
    if(bind(sock,(SOCKADDR *) &sin, sizeof sin) == SOCKET_ERROR)
@@ -141,9 +140,9 @@ static void write_peer(SOCKET sock, const char *buffer, size_t size)
    }
 }
 
-static void app(data_handler data_func, conn_handler conn_func, char *buffer, int buf_size)
+static void app(data_handler data_func, conn_handler conn_func, char *buffer, int buf_size, int tcp_port)
 {
-   SOCKET sock = init_connection();
+   SOCKET sock = init_connection(tcp_port);
 
    unsigned int max = sock;
    /* an array for all clients */
@@ -278,11 +277,11 @@ static void app(data_handler data_func, conn_handler conn_func, char *buffer, in
 }
 
 
-int tcp_server_init(data_handler data_func, conn_handler conn_func, char *buffer, int buf_size)
+int tcp_server_init(data_handler data_func, conn_handler conn_func, char *buffer, int buf_size, int tcp_port)
 {
    init();
 
-   app(data_func, conn_func, buffer, buf_size);
+   app(data_func, conn_func, buffer, buf_size, tcp_port);
 
    end();
 

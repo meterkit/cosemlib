@@ -1,7 +1,8 @@
 
-#include "aes.h"
+#include "gcm.h"
 #include "unity.h"
 #include "unity_fixture.h"
+#include "string.h"
 
 
 void hexdump(void *ptr, int buflen)
@@ -40,19 +41,44 @@ TEST(Aes128Gcm, NistVector)
     const unsigned char key[16]={0xfe,0xff,0xe9,0x92,0x86,0x65,0x73,0x1c,0x6d,0x6a,0x8f,0x94,0x67,0x30,0x83,0x08};
     const unsigned char IV[12] ={0xca,0xfe,0xba,0xbe,0xfa,0xce,0xdb,0xad,0xde,0xca,0xf8,0x88};
     const unsigned char plaintext[]={0xd9,0x31,0x32,0x25,0xf8,0x84,0x06,0xe5,0xa5,0x59,0x09,0xc5,0xaf,0xf5,0x26,0x9a,0x86,0xa7,0xa9,0x53,0x15,0x34,0xf7,0xda,0x2e,0x4c,0x30,0x3d,0x8a,0x31,0x8a,0x72,0x1c,0x3c,0x0c,0x95,0x95,0x68,0x09,0x53,0x2f,0xcf,0x0e,0x24,0x49,0xa6,0xb5,0x25,0xb1,0x6a,0xed,0xf5,0xaa,0x0d,0xe6,0x57,0xba,0x63,0x7b,0x39,0x1a,0xaf,0xd2,0x55};
-    const unsigned char add_data[16]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
     unsigned int len_p = sizeof(plaintext);
-    unsigned int len_ad = 0;
 
     unsigned char *ciphertext = malloc(len_p);
     unsigned char tag[16]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
-    u8 aes_ctx[AES_PRIV_SIZE];
+ //   u8 aes_ctx[AES_PRIV_SIZE];
 
-    int i = aes_gcm_ae(aes_ctx, key, 16, IV, 12, plaintext, len_p, add_data, len_ad, ciphertext, tag);
+ //   int i = aes_gcm_ae(aes_ctx, key, 16, IV, 12, plaintext, len_p, add_data, 0, ciphertext, tag);
 
-    TEST_ASSERT_EQUAL(i, 0);
+    // Streamed version of GMAC
+    mbedtls_gcm_context ctx;
+
+    mbedtls_gcm_init(&ctx);
+    mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, key, 128);
+
+    printf("Size of context: %d\r\n", sizeof(ctx));
+
+    int ret = mbedtls_gcm_starts(&ctx, MBEDTLS_GCM_ENCRYPT, IV, 12, NULL, 0);
+
+    TEST_ASSERT_EQUAL(ret, 0);
+
+    uint32_t remaining = len_p;
+    const uint32_t BLOCK = 16U;
+    printf("Plaintext size: %d\r\n", len_p);
+
+    for (uint32_t i = 0U; i < len_p; )
+    {
+        uint32_t blocksize = (remaining > BLOCK) ? BLOCK : remaining;
+
+        printf("Calling update with block size=%d, offset=%d\r\n", blocksize, i);
+        mbedtls_gcm_update(&ctx, blocksize, &plaintext[i], &ciphertext[i]);
+
+        i += blocksize;
+        remaining -= blocksize;
+    }
+
+    mbedtls_gcm_finish(&ctx, tag, 16);
 
   //  hexdump( ciphertext, len_p);
 
@@ -116,17 +142,16 @@ TEST(Aes128Gcm, GreenBookHlsMechanism5Vector)
 
     unsigned char tag[16]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
-  //  u8 aes_ctx[AES_PRIV_SIZE];
-  //  int i = aes_gmac(aes_ctx, key, 16, IV, 12, aad, len_ad, tag);
+    // Streamed version of GMAC
+    mbedtls_gcm_context ctx;
+    mbedtls_gcm_init(&ctx);
+    mbedtls_gcm_setkey(&ctx, MBEDTLS_CIPHER_ID_AES, key, 128);
 
-    aes_gcm_ctx gcm_ctx;
-    int i = aes_gcm_init(&gcm_ctx, key, 16, IV, 12);
-    //aes_gcm_update(&gcm_ctx, NULL, 0, NULL, aad, len_ad);
-    aes_gcm_update(&gcm_ctx, NULL, 0, NULL, aad, 16);
-    aes_gcm_update(&gcm_ctx, NULL, 0, NULL, &aad[16], 9);
-    aes_gcm_finish(&gcm_ctx, tag, 0, len_ad);
+    int ret = mbedtls_gcm_starts(&ctx, MBEDTLS_GCM_ENCRYPT, IV, 12, aad, len_ad);
+    TEST_ASSERT_EQUAL(ret, 0);
 
-    TEST_ASSERT_EQUAL(i, 0);
+
+    mbedtls_gcm_finish(&ctx, tag, 16);
 
     static const unsigned char expected[] = { 0x1A,0x52,0xFE,0x7D,0xD3,0xE7,0x27,0x48,0x97,0x3C,0x1E,0x28 };
     printf("TAG: "); hexdump( tag, 16);
@@ -138,6 +163,6 @@ TEST(Aes128Gcm, GreenBookHlsMechanism5Vector)
 
 TEST_GROUP_RUNNER(Aes128Gcm)
 {
-  RUN_TEST_CASE(Aes128Gcm, NistVector);
-  RUN_TEST_CASE(Aes128Gcm, GreenBookHlsMechanism5Vector);
+    RUN_TEST_CASE(Aes128Gcm, NistVector);
+    RUN_TEST_CASE(Aes128Gcm, GreenBookHlsMechanism5Vector);
 }

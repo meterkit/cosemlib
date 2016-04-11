@@ -168,6 +168,6 @@ typedef struct
 
 void csm_asso_init(csm_asso_state *state);
 int csm_asso_execute(csm_asso_state *state, csm_array *packet);
-int csm_asso_hls_pass3(csm_array *array, csm_request *request);
+
 
 #endif // CSM_ASSOCIATION_H

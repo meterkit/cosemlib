@@ -1,5 +1,5 @@
 #include "db_cosem_associations.h"
-
+#include "csm_channel.h"
 
 csm_db_code db_cosem_associations_func(csm_array *array, csm_request *request)
 {
@@ -19,7 +19,7 @@ csm_db_code db_cosem_associations_func(csm_array *array, csm_request *request)
     {
         // Action
         CSM_LOG("[DB] Reply to HLS authentication");
-        csm_asso_hls_pass3(array, request);
+        csm_channel_hls_pass3(array, request);
     }
 
     return code;

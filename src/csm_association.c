@@ -904,7 +904,7 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array)
 
     // Decode first bytes
     int ret = csm_ber_decode(&ber, array);
-    if ((ber.length.length != csm_array_remaining(array)) &&
+    if ((ber.length.length != csm_array_unread(array)) ||
         (ber.tag.tag != CSM_ASSO_AARQ))
     {
         CSM_ERR("[ACSE] Bad AARQ size");
@@ -1062,12 +1062,4 @@ int csm_asso_execute(csm_asso_state *asso, csm_array *packet)
     }
 
     return bytes_to_reply;
-}
-
-int csm_asso_hls_pass3(csm_array *array, csm_request *request)
-{
-    (void) array;
-    (void) request;
-
-    return FALSE;
 }

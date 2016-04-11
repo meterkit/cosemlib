@@ -35,7 +35,7 @@ SOURCES += csm_array.c csm_ber.c csm_channel.c csm_association.c csm_services.c 
     csm_axdr_codec.c csm_security.c
 
 HEADERS += csm_array.h csm_config.h csm_ber.h csm_channel.h csm_association.h csm_definitions.h csm_services.h \
-    csm_axdr_codec.h csm_security.h
+    csm_axdr_codec.h csm_security.h server_config.h
 
 # ====================================================
 # Implementation example: cosem database and transport
@@ -63,9 +63,9 @@ HEADERS += app_calendar.h app_database.h
 # Implementation example: crypto algorithms
 # ====================================================
 
-SOURCES += aes-gcm.c aes-internal.c aes-internal-dec.c aes-internal-enc.c aes-unwrap.c aes-wrap.c
+SOURCES += gcm.c aes.c cipher.c cipher_wrap.c
 
-HEADERS += aes.h aes_i.h
+HEADERS += aes.h cipher.h cipher_internal.h config.h gcm.h
 
 # ====================================================
 # Test files

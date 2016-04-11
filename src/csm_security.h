@@ -60,7 +60,7 @@ typedef enum
  * @param array
  * @return
  */
-csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_sec_control_byte sc);
+csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_array *aad);
 
 
 

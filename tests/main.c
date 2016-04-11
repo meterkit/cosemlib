@@ -15,6 +15,7 @@
 #include "app_database.h"
 #include "os.h"
 #include "bitfield.h"
+#include "server_config.h"
 
 #ifdef TESTS
 static void RunAllTests(void)
@@ -43,15 +44,26 @@ const csm_asso_config assos_config[] =
 #define NUMBER_OF_ASSOS (sizeof(assos_config) / sizeof(csm_asso_config))
 
 csm_asso_state assos[NUMBER_OF_ASSOS];
-csm_channel channels[2];
+csm_channel channels[NUMBER_OF_CHANNELS];
 
-#define NUMBER_OF_CHANNELS (sizeof(channels) / sizeof(csm_channel))
 
+// Buffer has the following format:
+//   | SC + AK | wrapper | APDU
+// With:
+// SC+AK: security AAD header, room booked to optimize buffer management with cyphering
+// wrapper: Cosem standard TCP wrapper (4 words)
+// APDU: Cosem APDU
 
 static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
 #define COSEM_WRAPPER_SIZE 8U
-#define BUF_SIZE (CSM_DEF_PDU_SIZE + COSEM_WRAPPER_SIZE)
+#define BUF_SIZE (CSM_DEF_PDU_SIZE + CSM_DEF_AAD_HEADER_SIZE + COSEM_WRAPPER_SIZE)
 
+
+#define BUF_WRAPPER_OFFSET  (CSM_DEF_AAD_HEADER_SIZE)
+#define BUF_APDU_OFFSET     (COSEM_WRAPPER_SIZE + CSM_DEF_AAD_HEADER_SIZE)
+
+
+static char gBuffer[BUF_SIZE];
 
 /**
  * @brief tcp_data_handler
@@ -84,7 +96,7 @@ int tcp_data_handler(uint8_t channel, uint8_t *buffer, size_t size)
 
     if ((size > COSEM_WRAPPER_SIZE) && (channel < NUMBER_OF_CHANNELS))
     {
-        version = GET_BE16(&buffer[0]);
+        version = GET_BE16(&buffer[0U]);
         channels[channel].request.llc.ssap = GET_BE16(&buffer[2]);
         channels[channel].request.llc.dsap = GET_BE16(&buffer[4]);
         apdu_size = GET_BE16(&buffer[6]);
@@ -92,43 +104,22 @@ int tcp_data_handler(uint8_t channel, uint8_t *buffer, size_t size)
         // Sanity check of the packet
         if ((size == (apdu_size + COSEM_WRAPPER_SIZE)) &&(version == COSEM_WRAPPER_VERSION))
         {
-            uint32_t i = 0U;
-            // Seems to be a valid Cosem packet!
-            // We have to find the association used by this request
-            // Find the valid association.
-            for (i = 0U; i < NUMBER_OF_ASSOS; i++)
+            // Then decode the packet, the reply, if any is located in the buffer
+            // The reply is valid if the return code is > 0
+            csm_array_init(&packet, (uint8_t *)&gBuffer[0], BUF_SIZE, apdu_size, BUF_APDU_OFFSET);
+            ret = csm_channel_execute(channel, &packet);
+
+            if (ret > 0)
             {
-                if ((channels[channel].request.llc.ssap == assos_config[i].llc.ssap) &&
-                    (channels[channel].request.llc.dsap == assos_config[i].llc.dsap))
-                {
-                    break;
-                }
-            }
+                // Swap SSAP and DSAP
+                SET_BE16(&buffer[2], channels[channel].request.llc.dsap);
+                SET_BE16(&buffer[4], channels[channel].request.llc.ssap);
 
-            if (i < NUMBER_OF_ASSOS)
-            {
-                // Association found, use this one
-                // Link the state with the configuration structure
-                assos[i].config = &assos_config[i];
-                channels[channel].asso = &assos[i];
+                // Update Cosem Wrapper length
+                SET_BE16(&buffer[6], (uint16_t) ret);
 
-                // Then decode the packet, the reply, if any is located in the buffer
-                // The reply is valid if the return code is > 0
-                csm_array_init(&packet, (uint8_t *)&buffer[COSEM_WRAPPER_SIZE], BUF_SIZE, apdu_size);
-                ret = csm_channel_execute(&channels[channel].request, &assos[i], &packet);
-
-                if (ret > 0)
-                {
-                    // Swap SSAP and DSAP
-                    SET_BE16(&buffer[2], channels[channel].request.llc.dsap);
-                    SET_BE16(&buffer[4], channels[channel].request.llc.ssap);
-
-                    // Update Cosem Wrapper length
-                    SET_BE16(&buffer[6], (uint16_t) ret);
-
-                    // Add wrapper size to the data packet size
-                    ret += COSEM_WRAPPER_SIZE;
-                }
+                // Add wrapper size to the data packet size
+                ret += COSEM_WRAPPER_SIZE;
             }
         }
         else
@@ -154,7 +145,7 @@ uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
         if (channel > INVALID_CHANNEL_ID)
         {
             channel--; // transform id into index
-            csm_channel_disconnect(&channels[channel]);
+            csm_channel_disconnect(channel);
             ret = TRUE;
             CSM_ERR("[LLC] Channel %d disconnected", channel);
         }
@@ -167,17 +158,7 @@ uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
 
     case CONN_NEW:
     {
-        // search for a valid free channel
-        for (uint32_t i = 0U; i < NUMBER_OF_CHANNELS; i++)
-        {
-            if (channels[i].id == INVALID_CHANNEL_ID)
-            {
-                ret = i + 1U; // transform into channel id
-                CSM_LOG("[LLC] Grant connection to channel %d", channel);
-                break;
-            }
-        }
-
+        ret = csm_channel_new();
         if (!ret)
         {
             CSM_ERR("[LLC] Cannot find free channel slot");
@@ -190,7 +171,7 @@ uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
         CSM_ERR("[LLC] Received spurious event");
         break;
     }
-    return ret;
+    return ret; // Returns error or the channel id
 }
 
 
@@ -199,19 +180,9 @@ void csm_init()
 {
     srand(time(NULL)); // seed init
 
-    // 1. DLMS/Cosem stack initialization
+    // DLMS/Cosem stack initialization
     csm_services_init(csm_db_access_func);
-
-    for (uint32_t i = 0U; i < NUMBER_OF_ASSOS; i++)
-    {
-        csm_asso_init(&assos[i]);
-    }
-
-    for (uint32_t i = 0U; i < NUMBER_OF_CHANNELS; i++)
-    {
-        csm_channel_init(&channels[i]);
-    }
-
+    csm_channel_init(&channels[0], NUMBER_OF_CHANNELS, &assos[0], &assos_config[0], NUMBER_OF_ASSOS);
 }
 
 #endif
@@ -229,9 +200,7 @@ int main(int argc, const char * argv[])
     csm_init();
     printf("Starting DLMS/Cosem example\r\nCosem library version: %s\r\n\r\n", CSM_DEF_LIB_VERSION);
 
-    char buffer[BUF_SIZE];
-
-    return tcp_server_init(tcp_data_handler, tcp_conn_handler, buffer, BUF_SIZE);
+    return tcp_server_init(tcp_data_handler, tcp_conn_handler, &gBuffer[BUF_WRAPPER_OFFSET], BUF_SIZE, TCP_PORT);
 #endif
 }
 

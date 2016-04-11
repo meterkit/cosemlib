@@ -22,9 +22,10 @@ typedef struct
 } csm_channel;
 
 
-void csm_channel_init(csm_channel *channel);
-void csm_channel_disconnect(csm_channel *channel);
-int csm_channel_execute(csm_request *request, csm_asso_state *asso, csm_array *packet);
-
+void csm_channel_init(csm_channel *channels, uint8_t chan_size, csm_asso_state *assos, const csm_asso_config *assos_config, uint8_t asso_size);
+void csm_channel_disconnect(uint8_t channel);
+int csm_channel_hls_pass3(csm_array *array, csm_request *request);
+int csm_channel_execute(uint8_t channel, csm_array *packet);
+uint8_t csm_channel_new(void);
 
 #endif // CSM_CHANNEL_H
