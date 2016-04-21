@@ -1,11 +1,12 @@
 /**
+ * Implementation of the Cosem ACSE services
+ *
  * Copyright (c) 2016, Anthony Rabine
  * All rights reserved.
  *
  * This software may be modified and distributed under the terms of the BSD license.
  * See LICENSE.txt for more details.
  *
- * Implementation of the Cosem ACSE services
  */
 
 #include "csm_association.h"
@@ -263,9 +264,9 @@ static csm_acse_code acse_auth_value_decoder(csm_asso_state *state, csm_ber *ber
             if (ber->tag.tag == (TAG_CONTEXT_SPECIFIC))
             {
                 // It is a GraphicString, the size is dynamic
-                if (csm_array_read_buff(array, state->handshake.auth_value, ber->length.length))
+                if (csm_array_read_buff(array, &state->handshake.ctos.value[0], ber->length.length))
                 {
-                    state->handshake.auth_value_size = ber->length.length;
+                    state->handshake.ctos.size = ber->length.length;
                     ret = CSM_ACSE_OK;
                 }
             }
@@ -327,8 +328,8 @@ static csm_acse_code acse_user_info_decoder(csm_asso_state *state, csm_ber *ber,
                         }
                     }
 
-                    int valid = axdr_decode_null(array); //  response-allowed
-                    valid =  valid && axdr_decode_null(array); // proposed_quality_of_service
+                    int valid = csm_axdr_rd_null(array); //  response-allowed
+                    valid =  valid && csm_axdr_rd_null(array); // proposed_quality_of_service
 
                     // proposed-dlms-version-number: always 6
                     valid = valid && csm_array_read_u8(array, &byte);
@@ -676,14 +677,21 @@ static csm_acse_code acse_responder_auth_value_encoder(csm_asso_state *state, cs
 
     CSM_LOG("[ACSE] Encoding Responder authentication value ...");
 
-    int valid = csm_ber_write_len(array, state->handshake.auth_value_size + 2U);
-    valid = valid && csm_array_write_u8(array, TAG_CONTEXT_SPECIFIC); // GraphicsString
-    valid = valid && csm_array_write_u8(array, state->handshake.auth_value_size);
-
     // Generate the same challenge size than the client
-    for (uint8_t i = 0U; i < state->handshake.auth_value_size; i++)
+    // FIXME: randomize the size for the StoC challenge?
+    uint8_t size = state->handshake.ctos.size;
+    state->handshake.stoc.size = size;
+
+    int valid = csm_ber_write_len(array, size + 2U);
+    valid = valid && csm_array_write_u8(array, TAG_CONTEXT_SPECIFIC); // GraphicsString
+
+    // Serialize the server authentication value to the output buffer and in our scratch buffer
+    valid = valid && csm_array_write_u8(array, size);
+    for (uint8_t i = 0U; i < size; i++)
     {
-        valid = valid && csm_array_write_u8(array, csm_sys_get_random_u8());
+        uint8_t byte = csm_sys_get_random_u8();
+        valid = valid && csm_array_write_u8(array, byte);
+        state->handshake.stoc.value[i] = byte;
     }
 
     if (valid)
@@ -700,7 +708,6 @@ static csm_acse_code acse_user_info_encoder(csm_asso_state *state, csm_ber *ber,
     (void) ber;
 
     CSM_LOG("[ACSE] Encoding user info tag ...");
-
 
   /*
     InitiateResponse ::= SEQUENCE
@@ -869,7 +876,7 @@ int csm_asso_is_granted(csm_asso_state *state)
         }
         else if (state->auth_level == CSM_AUTH_LOW_LEVEL)
         {
-            if (csm_sys_test_lls_password(state->config->llc.dsap, state->handshake.auth_value))
+            if (csm_sys_test_lls_password(state->config->llc.dsap, &state->handshake.ctos.value[0], state->handshake.ctos.size))
             {
                 state->state_cf = CF_ASSOCIATED;
                 state->handshake.result = CSM_ASSO_ERR_NULL;

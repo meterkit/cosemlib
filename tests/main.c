@@ -56,11 +56,11 @@ csm_channel channels[NUMBER_OF_CHANNELS];
 
 static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
 #define COSEM_WRAPPER_SIZE 8U
-#define BUF_SIZE (CSM_DEF_PDU_SIZE + CSM_DEF_AAD_HEADER_SIZE + COSEM_WRAPPER_SIZE)
+#define BUF_SIZE (CSM_DEF_PDU_SIZE + CSM_DEF_MAX_HLS_SIZE + COSEM_WRAPPER_SIZE)
 
 
-#define BUF_WRAPPER_OFFSET  (CSM_DEF_AAD_HEADER_SIZE)
-#define BUF_APDU_OFFSET     (COSEM_WRAPPER_SIZE + CSM_DEF_AAD_HEADER_SIZE)
+#define BUF_WRAPPER_OFFSET  (CSM_DEF_MAX_HLS_SIZE)
+#define BUF_APDU_OFFSET     (COSEM_WRAPPER_SIZE + CSM_DEF_MAX_HLS_SIZE)
 
 
 static char gBuffer[BUF_SIZE];
@@ -111,6 +111,9 @@ int tcp_data_handler(uint8_t channel, uint8_t *buffer, size_t size)
 
             if (ret > 0)
             {
+                // Set Version
+                SET_BE16(&buffer[0], version);
+
                 // Swap SSAP and DSAP
                 SET_BE16(&buffer[2], channels[channel].request.llc.dsap);
                 SET_BE16(&buffer[4], channels[channel].request.llc.ssap);
@@ -179,6 +182,9 @@ uint8_t tcp_conn_handler(uint8_t channel, enum conn_event event)
 void csm_init()
 {
     srand(time(NULL)); // seed init
+
+    // Debug: fill buffer with pattern
+    memset(&gBuffer[0], 0xAA, BUF_SIZE);
 
     // DLMS/Cosem stack initialization
     csm_services_init(csm_db_access_func);

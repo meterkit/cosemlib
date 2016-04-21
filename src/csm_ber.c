@@ -1,8 +1,12 @@
 /**
- * Copyright (c) 2016, Anthony Rabine
- * See LICENSE.txt
- *
  * BER decoder/encoder/helper
+ *
+ * Copyright (c) 2016, Anthony Rabine
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
+ *
  */
 
 #include <string.h>
@@ -99,7 +103,7 @@ int csm_ber_write_len(csm_array *array, uint16_t len)
     return ret;
 }
 
-static int csm_ber_read_len(csm_array *array, ber_length *o_len)
+int csm_ber_read_len(csm_array *array, ber_length *o_len)
 {
     int ret = FALSE;
     uint8_t b;

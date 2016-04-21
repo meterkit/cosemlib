@@ -1,3 +1,14 @@
+/**
+ * Cosem services coder/decoder
+ *
+ * Copyright (c) 2016, Anthony Rabine
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
+ *
+ */
+
 #include "csm_services.h"
 #include "csm_axdr_codec.h"
 
@@ -294,6 +305,83 @@ Set-Response-With-List ::= SEQUENCE
     invoke-id-and-priority   Invoke-Id-And-Priority,
     result                             SEQUENCE OF Data-Access-Result
 }
+
+---------------------------------------------------------------------------------
+
+Action-Request ::= CHOICE
+{
+    action-request-normal                      [1] IMPLICIT Action-Request-Normal,
+    action-request-next-pblock                 [2] IMPLICIT Action-Request-Next-Pblock,
+    action-request-with-list                   [3] IMPLICIT Action-Request-With-List,
+    action-request-with-first-pblock           [4] IMPLICIT Action-Request-With-First-Pblock,
+    action-request-with-list-and-first-pblock  [5] IMPLICIT Action-Request-With-List-And-First-Pblock,
+    action-request-with-pblock                 [6] IMPLICIT Action-Request-With-Pblock
+}
+
+Action-Request-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority              Invoke-Id-And-Priority,
+    cosem-method-descriptor             Cosem-Method-Descriptor,
+    method-invocation-parameters        Data OPTIONAL
+}
+
+Action-Request-Next-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    block-number                       Unsigned32
+}
+
+Action-Request-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-method-descriptor-list       SEQUENCE OF Cosem-Method-Descriptor,
+    method-invocation-parameters       SEQUENCE OF Data
+}
+Action-Request-With-First-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-method-descriptor            Cosem-Method-Descriptor,
+    pblock                             DataBlock-SA
+}
+Action-Request-With-List-And-First-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    cosem-method-descriptor-list       SEQUENCE OF Cosem-Method-Descriptor,
+    pblock                             DataBlock-SA
+}
+Action-Request-With-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    pblock                             DataBlock-SA
+}
+Action-Response ::= CHOICE
+{
+    action-response-normal             [1] IMPLICIT    Action-Response-Normal,
+    action-response-with-pblock        [2] IMPLICIT    Action-Response-With-Pblock,
+    action-response-with-list          [3] IMPLICIT    Action-Response-With-List,
+    action-response-next-pblock        [4] IMPLICIT    Action-Response-Next-Pblock
+}
+Action-Response-Normal ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    single-response                    Action-Response-With-Optional-Data
+}
+Action-Response-With-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    pblock                             DataBlock-SA
+}
+Action-Response-With-List ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    list-of-responses                  SEQUENCE OF Action-Response-With-Optional-Data
+}
+Action-Response-Next-Pblock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    block-number                       Unsigned32
+}
+
 
  */
 

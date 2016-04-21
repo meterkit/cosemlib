@@ -20,7 +20,7 @@ csm_db_code db_cosem_clock_func(csm_array *array, csm_request *request)
 
     if (request->db_request.service == SRV_GET)
     {
-        if (axdr_encode_octet_string(array, &date_time[0], 12U))
+        if (csm_axdr_wr_octetstring(array, &date_time[0], 12U))
         {
             code = CSM_OK;
         }

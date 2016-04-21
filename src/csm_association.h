@@ -1,11 +1,12 @@
 /**
+ * Implementation of the Cosem ACSE services
+ *
  * Copyright (c) 2016, Anthony Rabine
  * All rights reserved.
  *
  * This software may be modified and distributed under the terms of the BSD license.
  * See LICENSE.txt for more details.
  *
- * Implementation of the Cosem ACSE services
  */
 
 #ifndef CSM_ASSOCIATION_H
@@ -15,8 +16,6 @@
 #include "csm_config.h"
 #include "csm_ber.h"
 #include "csm_definitions.h"
-
-#define CSM_DEF_CHALLENGE_SIZE  64U
 
 // States machine of the Control Function
 enum state_cf { CF_INACTIVE, CF_IDLE, CF_ASSOCIATION_PENDING, CF_ASSOCIATED, CF_ASSOCIATION_RELEASE_PENDING };
@@ -133,13 +132,20 @@ typedef struct
     uint8_t  is_auto_connected;    ///< Boolean to indicate if the association is auto connected or not;
 } csm_asso_config;
 
+typedef struct
+{
+    uint8_t value[CSM_DEF_CHALLENGE_SIZE];
+    uint8_t size;
+} csm_challenge;
+
+
 /**
  * @brief Temporary structure valid during the ACSE
  */
 typedef struct
 {
-    uint8_t auth_value[CSM_DEF_CHALLENGE_SIZE]; // can be LLS
-    uint8_t auth_value_size;
+    csm_challenge ctos; // CtoS: Client to Server Challenge
+    csm_challenge stoc; // StoC: Server to Client challenge
     uint32_t proposed_conformance;
     uint16_t client_max_receive_pdu_size;
     enum csm_asso_result result;

@@ -1,6 +1,6 @@
 /**
  * Cosem security layer functions to (de)cypher and authenticate packets
- * ---------------------------------------------------------------------------------
+ *
  * Copyright (c) 2016, Anthony Rabine
  * All rights reserved.
  *
@@ -9,10 +9,12 @@
  *
  */
 
+
 #ifndef CSM_SECURITY_H
 #define CSM_SECURITY_H
 
 #include "csm_array.h"
+#include "csm_definitions.h"
 
 
 // A Cosem secure packet has the following form:
@@ -33,11 +35,11 @@ typedef union
     uint8_t sh_byte;
     struct
     {
-        uint8_t compression:1;
-        uint8_t key_set:1;
-        uint8_t encryption:1;
-        uint8_t authentication:1;
         uint8_t security_suite:4;
+        uint8_t authentication:1;
+        uint8_t encryption:1;
+        uint8_t key_set:1;
+        uint8_t compression:1;
     } sh_bit_field;
 } csm_sec_control_byte;
 
@@ -52,6 +54,7 @@ typedef enum
     CSM_SEC_OK = 0,
     CSM_SEC_AUTH_FAILURE = 1U,
     CSM_SEC_CRYPT_FAILURE = 2U, //!< Either encryption or decryption
+    CSM_SEC_ERROR = 3U,
 } csm_sec_result;
 
 
@@ -60,7 +63,7 @@ typedef enum
  * @param array
  * @return
  */
-csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_array *aad);
+csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_request *request, uint8_t *system_title);
 
 
 

@@ -1,8 +1,12 @@
 /**
- * Copyright (c) 2016, Anthony Rabine
- * See LICENSE.txt
- *
  * AXDR utility function to serialize data
+ *
+ * Copyright (c) 2016, Anthony Rabine
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
+ *
  */
 
 #include "csm_axdr_codec.h"
@@ -10,7 +14,7 @@
 
 // -------------------------------   DECODERS   ------------------------------------------
 
-int axdr_decode_null(csm_array *array)
+int csm_axdr_rd_null(csm_array *array)
 {
     int ret = FALSE;
     uint8_t byte = 0xFFU;
@@ -24,9 +28,30 @@ int axdr_decode_null(csm_array *array)
     return ret;
 }
 
+int csm_axdr_rd_octetstring(csm_array *array)
+{
+    int ret = FALSE;
+    uint8_t byte = 0xFFU;
+    if (csm_array_read_u8(array, &byte))
+    {
+        if (byte == AXDR_OCTET_STRING)
+        {
+            ber_length len;
+            csm_ber_read_len(array, &len);
+
+            // Check if size is somewhat possible
+            if (len.length <= csm_array_unread(array))
+            {
+                ret = TRUE;
+            }
+        }
+    }
+    return ret;
+}
+
 
 // -------------------------------   ENCODERS ------------------------------------------
-int axdr_encode_octet_string(csm_array *array, const uint8_t *buffer, uint32_t size)
+int csm_axdr_wr_octetstring(csm_array *array, const uint8_t *buffer, uint32_t size)
 {
     int valid = csm_array_write_u8(array, AXDR_OCTET_STRING);
     valid = valid && csm_ber_write_len(array, size);

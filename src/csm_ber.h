@@ -1,8 +1,12 @@
 /**
- * Copyright (c) 2016, Anthony Rabine
- * See LICENSE.txt
- *
  * BER decoder/encoder/helper
+ *
+ * Copyright (c) 2016, Anthony Rabine
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
+ *
  */
 
 #ifndef CSM_BER_H
@@ -122,6 +126,8 @@ typedef struct
 void csm_ber_dump(csm_ber *i_ber);
 int csm_ber_decode_object_identifier(ber_object_identifier *oid, csm_array *array);
 int csm_ber_decode(csm_ber *ber, csm_array *array);
+
+int csm_ber_read_len(csm_array *array, ber_length *o_len);
 int csm_ber_write_len(csm_array *array, uint16_t len);
 
 // TODO: shortcut, but not very generic

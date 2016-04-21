@@ -7,7 +7,8 @@
 #define CSM_DEF_LIB_VERSION         "1.0"
 #define CSM_DEF_LLS_SIZE            8U
 #define CSM_DEF_APP_TITLE_SIZE      8U
-#define CSM_DEF_AAD_HEADER_SIZE     (17U) // SC + AK
+#define CSM_DEF_CHALLENGE_SIZE      64U
+#define CSM_DEF_MAX_HLS_SIZE        (1U + 16U + CSM_DEF_CHALLENGE_SIZE) // SC + AK + Challenge
 
 /**
  * @brief The xdlms_tag enum
@@ -134,7 +135,7 @@ void csm_sys_set_system_title(const uint8_t *buf);
 const uint8_t *csm_sys_get_system_title();
 
 // Test the LLS password with the one given in reference
-int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf);
+int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf, uint32_t size);
 
 // Generate a random number [0..255]
 uint8_t csm_sys_get_random_u8();
@@ -150,10 +151,10 @@ typedef enum
     CSM_SEC_GAK,    //!< (global) authentication key, GAK
 } csm_sec_key;
 
+uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id);
 
-int csm_sys_gcm_init(uint8_t channel, csm_sec_key key_id, uint32_t ic, const uint8_t *aad, uint32_t aad_len);
-int csm_sys_gcm_update(uint8_t channel, const uint8_t *plain, uint32_t plain_len,
-                       uint8_t *crypt);
+int csm_sys_gcm_init(uint8_t channel, uint8_t sap, csm_sec_key key_id, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len);
+int csm_sys_gcm_update(uint8_t channel, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt);
 int csm_sys_gcm_finish(uint8_t channel, uint8_t *tag);
 
 

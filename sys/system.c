@@ -21,15 +21,19 @@ system title, see 4.3.4;
 an integer counter.
 */
 
-static uint8_t system_title[8] = { 0x4DU, 0x4DU, 0x4DU, 0x00U, 0x00U, 0xBCU, 0x61U, 0x4EU };
+static uint8_t system_title[CSM_DEF_APP_TITLE_SIZE] = { 0x4DU, 0x4DU, 0x4DU, 0x00U, 0x00U, 0xBCU, 0x61U, 0x4EU }; // GreenBook server example
 
 // FIXME:
 // 1. Store the key in a configuration file as they can be updated on the field
 // 2. Create a key-ring per association (SAP)
-static const uint8_t key_kek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
-static const uint8_t key_guek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
-static const uint8_t key_gbek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
-static const uint8_t key_gak[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
+
+// Master key, common for all the associations, not changeable
+static uint8_t key_kek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
+
+// One key per association
+static uint8_t key_guek[16] = { 0x00U,0x01U,0x02U,0x03U,0x04U,0x05U,0x06U,0x07U,0x08U,0x09U,0x0AU,0x0BU,0x0CU,0x0DU,0x0EU,0x0FU };
+static uint8_t key_gbek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
+static uint8_t key_gak[16] = { 0xD0U,0xD1U,0xD2U,0xD3U,0xD4U,0xD5U,0xD6U,0xD7U,0xD8U,0xD9U,0xDAU,0xDBU,0xDCU,0xDDU,0xDEU,0xDFU };
 
 // Keep a context by channel to be thread safe
 mbedtls_gcm_context chan_ctx[NUMBER_OF_CHANNELS];
@@ -45,14 +49,10 @@ const uint8_t *csm_sys_get_system_title()
 }
 
 
-
-int csm_sys_gcm_init(uint8_t channel, csm_sec_key key_id, uint32_t ic, const uint8_t *aad, uint32_t aad_len)
+uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id)
 {
-    const uint8_t *key = NULL;
-    uint8_t IV[12];
-
-    memcpy(&IV[0], &system_title[0], sizeof(system_title));
-    PUT_BE32(&IV[8], ic);
+    (void)sap; // FIXME: manage one key per SAP
+    uint8_t *key = NULL;
 
     switch(key_id)
     {
@@ -70,10 +70,15 @@ int csm_sys_gcm_init(uint8_t channel, csm_sec_key key_id, uint32_t ic, const uin
         key = key_gak;
         break;
     }
+    return key;
+}
 
+
+int csm_sys_gcm_init(uint8_t channel, uint8_t sap, csm_sec_key key_id, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len)
+{
     mbedtls_gcm_init(&chan_ctx[channel]);
-    mbedtls_gcm_setkey(&chan_ctx[channel], MBEDTLS_CIPHER_ID_AES, key, 128);
-    int res = mbedtls_gcm_starts(&chan_ctx[channel], MBEDTLS_GCM_ENCRYPT, IV, 12, aad, aad_len);
+    mbedtls_gcm_setkey(&chan_ctx[channel], MBEDTLS_CIPHER_ID_AES, csm_sys_get_key(sap, key_id), 128);
+    int res = mbedtls_gcm_starts(&chan_ctx[channel], MBEDTLS_GCM_ENCRYPT, iv, 12, aad, aad_len);
     return (res == 0) ? TRUE : FALSE;
 }
 
@@ -106,16 +111,20 @@ static const struct cfg_cosem cfg_cosem_passwords [] =
 
 #define CFG_COSEM_NB_ASSOS  (sizeof(cfg_cosem_passwords)/sizeof(struct cfg_cosem))
 
-int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf)
+int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf, uint32_t size)
 {
     int valid = FALSE;
-    for (uint32_t i = 0U; i < CFG_COSEM_NB_ASSOS; i++)
+
+    if (size == CSM_DEF_LLS_SIZE)
     {
-        if (sap == cfg_cosem_passwords[i].sap)
+        for (uint32_t i = 0U; i < CFG_COSEM_NB_ASSOS; i++)
         {
-            int ret = memcmp(buf, cfg_cosem_passwords[i].lls_password, CSM_DEF_LLS_SIZE);
-            valid = (ret == 0) ? TRUE : FALSE;
-            break;
+            if (sap == cfg_cosem_passwords[i].sap)
+            {
+                int ret = memcmp(buf, cfg_cosem_passwords[i].lls_password, size);
+                valid = (ret == 0) ? TRUE : FALSE;
+                break;
+            }
         }
     }
     return valid;

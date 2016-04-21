@@ -1,11 +1,12 @@
 /**
+ * Implementation of a protected array with read/write pointers
+ *
  * Copyright (c) 2016, Anthony Rabine
  * All rights reserved.
  *
  * This software may be modified and distributed under the terms of the BSD license.
  * See LICENSE.txt for more details.
  *
- * Implementation of a protected array with read/write pointers
  */
 
 #include "csm_array.h"
@@ -59,7 +60,7 @@ int csm_array_write_u8(csm_array *array, uint8_t byte)
 {
     int ret = FALSE;
 
-    if (TEST_WR_INDEX(array))
+    if (csm_array_free_size(array) >= 1U)
     {
         array->buff[WR_INDEX(array)] = byte;
         array->wr_index++;
@@ -72,6 +73,22 @@ int csm_array_write_u8(csm_array *array, uint8_t byte)
     return ret;
 }
 
+int csm_array_write_u32(csm_array *array, uint32_t value)
+{
+    int ret = FALSE;
+
+    if (csm_array_free_size(array) >= 4U)
+    {
+        uint8_t *data = csm_array_wr_data(array);
+        PUT_BE32(data, value);
+        ret = csm_array_writer_jump(array, 4U);
+    }
+    else
+    {
+        CSM_ERR("[ARRAY] Full");
+    }
+    return ret;
+}
 
 void csm_array_dump(csm_array *array)
 {
@@ -152,6 +169,11 @@ uint32_t csm_array_unread(csm_array *array)
         unread = (array->wr_index - array->rd_index);
     }
     return unread;
+}
+
+uint32_t csm_array_free_size(csm_array *array)
+{
+    return (array->size - WR_INDEX(array));
 }
 
 uint8_t *csm_array_rd_data(csm_array *array)

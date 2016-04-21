@@ -1,8 +1,12 @@
 /**
- * Copyright (c) 2016, Anthony Rabine
- * See LICENSE.txt
+ * A virtual channel of communication with the logical device
  *
- * BER decoder/encoder/helper
+ * Copyright (c) 2016, Anthony Rabine
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
+ *
  */
 
 #ifndef CSM_CHANNEL_H

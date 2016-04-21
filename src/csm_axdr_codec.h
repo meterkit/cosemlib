@@ -1,8 +1,12 @@
 /**
- * Copyright (c) 2016, Anthony Rabine
- * See LICENSE.txt
- *
  * AXDR utility function to serialize data
+ *
+ * Copyright (c) 2016, Anthony Rabine
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
+ *
  */
 
 #ifndef AXDR_CODEC_H
@@ -52,8 +56,9 @@ enum axdr_tag
     AXDR_OCTET_STRING   = 9U
 };
 
-int axdr_decode_null(csm_array *array);
+int csm_axdr_rd_null(csm_array *array);
 
-int axdr_encode_octet_string(csm_array *array, const uint8_t *buffer, uint32_t size);
+int csm_axdr_rd_octetstring(csm_array *array);
+int csm_axdr_wr_octetstring(csm_array *array, const uint8_t *buffer, uint32_t size);
 
 #endif // AXDR_CODEC_H

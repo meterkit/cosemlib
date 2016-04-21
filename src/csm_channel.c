@@ -1,3 +1,14 @@
+/**
+ * A virtual channel of communication with the logical device
+ *
+ * Copyright (c) 2016, Anthony Rabine
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
+ *
+ */
+
 #include "csm_channel.h"
 #include "csm_config.h"
 #include "csm_services.h"
@@ -41,7 +52,7 @@ int csm_channel_execute(uint8_t channel, csm_array *packet)
         (asso_list == NULL) ||
         (asso_conf_list == NULL))
     {
-        CSM_ERR("[CHANNEL] Stack is not initialized. Call csm_channel_init() first.");
+        CSM_ERR("[CHAN] Stack is not initialized. Call csm_channel_init() first.");
         return ret;
     }
 
@@ -51,8 +62,8 @@ int csm_channel_execute(uint8_t channel, csm_array *packet)
     // Find the valid association.
     for (i = 0U; i < asso_list_size; i++)
     {
-        if ((channel_list[channel].request.llc.ssap == asso_conf_list[i].llc.ssap) &&
-            (channel_list[channel].request.llc.dsap == asso_conf_list[i].llc.dsap))
+        if ((channel_list[CHAN].request.llc.ssap == asso_conf_list[i].llc.ssap) &&
+            (channel_list[CHAN].request.llc.dsap == asso_conf_list[i].llc.dsap))
         {
             break;
         }
@@ -63,7 +74,7 @@ int csm_channel_execute(uint8_t channel, csm_array *packet)
         // Association found, use this one
         // Link the state with the configuration structure
         asso_list[i].config = &asso_conf_list[i];
-        channel_list[channel].asso = &asso_list[i];
+        channel_list[CHAN].asso = &asso_list[i];
 
         uint8_t tag;
         if (csm_array_get(packet, 0U, &tag))
@@ -79,16 +90,16 @@ int csm_channel_execute(uint8_t channel, csm_array *packet)
             default:
                 if (asso_list[i].state_cf == CF_ASSOCIATED)
                 {
-                    ret = csm_services_execute(&asso_list[i], &channel_list[channel].request, packet);
+                    ret = csm_services_execute(&asso_list[i], &channel_list[CHAN].request, packet);
                 }
                 else if (asso_list[i].state_cf == CF_ASSOCIATION_PENDING)
                 {
                     // In case of HLS, we have to access to one attribute
-                    ret = csm_services_hls_execute(&asso_list[i], &channel_list[channel].request, packet);
+                    ret = csm_services_hls_execute(&asso_list[i], &channel_list[CHAN].request, packet);
                 }
                 else
                 {
-                    CSM_ERR("[CHANNEL] Association is not open");
+                    CSM_ERR("[CHAN] Association is not open");
                 }
                 break;
             }
@@ -99,10 +110,59 @@ int csm_channel_execute(uint8_t channel, csm_array *packet)
 
 int csm_channel_hls_pass3(csm_array *array, csm_request *request)
 {
+    csm_sec_control_byte sc;
+    uint32_t ic;
 
-    // Arrray contents: SC || IC || Information || Tag with no information
-    //csm_sec_result res = csm_sec_auth_decrypt(array, sc);
+    // Save SC and IC
+    csm_array_read_u8(array, &sc.sh_byte);
+    csm_array_read_u32(array, &ic);
 
+    // Remaing data should be the TAG
+    uint32_t unread = csm_array_unread(array);
+
+    if (unread == 12U)
+    {
+        uint32_t offset = array->offset; // Save the original offset
+
+        if (offset >= CSM_DEF_MAX_HLS_SIZE)
+        {
+            csm_asso_state *asso = channel_list[request->channel_id - 1U].asso;
+
+            // Reserve memory & prepare packet
+            array->offset = (offset + array->rd_index) - (5U + asso->handshake.stoc.size);
+            array->rd_index = 0U;
+            array->wr_index = 0U;
+
+            // Build a new fake packet with: SC || IC || Information || Tag
+            // Tag is left untouched, other data are appended just before
+            csm_array_write_u8(array, sc.sh_byte);
+            csm_array_write_u32(array, ic);
+            csm_array_write_buff(array, &asso->handshake.stoc.value[0], asso->handshake.stoc.size);
+            csm_array_writer_jump(array, 12U); // Add the tag (already in the buffer)
+
+            csm_sec_result res = csm_sec_auth_decrypt(array, request, &asso->client_app_title[0]);
+
+            if (res == CSM_SEC_OK)
+            {
+                CSM_LOG("[CHAN] HLS Pass 3 success");
+                // Reply with the pass4, restore array parameters
+                array->offset = offset;
+                array->wr_index = 0U;
+            }
+            else
+            {
+                CSM_ERR("[CHAN] Bad tag");
+            }
+        }
+        else
+        {
+            CSM_ERR("[CHAN] Array too small for HLS");
+        }
+    }
+    else
+    {
+        CSM_ERR("[CHAN] Bad HLS Pass3 size");
+    }
 
     return FALSE;
 }
@@ -111,10 +171,10 @@ void csm_channel_disconnect(uint8_t channel)
 {
     if (channel < channel_list_size)
     {
-        channel_list[channel].request.channel_id = INVALID_CHANNEL_ID;
-        if (channel_list[channel].asso != NULL)
+        channel_list[CHAN].request.channel_id = INVALID_CHANNEL_ID;
+        if (channel_list[CHAN].asso != NULL)
         {
-            channel_list[channel].asso->state_cf = CF_IDLE;
+            channel_list[CHAN].asso->state_cf = CF_IDLE;
         }
     }
 }
@@ -130,7 +190,7 @@ uint8_t csm_channel_new(void)
         {
             chan_id = i + 1U; // generate a channel id
             channel_list[i].request.channel_id = chan_id;
-            CSM_LOG("[CHANNEL] Grant connection to channel %d", chan_id);
+            CSM_LOG("[CHAN] Grant connection to channel %d", chan_id);
             break;
         }
     }
