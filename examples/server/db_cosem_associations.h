@@ -5,6 +5,6 @@
 #include "app_database.h"
 #include "csm_definitions.h"
 
-csm_db_code db_cosem_associations_func(csm_array *array, csm_request *request);
+csm_db_code db_cosem_associations_func(csm_array *in, csm_array *out, csm_request *request);
 
 #endif // DB_COSEM_ASSOCIATIONS_H

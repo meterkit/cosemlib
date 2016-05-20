@@ -93,7 +93,7 @@ static int csm_db_get_object(csm_db_request *db_request, db_obj_handle *handle)
 }
 
 
-csm_db_code csm_db_access_func(csm_array *array, csm_request *request)
+csm_db_code csm_db_access_func(csm_array *in, csm_array *out, csm_request *request)
 {
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
     // We want to access to an object. First, gets an handle to its parameters
@@ -107,7 +107,7 @@ csm_db_code csm_db_access_func(csm_array *array, csm_request *request)
         const db_element *db_element = &gDataBaseList[handle.db_index];
         if (db_element->handler != NULL)
         {
-            code = db_element->handler(array, request);
+            code = db_element->handler(in, out, request);
         }
         else
         {

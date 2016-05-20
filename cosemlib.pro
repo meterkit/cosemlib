@@ -17,6 +17,7 @@ VPATH += tests
 VPATH += unity
 VPATH += examples/server
 VPATH += examples/crypto
+VPATH += examples/transport
 VPATH += sys
 
 INCLUDEPATH += src
@@ -24,6 +25,7 @@ INCLUDEPATH += tests
 INCLUDEPATH += unity
 INCLUDEPATH += examples/server
 INCLUDEPATH += examples/crypto
+INCLUDEPATH += examples/transport
 INCLUDEPATH += sys
 
 OTHER_FILES += README.md
@@ -37,12 +39,20 @@ SOURCES += csm_array.c csm_ber.c csm_channel.c csm_association.c csm_services.c 
 HEADERS += csm_array.h csm_config.h csm_ber.h csm_channel.h csm_association.h csm_definitions.h csm_services.h \
     csm_axdr_codec.h csm_security.h server_config.h
 
+
 # ====================================================
-# Implementation example: cosem database and transport
+# Implementation example: cosem database and objects
 # ====================================================
 SOURCES += tcp_server.c db_cosem_clock.c db_cosem_associations.c
 
 HEADERS += tcp_server.h db_cosem_clock.h db_cosem_object_list.h db_cosem_associations.h
+
+# ====================================================
+# Implementation example: various transport layers
+# ====================================================
+SOURCES += hdlc.c
+
+HEADERS += hdlc.h hdlc_config.h transports.h
 
 # ====================================================
 # Implementation example: operating system

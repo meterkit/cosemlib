@@ -14,13 +14,14 @@ static const uint8_t date_time[12] = {
 
 
 
-csm_db_code db_cosem_clock_func(csm_array *array, csm_request *request)
+csm_db_code db_cosem_clock_func(csm_array *in, csm_array *out, csm_request *request)
 {
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
+    (void) in;
 
     if (request->db_request.service == SRV_GET)
     {
-        if (csm_axdr_wr_octetstring(array, &date_time[0], 12U))
+        if (csm_axdr_wr_octetstring(out, &date_time[0], 12U))
         {
             code = CSM_OK;
         }

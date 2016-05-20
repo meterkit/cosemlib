@@ -60,12 +60,33 @@ Data-Access-Result ::= ENUMERATED
     data-block-number-invalid          (19),
     other-reason                       (250)
 }
-  */
+
+Action-Result ::= ENUMERATED
+{
+    success                            (0),
+    hardware-fault                     (1),
+    temporary-failure                  (2),
+    read-write-denied                  (3),
+    object-undefined                   (4),
+    object-class-inconsistent          (9),
+    object-unavailable                 (11),
+    type-unmatched                     (12),
+    scope-of-access-violated           (13),
+    data-block-unavailable             (14),
+    long-action-aborted                (15),
+    no-long-action-in-progress         (16),
+    other-reason                       (250)
+}
+*/
 
 enum data_access_result
 {
-    SRV_RESULT_SUCCESS  = 0U,
-    SRV_RESULT_OTHER_REASON = 250U
+    SRV_RESULT_SUCCESS              = 0U,
+    SRV_RESULT_HARDWARE_FAULT       = 1U,
+    SRV_RESULT_TEMPORARY_FAILURE    = 2U,
+    SRV_RESULT_READ_WRITE_DENIED    = 3U,
+    SRV_RESULT_OBJECT_UNDEFINED     = 4U,
+    SRV_RESULT_OTHER_REASON         = 250U
 };
 
 int srv_data_access_result_encoder(csm_array *array, csm_db_code code)
@@ -202,7 +223,8 @@ static csm_db_code srv_get_request_decoder(csm_asso_state *state, csm_request *r
             // Actually append the data
             if (valid)
             {
-                code = database(array, request);
+                code = database(array, array, request);
+                // FIXME: update the code according to the DB result
             }
         }
         else
@@ -366,6 +388,13 @@ Action-Response-Normal ::= SEQUENCE
     invoke-id-and-priority             Invoke-Id-And-Priority,
     single-response                    Action-Response-With-Optional-Data
 }
+
+Action-Response-With-Optional-Data ::= SEQUENCE
+{
+    result                             Action-Result,
+    return-parameters                  Get-Data-Result  OPTIONAL
+}
+
 Action-Response-With-Pblock ::= SEQUENCE
 {
     invoke-id-and-priority             Invoke-Id-And-Priority,
@@ -385,6 +414,8 @@ Action-Response-Next-Pblock ::= SEQUENCE
 
  */
 
+static const uint32_t gResponseNormalHeaderSize = 6U; // Offset where data can be returned for an Action
+
 static csm_db_code srv_set_or_action(csm_asso_state *state, csm_request *request, csm_array *array)
 {
     csm_db_code code = CSM_ERR_BAD_ENCODING;
@@ -395,20 +426,54 @@ static csm_db_code srv_set_or_action(csm_asso_state *state, csm_request *request
         if (database != NULL)
         {
             CSM_LOG("[SRV] Encoding SET/ACTION.response");
-            code = database(array, request);
+
+            // The output data will point to a different area into our working buffer
+            // This will help us to encode the data
+            csm_array output = *array;
+            uint32_t reply_size = 0U;
+            output.offset += gResponseNormalHeaderSize; // begin to encode the reply just after the response header
+            output.rd_index = 0U;
+            output.wr_index = 0U;
+
+            code = database(array, &output, request);
+
+            reply_size = output.wr_index;
 
             // Encode the response
-            array->wr_index = 0U;
+            output.offset -= gResponseNormalHeaderSize;
+            output.wr_index = 0U;
 
             uint8_t service_resp = (request->db_request.service == SRV_SET) ? AXDR_SET_RESPONSE : AXDR_ACTION_RESPONSE;
-            int valid = csm_array_write_u8(array, service_resp);
-            valid = valid && csm_array_write_u8(array, SRV_SET_RESPONSE_NORMAL); // FIXME: use proper service tag
-            valid = valid && csm_array_write_u8(array, request->sender_invoke_id);
-            valid = srv_data_access_result_encoder(array, code);
+            int valid = csm_array_write_u8(&output, service_resp);
+            valid = valid && csm_array_write_u8(&output, SRV_SET_RESPONSE_NORMAL); // FIXME: use proper service tag
+            valid = valid && csm_array_write_u8(&output, request->sender_invoke_id);
+            valid = srv_data_access_result_encoder(&output, code);
+
+            if (request->db_request.service == SRV_ACTION)
+            {
+                // Encode additional data if any
+                if (reply_size > 0U)
+                {
+                    valid = valid && csm_array_write_u8(&output, 1U); // presence flag for optional return-parameters
+                    valid = valid && csm_array_write_u8(&output, 0U); // Data
+                    valid = valid && csm_array_writer_jump(&output, reply_size); // Virtually add the data (already encoded in the buffer)
+                }
+                else
+                {
+                    valid = valid && csm_array_write_u8(&output, 0U); // presence flag for optional return-parameters
+                }
+            }
+
+            // Update size to send to output channel
+            array->wr_index = output.wr_index;
 
             if (!valid)
             {
                 code = CSM_ERR_BAD_ENCODING;
+            }
+            else
+            {
+                code = CSM_OK;
             }
         }
         else

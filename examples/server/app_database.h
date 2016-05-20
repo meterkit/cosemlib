@@ -79,7 +79,7 @@ typedef struct
 
 
 // Database access from Cosem
-csm_db_code csm_db_access_func(csm_array *array, csm_request *request);
+csm_db_code csm_db_access_func(csm_array *in, csm_array *out, csm_request *request);
 
 
 #endif // CSM_DATABASE_H

@@ -16,6 +16,8 @@
 #include "csm_array.h"
 #include "csm_definitions.h"
 
+#define CSM_DEF_SEC_HDR_SIZE    5U
+
 
 // A Cosem secure packet has the following form:
 //     SC || IC || Information || T
@@ -63,8 +65,8 @@ typedef enum
  * @param array
  * @return
  */
-csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_request *request, uint8_t *system_title);
-
+csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_request *request, const uint8_t *system_title);
+csm_sec_result csm_sec_auth_encrypt(csm_array *array, csm_request *request, const uint8_t *system_title, csm_sec_control_byte sc, uint32_t ic);
 
 
 #endif // CSM_SECURITY_H

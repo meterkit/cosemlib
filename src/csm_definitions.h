@@ -151,9 +151,16 @@ typedef enum
     CSM_SEC_GAK,    //!< (global) authentication key, GAK
 } csm_sec_key;
 
+
+typedef enum
+{
+    CSM_SEC_ENCRYPT,
+    CSM_SEC_DECRYPT
+} csm_sec_mode;
+
 uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id);
 
-int csm_sys_gcm_init(uint8_t channel, uint8_t sap, csm_sec_key key_id, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len);
+int csm_sys_gcm_init(uint8_t channel, uint8_t sap, csm_sec_key key_id, csm_sec_mode mode, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len);
 int csm_sys_gcm_update(uint8_t channel, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt);
 int csm_sys_gcm_finish(uint8_t channel, uint8_t *tag);
 

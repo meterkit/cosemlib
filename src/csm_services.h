@@ -25,7 +25,7 @@ typedef enum
     CSM_ERR_FRAGMENTATION_USED   ///< Fragmentation used, request not completly performed
 } csm_db_code;
 
-typedef csm_db_code (*csm_db_access_handler)(csm_array *array, csm_request *request);
+typedef csm_db_code (*csm_db_access_handler)(csm_array *in, csm_array *out, csm_request *request);
 
 void csm_services_init(const csm_db_access_handler db_access);
 

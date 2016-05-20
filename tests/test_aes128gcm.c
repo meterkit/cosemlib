@@ -129,16 +129,17 @@ TEST(Aes128Gcm, GreenBookHlsMechanism5Vector)
     const unsigned char AK[16] = { 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF };
 
     unsigned char security_byte = 0x10U;
-    const unsigned char stoc[8] = "P6wRJ21F";
+    const unsigned char stoc[] = "P6wRJ21F";
+    const uint32_t stoc_size = 8U;
 
-    unsigned int len_ad = sizeof(security_byte) + sizeof(AK) + sizeof(stoc);
+    unsigned int len_ad = sizeof(security_byte) + sizeof(AK) + stoc_size;
 
     unsigned char *aad = malloc(len_ad);
 
     // prepare AAD buffer
     aad[0] = security_byte;
     memcpy(&aad[1], &AK[0], sizeof(AK));
-    memcpy(&aad[1 + sizeof(AK)], &stoc[0], sizeof(stoc));
+    memcpy(&aad[1 + sizeof(AK)], &stoc[0], stoc_size);
 
     unsigned char tag[16]={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 
