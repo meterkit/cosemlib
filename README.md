@@ -18,12 +18,12 @@ This Cosem stack has the following goals :
   * Utilities (buffer utilities)
   * BER coder/decoder
   * Basic association AARQ/AARE/RLRQ/RLRE (LLS)
+  * Secure HLS GMAC Authentication
   * Get Request normal of the Clock object
   * Set request normal
   * Action service
   * Exception response in case of problem
   * Full extensible/generable database layer to access to Cosem objects
-
 
 # Examples
 
@@ -53,35 +53,67 @@ Three targets are available:
 
 # Basic manual and integration hints
 
-FIXME
+FIXME: before writing this section, wait for stabilisation of the HAL/Cosem API and utilities
 
 # Development schedule
 
 ## Version 1.0
 
-  * Provide few complete cosem objects (Association, Clock)
-  * HLS GMAC
+  * Provide minimal cosem objects (Association including object list, Clock)
+  * Get by block
+
+## Version 1.1
+
+  * File system for NOR flash
+  * Set example
+
+## Version 1.2
+
+  * System clock management with windows/linux layer
+  * Generic DateTime implementation
+  * Next occurrence algorithm
+
+## Version 1.3
+
+  * Attributes 0 and 1 managed by the database
+
+## Version 1.4
+
+  * Get/Set with selective access
+  * Generic profile implementation
 
 ## Version 1.5
 
-  * Get/Set by block
-  * Get/Set with selective access
-  * Attributes 0 and 1 managed by the database
-  * Security Policy 1 + HAL algorithm layer
-  * More Cosem objects (Profile, ObjectList of association)
+  * Security Policy 1 (Authenticated & encrypted)
+
+## Version 1.6
+
+  * OS Layer (mutex, thread, semaphore)
+
+## Version 1.7
+
+  * Basic HDLC transport protocol
+  * Serial line example
+
+## Version 1.x
+
+  * CTT 2.7 compliant
 
 ## Version 2.0
 
   * Test vectors using BlueBook examples and CTT packets
-  * Cosem studio (database generator)
-  * Cosem studio (simple scripting client)
+  * Cosem studio: database generator
+  * Cosem studio: simple scripting client
+  * Cosem studio: packet analysis GUI for HDLC and Cosem
 
 ## Version 3.0
+
+  * Client implementation (+ TCP and HDLC transport layers)
+
+## Version 4.0
 
   * Multiple logical devices support
   * ACCESS service
   * GBT service
   * ECDSA + SHA-256 HLS
   * ECDSA data transport cyphering
-
-
