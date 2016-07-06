@@ -140,9 +140,12 @@ static void write_peer(SOCKET sock, const char *buffer, size_t size)
    }
 }
 
-static void app(data_handler data_func, conn_handler conn_func, char *buffer, int buf_size, int tcp_port)
+static void app(data_handler data_func, conn_handler conn_func, memory_t *b, int tcp_port)
 {
    SOCKET sock = init_connection(tcp_port);
+
+   char *buff = (char*)(b->data + b->offset);
+   int max_size = b->max_size - b->offset;
 
    unsigned int max = sock;
    /* an array for all clients */
@@ -230,9 +233,9 @@ static void app(data_handler data_func, conn_handler conn_func, char *buffer, in
                 /* a client is talking */
                 if(FD_ISSET(peers[i].sock, &working_set))
                 {
-                   int c = read_peer(peers[i].sock, buffer, buf_size);
+                   int size = read_peer(peers[i].sock, buff, max_size);
                    /* client disconnected */
-                   if(c == 0)
+                   if(size == 0)
                    {
                        FD_CLR(peers[i].sock, &master_set);
                       end_connection(peers[i].sock);
@@ -249,11 +252,11 @@ static void app(data_handler data_func, conn_handler conn_func, char *buffer, in
                        puts("[TCP server] New data received!");
                        if (data_func != NULL)
                        {
-                           // FIXME: change channel number with instance when multi threaded server is available
-                           int ret = data_func(0U, (uint8_t*)buffer, c);
+                           // FIXME: change channel number with instance number when multi threaded server is available
+                           int ret = data_func(0U, b, size);
                            if (ret > 0)
                            {
-                                write_peer(peers[i].sock, buffer, ret);
+                                write_peer(peers[i].sock, buff, ret);
                            }
                        }
 
@@ -277,11 +280,11 @@ static void app(data_handler data_func, conn_handler conn_func, char *buffer, in
 }
 
 
-int tcp_server_init(data_handler data_func, conn_handler conn_func, char *buffer, int buf_size, int tcp_port)
+int tcp_server_init(data_handler data_func, conn_handler conn_func, memory_t *buffer, int tcp_port)
 {
    init();
 
-   app(data_func, conn_func, buffer, buf_size, tcp_port);
+   app(data_func, conn_func, buffer, tcp_port);
 
    end();
 

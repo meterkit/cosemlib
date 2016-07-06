@@ -48,9 +48,9 @@ csm_channel channels[NUMBER_OF_CHANNELS];
 
 
 // Buffer has the following format:
-//   | SC + AK | wrapper | APDU
-// With:
-// SC+AK: security AAD header, room booked to optimize buffer management with cyphering
+//   | SC + AK + CHALLENGE | TCP wrapper | APDU
+// With
+// SC+AK+CHALLENGE: security AAD header, room booked to optimize buffer management with cyphering
 // wrapper: Cosem standard TCP wrapper (4 words)
 // APDU: Cosem APDU
 
@@ -62,8 +62,6 @@ static const uint16_t COSEM_WRAPPER_VERSION = 0x0001U;
 #define BUF_WRAPPER_OFFSET  (CSM_DEF_MAX_HLS_SIZE)
 #define BUF_APDU_OFFSET     (COSEM_WRAPPER_SIZE + CSM_DEF_MAX_HLS_SIZE)
 
-
-static char gBuffer[BUF_SIZE];
 
 /**
  * @brief tcp_data_handler
@@ -79,12 +77,13 @@ static char gBuffer[BUF_SIZE];
  * @param size
  * @return > 0 the number of bytes to reply back to the sender
  */
-int tcp_data_handler(uint8_t channel, uint8_t *buffer, size_t size)
+int tcp_data_handler(uint8_t channel, memory_t *b, uint32_t payload_size)
 {
     int ret = -1;
     uint16_t version;
     uint16_t apdu_size;
     csm_array packet;
+    uint8_t *buffer = b->data + b->offset;
 
     // The TCP/IP Cosem packet is sent with a header. See GreenBook 8 7.3.3.2 The wrapper protocol data unit (WPDU)
 
@@ -94,7 +93,7 @@ int tcp_data_handler(uint8_t channel, uint8_t *buffer, size_t size)
     // Length: 2 bytes
     CSM_LOG("[LLC] TCP Packet received");
 
-    if ((size > COSEM_WRAPPER_SIZE) && (channel < NUMBER_OF_CHANNELS))
+    if ((payload_size > COSEM_WRAPPER_SIZE) && (channel < NUMBER_OF_CHANNELS))
     {
         version = GET_BE16(&buffer[0U]);
         channels[channel].request.llc.ssap = GET_BE16(&buffer[2]);
@@ -102,11 +101,11 @@ int tcp_data_handler(uint8_t channel, uint8_t *buffer, size_t size)
         apdu_size = GET_BE16(&buffer[6]);
 
         // Sanity check of the packet
-        if ((size == (apdu_size + COSEM_WRAPPER_SIZE)) &&(version == COSEM_WRAPPER_VERSION))
+        if ((payload_size == (apdu_size + COSEM_WRAPPER_SIZE)) &&(version == COSEM_WRAPPER_VERSION))
         {
             // Then decode the packet, the reply, if any is located in the buffer
             // The reply is valid if the return code is > 0
-            csm_array_init(&packet, (uint8_t *)&gBuffer[0], BUF_SIZE, apdu_size, BUF_APDU_OFFSET);
+            csm_array_init(&packet, (uint8_t *)&b->data[0], b->max_size, apdu_size, BUF_APDU_OFFSET);
             ret = csm_channel_execute(channel, &packet);
 
             if (ret > 0)
@@ -183,15 +182,13 @@ void csm_init()
 {
     srand(time(NULL)); // seed init
 
-    // Debug: fill buffer with pattern
-    memset(&gBuffer[0], 0xAA, BUF_SIZE);
-
     // DLMS/Cosem stack initialization
     csm_services_init(csm_db_access_func);
     csm_channel_init(&channels[0], NUMBER_OF_CHANNELS, &assos[0], &assos_config[0], NUMBER_OF_ASSOS);
 }
 
 #endif
+
 
 int main(int argc, const char * argv[])
 {
@@ -203,10 +200,20 @@ int main(int argc, const char * argv[])
     return UnityMain(argc, argv, RunAllTests);
 #else
 
+    uint8_t gBuffer[BUF_SIZE]; // working buffer, keep it private
+
+    // Debug: fill buffer with pattern
+    memset(&gBuffer[0], 0xAA, BUF_SIZE);
+
+    memory_t buff;
+    buff.data = &gBuffer[0];
+    buff.offset = BUF_WRAPPER_OFFSET;
+    buff.max_size = BUF_SIZE;
+
     csm_init();
     printf("Starting DLMS/Cosem example\r\nCosem library version: %s\r\n\r\n", CSM_DEF_LIB_VERSION);
 
-    return tcp_server_init(tcp_data_handler, tcp_conn_handler, &gBuffer[BUF_WRAPPER_OFFSET], BUF_SIZE, TCP_PORT);
+    return tcp_server_init(tcp_data_handler, tcp_conn_handler, &buff, TCP_PORT);
 #endif
 }
 
