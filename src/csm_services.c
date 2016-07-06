@@ -187,6 +187,24 @@ Get-Response ::= CHOICE
     get-response-with-datablock        [2] IMPLICIT    Get-Response-With-Datablock,
     get-response-with-list             [3] IMPLICIT    Get-Response-With-List
 }
+
+Get-Response-With-Datablock ::= SEQUENCE
+{
+    invoke-id-and-priority             Invoke-Id-And-Priority,
+    result                             DataBlock-G
+}
+
+DataBlock-G ::= SEQUENCE     -- G == DataBlock for the GET-response
+{
+    last-block                         BOOLEAN,
+    block-number                       Unsigned32,
+    result  CHOICE
+    {
+        raw-data                       [0] IMPLICIT OCTET STRING,
+        data-access-result             [1] IMPLICIT Data-Access-Result
+    }
+}
+
 */
 
 enum srv_response

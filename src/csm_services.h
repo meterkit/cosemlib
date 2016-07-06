@@ -13,6 +13,7 @@ typedef enum
 {
     // These two error codes can be used in priority
     CSM_OK,                 //!< Request OK
+    CSM_OK_BLOCK,           //!< Request OK, ask for a block transfer (not enough space to store the data)
     CSM_ERR_OBJECT_ERROR,   //!< Generic error coming from the object
 
     // Some more specific errors
@@ -21,8 +22,6 @@ typedef enum
     CSM_ERR_UNAUTHORIZED_ACCESS, //!< Attribute access problem
     CSM_ERR_TEMPORARY_FAILURE,   ///< Temporary failure
     CSM_ERR_DATA_CONTENT_NOT_OK, ///< Data content is not accepted.
-    CSM_ERR_APDU_BUFFER_FULL,    ///< Apdu is full.
-    CSM_ERR_FRAGMENTATION_USED   ///< Fragmentation used, request not completly performed
 } csm_db_code;
 
 typedef csm_db_code (*csm_db_access_handler)(csm_array *in, csm_array *out, csm_request *request);
