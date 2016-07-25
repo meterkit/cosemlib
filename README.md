@@ -57,50 +57,37 @@ FIXME: before writing this section, wait for stabilisation of the HAL/Cosem API 
 
 # Development schedule
 
-## Version 1.0
+## Version 1.0 TODO
+
+
+### Cosem features
 
   * Provide minimal cosem objects (Association including object list, Clock)
   * Get by block
-
-## Version 1.1
-
-  * File system for NOR flash
   * Set example
-
-## Version 1.2
-
-  * System clock management with windows/linux layer
-  * Generic DateTime implementation
   * Next occurrence algorithm
-
-## Version 1.3
-
   * Attributes 0 and 1 managed by the database
-
-## Version 1.4
-
   * Get/Set with selective access
-  * Generic profile implementation
-
-## Version 1.5
-
   * Security Policy 1 (Authenticated & encrypted)
 
-## Version 1.6
-
-  * OS Layer (mutex, thread, semaphore)
-
-## Version 1.7
+### Transport layers
 
   * Basic HDLC transport protocol
   * Serial line example
 
-## Version 1.x
+### Environment
 
-  * CTT 2.7 compliant
+  * Generic profile implementation
+  * Generic DateTime implementation
+  * OS Layer (mutex, thread, semaphore)
+  * Modular Makefile
+  * File system for NOR flash
+  * System clock management with windows/linux layer
+  * Component system integration
 
 ## Version 2.0
 
+  * CTT 2.7 compliant
   * Test vectors using BlueBook examples and CTT packets
   * Cosem studio: database generator
   * Cosem studio: simple scripting client
