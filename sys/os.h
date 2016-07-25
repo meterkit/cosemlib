@@ -163,4 +163,10 @@ static inline void WPA_PUT_BE64(u8 *a, u64 val)
  */
 int os_memcmp_const(const void *a, const void *b, size_t len);
 
+
+// -----------------------------------  RTOS Wrapper basic primitives --------------------------------------------------
+void os_lock(void);
+void os_unlock(void);
+
+
 #endif /* OS_H */

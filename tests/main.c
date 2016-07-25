@@ -22,6 +22,7 @@ static void RunAllTests(void)
 {
     RUN_TEST_GROUP(CosemArray);
     RUN_TEST_GROUP(Aes128Gcm);
+    RUN_TEST_GROUP(FileSystem);
 }
 
 #else

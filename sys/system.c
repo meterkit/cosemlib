@@ -10,6 +10,9 @@
 // Ciphering library
 #include "gcm.h"
 
+// File system
+#include "fs.h"
+
 // Standard libraries
 #include <string.h>
 #include <stdlib.h>
@@ -30,10 +33,6 @@ static uint8_t system_title[CSM_DEF_APP_TITLE_SIZE] = { 0x4DU, 0x4DU, 0x4DU, 0x0
 // Master key, common for all the associations, not changeable
 static uint8_t key_kek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
 
-// One key per association
-static uint8_t key_guek[16] = { 0x00U,0x01U,0x02U,0x03U,0x04U,0x05U,0x06U,0x07U,0x08U,0x09U,0x0AU,0x0BU,0x0CU,0x0DU,0x0EU,0x0FU };
-static uint8_t key_gbek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
-static uint8_t key_gak[16] = { 0xD0U,0xD1U,0xD2U,0xD3U,0xD4U,0xD5U,0xD6U,0xD7U,0xD8U,0xD9U,0xDAU,0xDBU,0xDCU,0xDDU,0xDEU,0xDFU };
 
 // Keep a context by channel to be thread safe
 mbedtls_gcm_context chan_ctx[NUMBER_OF_CHANNELS];
@@ -66,9 +65,10 @@ const uint8_t *csm_sys_get_system_title()
 
 uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id)
 {
-    (void)sap; // FIXME: manage one key per SAP
+    (void)sap; // FIXME: manage one key per SAP in a configuration file
     uint8_t *key = NULL;
 
+    /*
     switch(key_id)
     {
     case CSM_SEC_KEK:
@@ -85,6 +85,7 @@ uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id)
         key = key_gak;
         break;
     }
+    */
     return key;
 }
 
@@ -111,21 +112,6 @@ int csm_sys_gcm_finish(uint8_t channel, uint8_t *tag)
     return TRUE;
 }
 
-struct cfg_cosem
-{
-    uint8_t sap; //!< Sap number of the association
-    uint8_t lls_password[CSM_DEF_LLS_SIZE]; // Password.
-    uint8_t mechanism_id;
-};
-
-// FIXME: in a real server, store these parameters into non-volatile memory (get/set access)
-static const struct cfg_cosem cfg_cosem_passwords [] =
-{
-    { 16U, { 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U }, CSM_AUTH_LOWEST_LEVEL},  // Public
-    { 1U, { 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x31U }, CSM_AUTH_LOW_LEVEL}, // Management
-};
-
-#define CFG_COSEM_NB_ASSOS  (sizeof(cfg_cosem_passwords)/sizeof(struct cfg_cosem))
 
 int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf, uint32_t size)
 {
@@ -133,6 +119,7 @@ int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf, uint32_t size)
 
     if (size == CSM_DEF_LLS_SIZE)
     {
+        /*
         for (uint32_t i = 0U; i < CFG_COSEM_NB_ASSOS; i++)
         {
             if (sap == cfg_cosem_passwords[i].sap)
@@ -142,6 +129,7 @@ int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf, uint32_t size)
                 break;
             }
         }
+        */
     }
     return valid;
 }
@@ -149,6 +137,7 @@ int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf, uint32_t size)
 uint8_t csm_sys_get_mechanism_id(uint8_t sap)
 {
     uint8_t mechanism_id = CSM_AUTH_LOWEST_LEVEL;
+    /*
     for (uint32_t i = 0U; i < CFG_COSEM_NB_ASSOS; i++)
     {
         if (sap == cfg_cosem_passwords[i].sap)
@@ -157,6 +146,7 @@ uint8_t csm_sys_get_mechanism_id(uint8_t sap)
             break;
         }
     }
+    */
     return mechanism_id;
 }
 
@@ -165,4 +155,45 @@ uint8_t csm_sys_get_random_u8()
 {
     return (uint8_t)(rand()%256);
 }
+
+
+// ==================================== FS FUNCTIONS ====================================
+
+typedef struct
+{
+    uint8_t sap; //!< Sap number of the association
+    uint8_t guek[16];
+    uint8_t gbek[16];
+    uint8_t gak[16];
+    uint8_t lls_password[CSM_DEF_LLS_SIZE]; // Password.
+    uint8_t mechanism_id;
+    uint8_t security_policy;
+} cfg_cosem;
+
+static const cfg_cosem cDefaultSap[] = {
+    {
+        1U,
+        { 0x00U,0x01U,0x02U,0x03U,0x04U,0x05U,0x06U,0x07U,0x08U,0x09U,0x0AU,0x0BU,0x0CU,0x0DU,0x0EU,0x0FU },
+        { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU },
+        { 0xD0U,0xD1U,0xD2U,0xD3U,0xD4U,0xD5U,0xD6U,0xD7U,0xD8U,0xD9U,0xDAU,0xDBU,0xDCU,0xDDU,0xDEU,0xDFU },
+        { 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x31U },
+        CSM_AUTH_LOW_LEVEL,
+        0U,
+    },
+    {
+        16U,
+        { 0x00U,0x01U,0x02U,0x03U,0x04U,0x05U,0x06U,0x07U,0x08U,0x09U,0x0AU,0x0BU,0x0CU,0x0DU,0x0EU,0x0FU },
+        { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU },
+        { 0xD0U,0xD1U,0xD2U,0xD3U,0xD4U,0xD5U,0xD6U,0xD7U,0xD8U,0xD9U,0xDAU,0xDBU,0xDCU,0xDDU,0xDEU,0xDFU },
+        { 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x30U, 0x31U },
+        CSM_AUTH_LOW_LEVEL,
+        0U,
+    }
+};
+
+#define CFG_COSEM_NB_ASSOS  (sizeof(cDefaultSap)/sizeof(cfg_cosem))
+
+
+
+
 
