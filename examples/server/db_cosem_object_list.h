@@ -1,6 +1,7 @@
 #include "app_database.h"
 #include "db_cosem_clock.h"
 #include "db_cosem_associations.h"
+#include "db_cosem_image_transfer.h"
 
 const db_attr_descr clock_attributes[] = {
 { DB_ACCESS_GETSET, 2, DB_TYPE_DATE_TIME },
