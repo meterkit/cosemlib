@@ -52,13 +52,19 @@ dont-care                          [255] IMPLICIT   NULL
 
 enum axdr_tag
 {
-    AXDR_TAG_NULL       = 0U,
-    AXDR_OCTET_STRING   = 9U
+    AXDR_TAG_NULL           = 0U,
+    AXDR_TAG_ARRAY          = 1U,
+    AXDR_TAG_STRUCTURE      = 2U,
+    AXDR_TAG_BOOLEAN        = 3U,
+    AXDR_TAG_OCTETSTRING    = 9U
 };
 
+// Decoders
 int csm_axdr_rd_null(csm_array *array);
-
 int csm_axdr_rd_octetstring(csm_array *array);
+
+// Encoders
 int csm_axdr_wr_octetstring(csm_array *array, const uint8_t *buffer, uint32_t size);
+int csm_axdr_wr_boolean(csm_array *array, uint8_t value);
 
 #endif // AXDR_CODEC_H

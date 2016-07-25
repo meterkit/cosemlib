@@ -34,7 +34,7 @@ int csm_axdr_rd_octetstring(csm_array *array)
     uint8_t byte = 0xFFU;
     if (csm_array_read_u8(array, &byte))
     {
-        if (byte == AXDR_OCTET_STRING)
+        if (byte == AXDR_TAG_OCTETSTRING)
         {
             ber_length len;
             csm_ber_read_len(array, &len);
@@ -53,8 +53,15 @@ int csm_axdr_rd_octetstring(csm_array *array)
 // -------------------------------   ENCODERS ------------------------------------------
 int csm_axdr_wr_octetstring(csm_array *array, const uint8_t *buffer, uint32_t size)
 {
-    int valid = csm_array_write_u8(array, AXDR_OCTET_STRING);
+    int valid = csm_array_write_u8(array, AXDR_TAG_OCTETSTRING);
     valid = valid && csm_ber_write_len(array, size);
     valid = valid && csm_array_write_buff(array, buffer, size);
+    return valid;
+}
+
+int csm_axdr_wr_boolean(csm_array *array, uint8_t value)
+{
+    int valid = csm_array_write_u8(array, AXDR_TAG_OCTETSTRING);
+    valid = valid && csm_array_write_u8(array, value);
     return valid;
 }

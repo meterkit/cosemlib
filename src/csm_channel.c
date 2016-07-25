@@ -208,7 +208,7 @@ int csm_channel_hls_pass4(csm_array *array, csm_request *request)
         array->offset = offset; // restore offset
         array->wr_index = 0;
 
-        int valid = csm_array_write_u8(array, AXDR_OCTET_STRING);
+        int valid = csm_array_write_u8(array, AXDR_TAG_OCTETSTRING);
         valid = valid && csm_ber_write_len(array, 17U);
         valid = valid && csm_array_write_u8(array, sc.sh_byte);
         valid = valid && csm_array_write_u32(array, ic);
