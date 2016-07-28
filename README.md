@@ -1,6 +1,9 @@
 # DLMS/Cosem stack
 
-This is an implementation of the DLMS/Cosem protocol in the BSD Open Source and permissive licence.
+This is an implementation of the DLMS/Cosem protocol in the BSD Open Source and permissive licence. This protocol is mainly used in gas/water/electricity 
+meters but is enough generic to target any IoT device.
+
+See the official organisation group to learn more: http://www.dlms.com.
 
 ## Developement goals
 
@@ -51,9 +54,19 @@ Three targets are available:
   * Debug/Release: traditional ones, the server example is compiled
   * Tests: build and launches stack unit tests
 
-# Basic manual and integration hints
+# Manual and integration hints
 
 FIXME: before writing this section, wait for stabilisation of the HAL/Cosem API and utilities
+
+## Component organisation
+
+FIXME insert a diagram
+
+## Hardware abstraction layers
+
+### OS abstraction
+
+### File system abstraction
 
 # Development schedule
 
@@ -84,6 +97,7 @@ FIXME: before writing this section, wait for stabilisation of the HAL/Cosem API 
   * File system for NOR flash
   * System clock management with windows/linux layer
   * Component system integration
+  * Database generation from a JSON Companion Standard (Cosem objects model)
 
 ## Version 2.0
 
