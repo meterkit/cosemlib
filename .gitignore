@@ -1,3 +1,16 @@
+# =========================
+# Project generated files
+# =========================
+build/output/
+
+# =========================
+# Operating System Files
+# =========================
+
+# Windows
+# =========================
+
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
@@ -17,9 +30,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-# =========================
-# Operating System Files
-# =========================
 
 # OSX
 # =========================
@@ -50,4 +60,8 @@ build-cosemlib-Desktop_Qt*
 *.o
 *.user
 
+
+# Tools
+# =========================
 .vscode
+.settings

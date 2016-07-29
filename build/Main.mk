@@ -10,22 +10,27 @@
 # this turns off the suffix rules built into make
 .SUFFIXES:
 
-OUTDIR			:= $(TOPDIR)output/
+OUTDIR			:= $(TOPDIR)build/output/
 
 ifeq (gcc, $(findstring gcc, $(ARCH)))
 # Compiler setting
-CC      = $(MINGW)/gcc
-AR      = $(MINGW)/ar
-AS      = $(MINGW)/as
-LD 		= $(CC)
-LDFLAGS = -o $(OUTDIR)$(APP_EXECUTABLE) $(addprefix -L, $(USERLIBPATH))
+CC      = gcc
+AR      = ar
+AS      = as
+LD 		= gcc
+LDFLAGS = -Wl,-subsystem,console -mthreads -o $(OUTDIR)$(APP_EXECUTABLE) $(addprefix -L, $(USERLIBPATH))
 
 # FIXME: different CFLAGS for debug/release targets
 DEFINES	+= -DUNICODE -DCONFIG_NATIVE_WINDOWS
 CFLAGS  = -c -pipe -fno-keep-inline-dllexport -g -O0 -pedantic -std=c99 -ggdb -Wall -Wextra
 
-#CC_FLAGS += -MMD
-#-include $(OBJFILES:.o=.d)
+
+ifeq ($(ENABLE_DEP), true)
+	# List of dependencies
+	# DEPENDENCIES = $(OBJECTS:%.o=%.d)
+	# Dependency flags
+	# DEPEND_FLAGS = -MMD
+endif
 
 endif
 
@@ -75,11 +80,11 @@ INCLUDES 	:=
 -include $(patsubst %, %/Module.mk, $(ALL_MODULES))
 
 OBJECTS := $(addprefix $(OUTDIR),$(patsubst %.c, %.o, $(filter %.c,$(SOURCES))))
+-include $(DEPENDENCIES)
 
 vpath %.c $(sort $(dir $(OBJECTS)))
 
 INCLUDES += $(ALL_MODULES)
-$(info Include files $(OBJECTS))
 
 $(addprefix $(OUTDIR), %.o): %.c
 	@echo "Building file: $(notdir $@)"

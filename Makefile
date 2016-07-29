@@ -38,9 +38,9 @@ LIB_EXAMPLE		:= examples/server
 
 APP_MODULES 	:= src $(LIB_TESTS) $(LIB_METER) $(LIB_BSP)
 APP_LIBPATH 	:= 
-APP_LIBS 		:= 
+APP_LIBS 		:= -lws2_32 -lpsapi -lwinmm
 APP_LINK_FILE	:=
-APP_EXECUTABLE	:= cosem_example
+APP_EXECUTABLE	:= cosem_tests
 
 # *******************************************************************************
 # BUILD ENGINE
@@ -57,14 +57,14 @@ all: $(OBJECTS) link
 link:
 ifndef COMPONENT
 	@echo "Invoking: Linker"
-	$(VERBOSE) $(LD) $(APP_LINK_FILE) $(LDFLAGS)
+	$(VERBOSE) $(LD) $(APP_LINK_FILE) $(LDFLAGS) $(OBJECTS) $(APP_LIBS)
 	@echo "Finished building target: $(EXECUTABLE)"
 	@echo " "
 endif
 
 clean:
 	@echo "Cleaning generated files..."
-	$(VERBOSE) $(RM) -rf *.o *.d *.gcov *.gcov.htm $(OUT_DIR)
+	$(VERBOSE) $(RM) -rf *.o *.d *.gcov *.gcov.htm $(OUTDIR)
 
 # *******************************************************************************
 # 								   END OF MAKEFILE								*
