@@ -1,10 +1,9 @@
 # *******************************************************************************
 # Main.mk
-# Build engine entry point, specific arguments must be passed through Makefile
-# variables.
-# Mandatory arguments:
-#   - Module full path
-#
+# Build engine targetted for component/module architecture.
+# TODO:
+#   - Export GCC configuration into external file
+#   - Support more toolchains
 # *******************************************************************************
 
 # this turns off the suffix rules built into make
@@ -18,7 +17,7 @@ CC      = gcc
 AR      = ar
 AS      = as
 LD 		= gcc
-LDFLAGS = -Wl,-subsystem,console -mthreads -o $(OUTDIR)$(APP_EXECUTABLE) $(addprefix -L, $(USERLIBPATH))
+LDFLAGS = -Wl,-subsystem,console -o $(OUTDIR)$(APP_EXECUTABLE) $(addprefix -L, $(APP_LIBPATH))
 
 # FIXME: different CFLAGS for debug/release targets
 DEFINES	+= -DUNICODE -DCONFIG_NATIVE_WINDOWS
@@ -27,9 +26,9 @@ CFLAGS  = -c -pipe -fno-keep-inline-dllexport -g -O0 -pedantic -std=c99 -ggdb -W
 
 ifeq ($(ENABLE_DEP), true)
 	# List of dependencies
-	# DEPENDENCIES = $(OBJECTS:%.o=%.d)
+	DEPENDENCIES = $(OBJECTS:%.o=%.d)
 	# Dependency flags
-	# DEPEND_FLAGS = -MMD
+	DEPEND_FLAGS = -MMD
 endif
 
 endif
@@ -57,7 +56,7 @@ endif
 ## Must be called before including any other makefile!!
 ###########################################################
 
-# Figure out where we are.
+# Figure out where we are. Taken from Android build system thanks!
 define my-dir
 $(strip \
   $(eval LOCAL_MODULE_MAKEFILE := $$(lastword $$(MAKEFILE_LIST))) \
@@ -69,20 +68,19 @@ $(strip \
  )
 endef
 
-###########################################################
-## Retrieve the directory of the current makefile
-## Must be called before including any other makefile!!
-###########################################################
 
 SOURCES 	:=
 INCLUDES 	:=
 
+# Include all the modules sub-makefiles in one command
 -include $(patsubst %, %/Module.mk, $(ALL_MODULES))
 
+# Deduct objects to build 
 OBJECTS := $(addprefix $(OUTDIR),$(patsubst %.c, %.o, $(filter %.c,$(SOURCES))))
+
+# Include generated dependency files, if any
 -include $(DEPENDENCIES)
 
-vpath %.c $(sort $(dir $(OBJECTS)))
 
 INCLUDES += $(ALL_MODULES)
 
@@ -101,9 +99,7 @@ $(addprefix $(OUTDIR), %.o): %.s
 # *******************************************************************************
 
 PHONY: all
-all: $(OBJECTS) link
-
-link:
+all: $(OBJECTS)
 ifndef MODULE
 	@echo "Invoking: Linker"
 	$(VERBOSE) $(LD) $(APP_LINK_FILE) $(LDFLAGS) $(OBJECTS) $(APP_LIBS)
@@ -113,7 +109,11 @@ endif
 
 clean:
 	@echo "Cleaning generated files..."
-	$(VERBOSE) $(RM) -rf *.o *.d *.gcov *.gcov.htm $(OUTDIR)
+	$(VERBOSE) $(RM) -rf *.o *.d *.gcov *.gcov.htm
+
+wipe:
+	@echo "Wiping output directory..."
+	$(VERBOSE) $(RM) -rf $(OUTDIR)
 
 # *******************************************************************************
 # 								   END OF MAKEFILE								*

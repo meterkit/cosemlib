@@ -33,7 +33,7 @@ export TOPDIR
 
 LIB_METER		:= lib/system lib/database lib/application lib/crypto lib/rtos lib/transport
 LIB_BSP			:= arch/host
-LIB_TESTS		:= tests tests/unity
+LIB_TESTS		:= tests tests/embunit
 LIB_EXAMPLE		:= examples/server
 
 APP_MODULES 	:= src $(LIB_TESTS) $(LIB_METER) $(LIB_BSP)
