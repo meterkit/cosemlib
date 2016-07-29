@@ -47,24 +47,6 @@ APP_EXECUTABLE	:= cosem_tests
 # *******************************************************************************
 include build/Main.mk
 
-# *******************************************************************************
-# PROJECT CUSTOM TARGETS
-# *******************************************************************************
-
-PHONY: all
-all: $(OBJECTS) link
-
-link:
-ifndef COMPONENT
-	@echo "Invoking: Linker"
-	$(VERBOSE) $(LD) $(APP_LINK_FILE) $(LDFLAGS) $(OBJECTS) $(APP_LIBS)
-	@echo "Finished building target: $(EXECUTABLE)"
-	@echo " "
-endif
-
-clean:
-	@echo "Cleaning generated files..."
-	$(VERBOSE) $(RM) -rf *.o *.d *.gcov *.gcov.htm $(OUTDIR)
 
 # *******************************************************************************
 # 								   END OF MAKEFILE								*

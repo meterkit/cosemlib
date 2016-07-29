@@ -1,5 +1,5 @@
 
-MODULE = $(call my-dir)/
+LOCAL_DIR = $(call my-dir)/
 
-SOURCES += $(addprefix $(MODULE), main.c)
-#INCLUDES += $(addprefix $(MODULE), include)
+SOURCES += $(addprefix $(LOCAL_DIR), main.c)
+

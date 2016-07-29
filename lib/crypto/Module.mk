@@ -1,5 +1,5 @@
 
-MODULE = $(call my-dir)/
+LOCAL_DIR = $(call my-dir)/
 
-SOURCES += $(addprefix $(MODULE),aes.c cipher.c cipher_wrap.c gcm.c)
+SOURCES += $(addprefix $(LOCAL_DIR),aes.c cipher.c cipher_wrap.c gcm.c)
 

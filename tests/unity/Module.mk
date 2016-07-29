@@ -1,5 +1,5 @@
 
-MODULE = $(call my-dir)/
+LOCAL_DIR = $(call my-dir)/
 
-SOURCES += $(addprefix $(MODULE), unity.c unity_fixture.c)
+SOURCES += $(addprefix $(LOCAL_DIR), unity.c unity_fixture.c)
 

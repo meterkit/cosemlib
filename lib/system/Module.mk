@@ -1,5 +1,5 @@
 
-MODULE = $(call my-dir)/
+LOCAL_DIR = $(call my-dir)/
 
-SOURCES += $(addprefix $(MODULE), bitfield.c clock.c fs.c os.c registry.c system.c)
+SOURCES += $(addprefix $(LOCAL_DIR), bitfield.c clock.c fs.c os.c registry.c system.c)
 

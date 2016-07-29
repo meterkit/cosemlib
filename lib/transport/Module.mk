@@ -1,5 +1,5 @@
 
-MODULE = $(call my-dir)/
+LOCAL_DIR = $(call my-dir)/
 
-SOURCES += $(addprefix $(MODULE), hdlc.c tcp_server.c)
+SOURCES += $(addprefix $(LOCAL_DIR), hdlc.c tcp_server.c)
 

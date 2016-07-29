@@ -1,5 +1,5 @@
 
-MODULE = $(call my-dir)/
+LOCAL_DIR = $(call my-dir)/
 
-SOURCES += $(addprefix $(MODULE), db_cosem_associations.c db_cosem_clock.c db_cosem_image_transfer.c)
+SOURCES += $(addprefix $(LOCAL_DIR), db_cosem_associations.c db_cosem_clock.c db_cosem_image_transfer.c)
 

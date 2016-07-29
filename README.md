@@ -1,15 +1,15 @@
 # DLMS/Cosem stack
 
-This is an implementation of the DLMS/Cosem protocol in the BSD Open Source and permissive licence. This protocol is mainly used in gas/water/electricity 
+This is an implementation of the DLMS/Cosem protocol in the BSD Open Source and permissive license. This protocol is mainly used in gas/water/electricity 
 meters but is enough generic to target any IoT device.
 
-See the official organisation group to learn more: http://www.dlms.com.
+See the official organization group to learn more: http://www.dlms.com.
 
-## Developement goals
+## Development goals
 
 This Cosem stack has the following goals :
 
-  * Pure portable and standalone ANSI C99 code
+  * Pure portable and stand-alone ANSI C99 code
   * Fully unit tested with pre-defined vectors
   * Client/server implementation, LogicalName referencing, HLS/security policy 1
   * Examples using Cosem over TCP/IP
@@ -26,11 +26,11 @@ This Cosem stack has the following goals :
   * Set request normal
   * Action service
   * Exception response in case of problem
-  * Full extensible/generable database layer to access to Cosem objects
+  * Full extensible database layer to access to Cosem objects (can be generated)
 
 # Examples
 
-The provided example is a server implementation using CosemLib. It includes traditionnal code such as a security library,
+The provided example is a server implementation using CosemLib. It includes traditional code such as a security library,
 a generic date-time code, log book and some registers.
 
 The communication transport is using a TCP/IP layer using a Cosem IP wrapper header. The default port is 4059.
@@ -46,17 +46,16 @@ following parameters:
 
 # How to build
 
-You will need QtCreator to load the project file. Any version of Qt is good, since we use raw ANSI C and
-QtCreator is only here as an nice IDE.
+Just run make at the root of the repository. It will build the meter example. More target options are available such as "tests" to generate the 
+unit tests executable.
 
-Three targets are available:
+# How to view/edit the code
 
-  * Debug/Release: traditional ones, the server example is compiled
-  * Tests: build and launches stack unit tests
+Eclipse CDT project files are available at the root of the repository.
 
 # Manual and integration hints
 
-FIXME: before writing this section, wait for stabilisation of the HAL/Cosem API and utilities
+FIXME: before writing this section, wait for stabilization of the HAL/Cosem API and utilities
 
 ## Component organisation
 

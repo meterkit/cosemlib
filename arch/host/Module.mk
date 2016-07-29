@@ -1,5 +1,5 @@
 
-MODULE = $(call my-dir)/
+LOCAL_DIR = $(call my-dir)/
 
-SOURCES += $(addprefix $(MODULE), bsp_flash.c port.c)
+SOURCES += $(addprefix $(LOCAL_DIR), bsp_flash.c port.c)
 

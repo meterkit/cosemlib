@@ -96,6 +96,24 @@ $(addprefix $(OUTDIR), %.o): %.s
 	$(VERBOSE) $(MKDIR) -p "$(dir $@)"
 	$(VERBOSE) $(AS) $(ASFLAGS) -o $@ $< 
 
+# *******************************************************************************
+# GENERIC TARGETS
+# *******************************************************************************
+
+PHONY: all
+all: $(OBJECTS) link
+
+link:
+ifndef MODULE
+	@echo "Invoking: Linker"
+	$(VERBOSE) $(LD) $(APP_LINK_FILE) $(LDFLAGS) $(OBJECTS) $(APP_LIBS)
+	@echo "Finished building target: $(APP_EXECUTABLE)"
+	@echo " "
+endif
+
+clean:
+	@echo "Cleaning generated files..."
+	$(VERBOSE) $(RM) -rf *.o *.d *.gcov *.gcov.htm $(OUTDIR)
 
 # *******************************************************************************
 # 								   END OF MAKEFILE								*
