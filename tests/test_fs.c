@@ -1,6 +1,5 @@
 #include "fs.h"
-#include "unity.h"
-#include "unity_fixture.h"
+#include "embUnit.h"
 
 typedef struct
 {
@@ -38,20 +37,17 @@ static const fs_file_cfg cFiles[] = {
 #define NB_FILES (sizeof(cFiles) / sizeof(&cFiles[0]))
 
 
-TEST_GROUP(FileSystem);
-
-
-TEST_SETUP(FileSystem)
+static void setUp(void)
 {
-    // FIXME: setup flash memory initial conditions
-    // - FS is formatted (every byte is at 0xFF)
+
 }
 
-TEST_TEAR_DOWN(FileSystem)
+static void tearDown(void)
 {
+
 }
 
-TEST(FileSystem, Open)
+static void fs_test_open(void)
 {
     fs_handle handle;
 
@@ -59,12 +55,17 @@ TEST(FileSystem, Open)
 
     int ret = fs_open(&handle, FS_FILE_3);
 
-    TEST_ASSERT_EQUAL(FS_FILE_NOT_FOUND, ret);
-
+    TEST_ASSERT_EQUAL_INT(FS_FILE_NOT_FOUND, ret);
 
 }
 
-TEST_GROUP_RUNNER(FileSystem)
+TestRef FileSystem_test(void)
 {
-  RUN_TEST_CASE(FileSystem, Open);
+    EMB_UNIT_TESTFIXTURES(fixtures) {
+        new_TestFixture("fs_test_open",fs_test_open),
+    };
+    EMB_UNIT_TESTCALLER(FileSystemTest,"FileSystemTest", setUp, tearDown,fixtures);
+
+    return (TestRef)&FileSystemTest;
 }
+

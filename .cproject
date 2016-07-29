@@ -59,7 +59,7 @@
 		<buildTargets>
 			<target name="Build Tests" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>${MINGW_HOME}/bin/mingw32-make</buildCommand>
-				<buildArguments>VERBOSE=</buildArguments>
+				<buildArguments>-j4</buildArguments>
 				<buildTarget>all</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>false</useDefaultCommand>
@@ -67,7 +67,6 @@
 			</target>
 			<target name="Clean Tests" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>${MINGW_HOME}/bin/mingw32-make</buildCommand>
-				<buildArguments/>
 				<buildTarget>clean</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
