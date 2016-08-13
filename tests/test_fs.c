@@ -30,8 +30,8 @@ typedef enum {
 } fs_fils_id;
 
 static const fs_file_cfg cFiles[] = {
-    { FS_FILE_1, 'S', 0U, 2U, sizeof(cfg_test_tiny_file), &gDefault },
-    { FS_FILE_2, 'L', 0U, 2U, GENERAL_EVENT_LOG_ENTRIES*sizeof(cfg_test_sample_log), NULL }, // data file, no any default contents
+    { FS_FILE_1, 'S', 0U, 2U, sizeof(cfg_test_tiny_file) },
+    { FS_FILE_2, 'L', 0U, 2U, GENERAL_EVENT_LOG_ENTRIES*sizeof(cfg_test_sample_log) },
 };
 
 #define NB_FILES (sizeof(cFiles) / sizeof(&cFiles[0]))

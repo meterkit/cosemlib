@@ -60,8 +60,8 @@ int main (int argc, const char* argv[])
     (void) argv;
     // FIXME: Change the outputter according to command line arguments
 
-    //TextUIRunner_setOutputter(TextOutputter_outputter());
-    TextUIRunner_setOutputter(XMLOutputter_outputter());
+    TextUIRunner_setOutputter(TextOutputter_outputter());
+   // TextUIRunner_setOutputter(XMLOutputter_outputter());
 
     TextUIRunner_start();
         TextUIRunner_runTest(FileSystem_test());

@@ -5,12 +5,14 @@
 
 typedef enum
 {
+    FS_FILE_NOT_OPEN = -7,
+    FS_BAD_HANDLE = -6,
+    FS_WRONG_FILE = -5,
+    FS_BUSY = -4,
+    FS_FILE_EMPTY = -3,
+    FS_FILE_NOT_FOUND = -2,
+    FS_ERROR = -1,
     FS_OK = 0,
-    FS_ERROR = 1,
-    FS_FILE_NOT_FOUND = 2,
-    FS_FILE_EMPTY = 3,
-    FS_BUSY = 4,
-    FS_WRONG_FILE,
 } fs_status;
 
 typedef struct
@@ -20,7 +22,6 @@ typedef struct
     uint8_t block;
     uint8_t nb_blocks;
     uint32_t size;
-    const void *default_data; //< Points to the default data, if null set everything to zero
 } fs_file_cfg;
 
 typedef struct
@@ -43,6 +44,6 @@ typedef struct
 // FS API
 void fs_initialize(const fs_file_cfg *files, int size);
 int fs_open(fs_handle *handle, uint16_t name);
-
+int fs_close(fs_handle *handle);
 
 #endif // FS_H
