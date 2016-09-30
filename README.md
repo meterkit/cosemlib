@@ -89,11 +89,13 @@ FIXME insert a diagram
 
 ### Environment
 
+  * Main server example using thread on windows (--PENDING--)
+  * Separated unit test executable and test suite engine (--DONE--)
   * Generic profile implementation
   * Generic DateTime implementation
-  * OS Layer (mutex, thread, semaphore)
+  * OS Layer (mutex, thread, semaphore) (--PENDING--)
   * Modular Makefile
-  * File system for NOR flash
+  * File system for NOR flash (--PENDING--)
   * System clock management with windows/linux layer
   * Component system integration
   * Database generation from a JSON Companion Standard (Cosem objects model)

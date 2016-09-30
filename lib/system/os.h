@@ -144,6 +144,11 @@ static inline void WPA_PUT_BE64(u8 *a, u64 val)
 	a[7] = val & 0xff;
 }
 
+static inline uint32_t div_round_up(uint32_t x, uint32_t y)
+{
+    return  (x + y - 1U) / y;
+}
+
 // -----------------------------------  Prototypes --------------------------------------------------
 
 /**

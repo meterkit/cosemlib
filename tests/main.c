@@ -10,32 +10,13 @@
 #include "csm_config.h"
 
 // Meter environment
-//#include "unity_fixture.h"
 #include "tcp_server.h"
 #include "app_database.h"
 #include "os.h"
 #include "bitfield.h"
 #include "server_config.h"
 
-/*
-static void RunAllTests(void)
-{
-    RUN_TEST_GROUP(CosemArray);
-    RUN_TEST_GROUP(Aes128Gcm);
-    RUN_TEST_GROUP(FileSystem);
-}
-
-
-int main(int argc, const char * argv[])
-{
-    (void) argc;
-    (void) argv;
-
-    printf("Starting DLMS/Cosem unit tests\r\nCosem library version: %s\r\n\r\n", CSM_DEF_LIB_VERSION);
-    return UnityMain(argc, argv, RunAllTests);
-}
-*/
-
+// Unit test framework
 #include <embUnit/embUnit.h>
 #include <Outputter.h>
 #include <TextOutputter.h>

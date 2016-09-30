@@ -18,20 +18,25 @@ typedef struct
 
 } cfg_test_tiny_file;
 
+#define TINY_FILE_SIZE  sizeof(cfg_test_tiny_file)
+
 static const cfg_test_tiny_file gDefault = { 0U, { 0U, 0U, 0U, 0U } };
 
 #define GENERAL_EVENT_LOG_ENTRIES   100
 
 typedef enum {
-    FS_FILE_1,
-    FS_FILE_2,
-    FS_FILE_3
+    APP_CFG_TINY,
+    APP_CFG_LOG,
+    APP_CFG_BIG,
+    APP_NO_FILE
 
-} fs_fils_id;
+} app_file_id;
 
-static const fs_file_cfg cFiles[] = {
-    { FS_FILE_1, 'S', 0U, 2U, sizeof(cfg_test_tiny_file) },
-    { FS_FILE_2, 'L', 0U, 2U, GENERAL_EVENT_LOG_ENTRIES*sizeof(cfg_test_sample_log) },
+static const fs_config cFiles[] = {
+
+    // name             type           first_block         nb_records              record_size                  status
+    { APP_CFG_TINY,     'S',            0U,                     2U,             TINY_FILE_SIZE,         0U },
+//    { FS_FILE_2, 'F', 0U, 2U, GENERAL_EVENT_LOG_ENTRIES*sizeof(cfg_test_sample_log), 0U },
 };
 
 #define NB_FILES (sizeof(cFiles) / sizeof(&cFiles[0]))
@@ -53,9 +58,16 @@ static void fs_test_open(void)
 
     fs_initialize(&cFiles[0], NB_FILES);
 
-    int ret = fs_open(&handle, FS_FILE_3);
-
+    // Test unknown file
+    int ret = fs_open(&handle, APP_NO_FILE);
     TEST_ASSERT_EQUAL_INT(FS_FILE_NOT_FOUND, ret);
+
+    ret = fs_open(&handle, APP_CFG_TINY);
+    TEST_ASSERT_EQUAL_INT(FS_OK, ret);
+
+    cfg_test_tiny_file file;
+
+    ret = fs_read(&handle, &file, TINY_FILE_SIZE);
 
 }
 

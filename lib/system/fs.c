@@ -2,7 +2,6 @@
 #include "fs.h"
 
 // HAL includes
-#include "bsp_flash.h"
 #include "os.h"
 
 /**
@@ -20,40 +19,40 @@
 
  */
 
-#define FS_DATA_SIZE    (SECTOR_SIZE - sizeof(fs_header))
-
-typedef struct {
-    fs_header header;
-    uint8_t data[FS_DATA_SIZE];
-} fs_cache;
 
 
-// File system state variables
-static fs_cache gCache;
-static uint8_t gLocked = 0U;
-static uint8_t gFileOpen = 0U;
-static fs_handle *gCurrentHandle = NULL;
 
-// Read/write access variables
-static uint16_t gRdIndex = 0U;
-static uint16_t gWrIndex = 0U;
 
-// Static filesystem parameters
-static const fs_file_cfg *gConfFiles = NULL;
+// Global shared variables
+static const fs_config *gConfFiles = NULL;
 static int gConfSize = 0;
 
+// Big FS lock, not used if API called in one unique context
+//static uint8_t gLocked = 0U;
 
-#define FS_LOCK do { \
+
+
+#define FS_LOCK(handle) do { \
+                } while(0)
+
+#define FS_UNLOCK(handle) do { \
+                } while(0)
+
+/*
+#define FS_LOCK(handle) do { \
                     os_lock(); \
-                    gLocked = 1U; \
+                    handle->gLocked = 1U; \
                 } while(0)
 
-#define FS_UNLOCK do { \
+#define FS_UNLOCK(handle) do { \
                     os_unlock(); \
-                    gLocked = 0U; \
+                    handle->gLocked = 0U; \
                 } while(0)
 
-#define FS_ISFREE   (gFileOpen == 0U)
+*/
+
+#define FS_ISFREE(handle)   (handle->open == 0U)
+
 
 
 static const uint16_t gNoFileName = 0xFFFFU;
@@ -63,21 +62,10 @@ static const uint16_t gNoFileName = 0xFFFFU;
 // PRIVATE FUNCTIONS
 // ============================================================================
 
-static inline int fs_nb_blocks()
-{
-
-}
-
-
-static inline void fs_init_cache()
-{
-    memset(&gCache, 0xFF, sizeof(gCache));
-}
-
 static inline int fs_is_open(fs_handle *handle)
 {
     int ret = FS_FILE_NOT_OPEN;
-    if ((gFileOpen == 1U) && (gCurrentHandle == handle))
+    if (handle->open == 1U)
     {
         ret = FS_OK;
     }
@@ -86,28 +74,57 @@ static inline int fs_is_open(fs_handle *handle)
 
 static inline void fs_take(fs_handle *handle)
 {
-    gFileOpen = 1U;
-    gCurrentHandle = handle;
+    handle->open = 1U;
 }
 
-static inline int fs_free(fs_handle *handle)
+static inline int fs_release(fs_handle *handle)
 {
-    int ret = FS_BAD_HANDLE;
-    gFileOpen = 0U;
-    if (gCurrentHandle == handle)
-    {
-        ret = FS_OK;
-    }
+    int ret = FS_OK;
+    handle->open = 0U;
 
     return ret;
 }
+
+// Calculate how many block is taken by a record
+static inline int fs_nb_blocks(fs_handle *handle)
+{
+    int total_size = handle->file->record_size + FS_HEADER_SIZE;
+    return div_round_up(total_size, FS_BLOCK_SIZE);
+}
+
+static inline int fs_get_block(fs_handle *handle, int record)
+{
+    int total_size = handle->file->nb_records * handle->file->record_size;
+    return div_round_up(total_size, FS_DATA_SIZE);
+}
+
+/*
+
+static inline void fs_init_cache(fs_handle *handle)
+{
+    memset(&handle->cache, 0xFF, sizeof(handle->cache));
+}
+
+
+static inline int fs_cache_hit(fs_handle *handle, uint32_t index)
+{
+    int ret = (handle->cache.header.name == handle->file->name); // right file
+
+    // Check the block currently targeted
+    int block = index / FS_DATA_SIZE;
+
+    ret = ret && handle->cache.header
+
+    return ret;
+}
+*/
 
 
 // ============================================================================
 // PUBLIC FUNCTIONS
 // ============================================================================
 
-void fs_initialize(const fs_file_cfg *files, int size)
+void fs_initialize(const fs_config *files, int size)
 {
     gConfFiles = files;
     gConfSize = size;
@@ -133,95 +150,118 @@ static fs_status fs_get_file(fs_handle *handle, uint16_t name)
     return ret;
 }
 
-int fs_open(fs_handle *handle, uint16_t name)
+typedef struct
 {
-    int ret = FS_BUSY;
+    uint16_t block;
+    uint32_t offset;
+} fs_pos;
 
-    FS_LOCK;
+int fs_seek(fs_handle *handle, uint32_t index, fs_pos *pos)
+{
+    int ret = FS_ERROR;
 
-    if (FS_ISFREE)
+    // Determine the relative block currently targeted
+    uint16_t block = (index / FS_DATA_SIZE);
+    // Determine the relative offset within the block
+    uint32_t offset = FS_HEADER_SIZE + (index - (block * FS_BLOCK_SIZE));
+
+    // 1. First read the header of the block
+    bsp_flash_read(&handle->header, block + handle->file->first_block, 0U, FS_HEADER_SIZE);
+
+    if (handle->header.name == gNoFileName)
     {
-        fs_take(handle);
+        // Make sure that this block is fully erased
+        bsp_flash_erase(handle->file->first_block);
 
-        int access = fs_get_file(handle, name);
-        if (access == FS_OK)
+        // Initialize first block
+        if (block == 0U)
         {
-            // Check the first block of the file if it is the right file
-            bsp_flash_read(&gCache, handle->file->block, SECTOR_SIZE);
-
-            // Check physical file state
-            if (handle->file->name == gNoFileName)
-            {
-                // Make sure that this block is fully erased
-                bsp_flash_erase(handle->file->block);
-                fs_init_cache();
-                ret = FS_FILE_EMPTY;
-            }
-            else if (handle->file->name != gCache.header.name)
-            {
-                ret = FS_WRONG_FILE;
-            }
-            else
-            {
-                ret = FS_OK;
-            }
-
-            gRdIndex = 0U;
-            gWrIndex = 0U;
+            handle->header.info = 0xFEU;
         }
         else
         {
-            // Copy failure reason
-            ret = access;
+            handle->header.info = 0xFFU;
         }
+        handle->header.name = handle->file->name;
+
+        ret = FS_OK;
+
+    }
+    else if (handle->file->name != handle->header.name)
+    {
+        ret = FS_WRONG_FILE;
+    }
+    else
+    {
+        ret = FS_OK;
     }
 
-    FS_UNLOCK;
+    // Save where we are
+    pos->block = block;
+    pos->offset = offset;
+
+
+    handle->rd_index = offset;
+    handle->wr_index = offset;
 
     return ret;
 }
 
-int fs_read(fs_handle *handle, void *data, int size)
+int fs_open(fs_handle *handle, uint16_t name)
 {
     int ret = FS_BUSY;
 
-    FS_LOCK;
+    fs_take(handle);
 
-    if (FS_ISFREE)
+    int access = fs_get_file(handle, name);
+    if (access == FS_OK)
     {
-        fs_take(handle);
-
-        int access = fs_is_open(handle);
-        if (access == FS_OK)
-        {
-            // Check the first block of the file if it is the right file
-            bsp_flash_read(&gCache, handle->file->block, SECTOR_SIZE);
-
-            // Check physical file state
-            if (handle->file->name == gNoFileName)
-            {
-                // Make sure that this block is fully erased
-                bsp_flash_erase(handle->file->block);
-                fs_init_cache();
-                ret = FS_FILE_EMPTY;
-            }
-            else if (handle->file->name != gCache.header.name)
-            {
-                ret = FS_WRONG_FILE;
-            }
-            else
-            {
-                ret = FS_OK;
-            }
-        }
-        else
-        {
-            // Copy failure reason
-            ret = access;
-        }
+        fs_pos pos;
+        ret = fs_seek(handle, 0U, &pos);
+    }
+    else
+    {
+        // Copy failure reason
+        ret = access;
     }
 
-    FS_UNLOCK;
+    return ret;
+}
+
+
+
+int fs_read(fs_handle *handle, void *data, uint32_t size)
+{
+    int ret = FS_BUSY;
+
+    fs_take(handle);
+
+    int access = fs_is_open(handle);
+    if (access == FS_OK)
+    {
+        while (size > 0U)
+        {
+            uint32_t len = size;
+            fs_pos pos;
+            if (fs_seek(handle, handle->rd_index, &pos) == FS_OK)
+            {
+                uint32_t max_size = FS_DATA_SIZE - pos.offset;
+                if (len > max_size)
+                {
+                    len = max_size;
+                }
+                bsp_flash_read(data, pos.block + handle->file->first_block, pos.offset + FS_HEADER_SIZE, len);
+
+                size -= len;
+                data += len;
+            }
+        }
+    }
+    else
+    {
+        // Copy failure reason
+        ret = access;
+    }
 
     return ret;
 }
@@ -229,9 +269,9 @@ int fs_read(fs_handle *handle, void *data, int size)
 
 int fs_close(fs_handle *handle)
 {
-    FS_LOCK;
-    int ret = fs_free(handle);
-    FS_UNLOCK;
+    FS_LOCK(handle);
+    int ret = fs_release(handle);
+    FS_UNLOCK(handle);
     return ret;
 }
 
