@@ -2,18 +2,26 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef _WIN32
+#ifdef USE_WINDOWS_OS
 
 #include <winsock2.h>
+#endif
 
-#elif defined (linux)
 
+#ifdef USE_LINUX_OS
+
+#include <sys/select.h>
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h> /* close */
-#include <netdb.h> /* gethostbyname */
+#include <sys/ioctl.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <netinet/tcp.h>
+#include <errno.h>
+
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #define closesocket(s) close(s)
@@ -21,10 +29,6 @@ typedef int SOCKET;
 typedef struct sockaddr_in SOCKADDR_IN;
 typedef struct sockaddr SOCKADDR;
 typedef struct in_addr IN_ADDR;
-
-#else
-
-#error not defined for this platform
 
 #endif
 

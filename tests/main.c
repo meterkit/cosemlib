@@ -17,7 +17,7 @@
 #include "server_config.h"
 
 // Unit test framework
-#include <embUnit/embUnit.h>
+#include <embunit/embUnit.h>
 #include <Outputter.h>
 #include <TextOutputter.h>
 #include <CompilerOutputter.h>

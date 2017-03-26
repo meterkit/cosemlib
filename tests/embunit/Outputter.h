@@ -35,7 +35,7 @@
 #ifndef	__OUTPUTTER_H__
 #define	__OUTPUTTER_H__
 
-#include <embUnit/embUnit.h>
+#include <embunit/embUnit.h>
 
 typedef struct __OutputterImplement		OutputterImplement;
 typedef struct __OutputterImplement*	OutputterImplementRef;

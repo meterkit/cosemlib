@@ -10,7 +10,7 @@
 #include "csm_config.h"
 
 // Meter environment
-#include "unity_fixture.h"
+//#include "unity_fixture.h"
 #include "tcp_server.h"
 #include "app_database.h"
 #include "os.h"

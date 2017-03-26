@@ -30,17 +30,32 @@ export TOPDIR
 # APPLICATION DEFINITIONS
 # List of modules and extra libraries needed to generate project targets
 # *******************************************************************************
+LIB_STM32F4		:= lib/rtos 
 
-LIB_METER		:= lib/system lib/database lib/application lib/crypto lib/rtos lib/transport
+
+LIB_METER		:= lib/system lib/database lib/application lib/crypto lib/transport
 LIB_BSP			:= arch/host
 LIB_TESTS		:= tests tests/embunit
 LIB_EXAMPLE		:= examples/server
 
-APP_MODULES 	:= src $(LIB_TESTS) $(LIB_METER) $(LIB_BSP)
+# *******************************************************************************
+# TEST EXECUTABLE
+# *******************************************************************************
+# APP_MODULES 	:= src $(LIB_TESTS) $(LIB_METER) $(LIB_BSP)
 APP_LIBPATH 	:= 
-APP_LIBS 		:= -lws2_32 -lpsapi -lwinmm
+APP_LIBS 		:= 
 APP_LINK_FILE	:=
-APP_EXECUTABLE	:= cosem_tests
+# APP_EXECUTABLE	:= cosem_tests
+APP_EXECUTABLE	:= cosem_server
+
+# *******************************************************************************
+# SERVER EXAMPLE
+# *******************************************************************************
+APP_MODULES 	:= src $(LIB_METER) $(LIB_BSP) $(LIB_EXAMPLE)
+APP_LIBPATH 	:= 
+APP_LIBS 		:= 
+APP_LINK_FILE	:=
+APP_EXECUTABLE	:= cosem_server
 
 # *******************************************************************************
 # BUILD ENGINE

@@ -30,21 +30,21 @@
  * use or other dealings in this Software without prior written 
  * authorization of the copyright holder.
  *
- * $Id: embUnit.h,v 1.4 2004/02/10 16:16:19 arms22 Exp $
+ * $Id: embunit.h,v 1.4 2004/02/10 16:16:19 arms22 Exp $
  */
-#ifndef	__EMBUNIT_H__
-#define	__EMBUNIT_H__
+#ifndef	__embunit_H__
+#define	__embunit_H__
 
-#include <embUnit/Test.h>
-#include <embUnit/TestCase.h>
-#include <embUnit/TestListener.h>
-#include <embUnit/TestResult.h>
-#include <embUnit/TestSuite.h>
-#include <embUnit/TestRunner.h>
-#include <embUnit/TestCaller.h>
-#include <embUnit/RepeatedTest.h>
-#include <embUnit/stdImpl.h>
-#include <embUnit/AssertImpl.h>
-#include <embUnit/HelperMacro.h>
+#include <embunit/Test.h>
+#include <embunit/TestCase.h>
+#include <embunit/TestListener.h>
+#include <embunit/TestResult.h>
+#include <embunit/TestSuite.h>
+#include <embunit/TestRunner.h>
+#include <embunit/TestCaller.h>
+#include <embunit/RepeatedTest.h>
+#include <embunit/stdImpl.h>
+#include <embunit/AssertImpl.h>
+#include <embunit/HelperMacro.h>
 
-#endif/*__EMBUNIT_H__*/
+#endif/*__embunit_H__*/

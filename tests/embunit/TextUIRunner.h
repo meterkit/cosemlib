@@ -35,7 +35,7 @@
 #ifndef	__TEXTUIRUNNER_H__
 #define	__TEXTUIRUNNER_H__
 
-#include <embUnit/embUnit.h>
+#include <embunit/embUnit.h>
 
 void TextUIRunner_setOutputter(OutputterRef outputter);
 void TextUIRunner_startWithOutputter(OutputterRef outputter);
