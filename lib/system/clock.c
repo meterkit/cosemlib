@@ -346,7 +346,7 @@ int is_dst(uint32_t  yr,
 
       if (DST_start_dy != DOW_IGNORE)
       {
-            while (DST_start_dy != (*Start % 7U))
+            while (DST_start_dy != (enum DOW_T)(*Start % 7U))
             {
                   ++*Start;
             }
@@ -354,7 +354,7 @@ int is_dst(uint32_t  yr,
 
       if (DST_stop_dy != DOW_IGNORE)
       {
-            while (DST_stop_dy != (*Stop % 7U))
+            while (DST_stop_dy != (enum DOW_T)(*Stop % 7U))
             {
                   --*Stop;
             }

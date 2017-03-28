@@ -31,7 +31,7 @@ static uint8_t system_title[CSM_DEF_APP_TITLE_SIZE] = { 0x4DU, 0x4DU, 0x4DU, 0x0
 // 2. Create a key-ring per association (SAP)
 
 // Master key, common for all the associations, not changeable
-static uint8_t key_kek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
+//static uint8_t key_kek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
 
 
 // Keep a context by channel to be thread safe
@@ -55,6 +55,8 @@ static uint32_t gIc = 0U;
 
 uint32_t csm_sys_get_ic(uint8_t sap, csm_sec_ic ic)
 {
+    (void) sap;
+    (void) ic;
     return gIc++;
 }
 
@@ -65,7 +67,8 @@ const uint8_t *csm_sys_get_system_title()
 
 uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id)
 {
-    (void)sap; // FIXME: manage one key per SAP in a configuration file
+    (void) sap; // FIXME: manage one key per SAP in a configuration file
+    (void) key_id;
     uint8_t *key = NULL;
 
     /*
@@ -116,6 +119,8 @@ int csm_sys_gcm_finish(uint8_t channel, uint8_t *tag)
 int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf, uint32_t size)
 {
     int valid = FALSE;
+    (void) sap;
+    (void) buf;
 
     if (size == CSM_DEF_LLS_SIZE)
     {
@@ -137,6 +142,8 @@ int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf, uint32_t size)
 uint8_t csm_sys_get_mechanism_id(uint8_t sap)
 {
     uint8_t mechanism_id = CSM_AUTH_LOWEST_LEVEL;
+    (void) sap;
+
     /*
     for (uint32_t i = 0U; i < CFG_COSEM_NB_ASSOS; i++)
     {

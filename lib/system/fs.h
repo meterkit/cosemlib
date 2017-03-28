@@ -36,11 +36,11 @@ typedef struct
  */
 typedef struct
 {
-    uint8_t signature[FS_SIGNATURE_SIZE];  //< Optional signature of the data, written when the block is full FIXME: make the size configurable
-    uint32_t counter;       //< Counter written when the block is full
-    uint16_t name;          //< File name (for consistency checks)
-    uint16_t next;           //< Absolute next logical block number
-    uint8_t info;           //< Block information
+    uint8_t signature[FS_SIGNATURE_SIZE];  //< Signature of the data and the header (without the signature)
+    uint32_t size;          //< Size of the data
+    uint32_t counter;       //< Number of writes performed
+    uint32_t name;          //< File name, can contains various user information
+    uint32_t user;          //< User information
 } fs_header;
 
 #define FS_HEADER_SIZE  (sizeof(fs_header))

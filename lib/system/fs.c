@@ -85,6 +85,7 @@ static inline int fs_release(fs_handle *handle)
     return ret;
 }
 
+/*
 // Calculate how many block is taken by a record
 static inline int fs_nb_blocks(fs_handle *handle)
 {
@@ -97,7 +98,7 @@ static inline int fs_get_block(fs_handle *handle, int record)
     int total_size = handle->file->nb_records * handle->file->record_size;
     return div_round_up(total_size, FS_DATA_SIZE);
 }
-
+*/
 /*
 
 static inline void fs_init_cache(fs_handle *handle)
@@ -172,16 +173,6 @@ int fs_seek(fs_handle *handle, uint32_t index, fs_pos *pos)
     {
         // Make sure that this block is fully erased
         bsp_flash_erase(handle->file->first_block);
-
-        // Initialize first block
-        if (block == 0U)
-        {
-            handle->header.info = 0xFEU;
-        }
-        else
-        {
-            handle->header.info = 0xFFU;
-        }
         handle->header.name = handle->file->name;
 
         ret = FS_OK;
@@ -233,6 +224,7 @@ int fs_open(fs_handle *handle, uint16_t name)
 int fs_read(fs_handle *handle, void *data, uint32_t size)
 {
     int ret = FS_BUSY;
+    uint8_t *data_ptr = data;
 
     fs_take(handle);
 
@@ -250,10 +242,10 @@ int fs_read(fs_handle *handle, void *data, uint32_t size)
                 {
                     len = max_size;
                 }
-                bsp_flash_read(data, pos.block + handle->file->first_block, pos.offset + FS_HEADER_SIZE, len);
+                bsp_flash_read(data_ptr, pos.block + handle->file->first_block, pos.offset + FS_HEADER_SIZE, len);
 
                 size -= len;
-                data += len;
+                data_ptr += len;
             }
         }
     }
