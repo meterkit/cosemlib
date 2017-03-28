@@ -23,15 +23,13 @@ else
     endif
 endif
 
-OUTDIR			:= $(TOPDIR)build/output/
-
 ifeq (gcc, $(findstring gcc, $(ARCH)))
 # Compiler setting
 CC      = gcc
 AR      = ar
 AS      = as
 LD 		= gcc
-LDFLAGS = -o $(OUTDIR)$(APP_EXECUTABLE) $(addprefix -L, $(APP_LIBPATH))
+LDFLAGS = $(addprefix -L, $(APP_LIBPATH))
 
 # FIXME: different CFLAGS for debug/release targets
 DEFINES	+= -DUNICODE -DCONFIG_NATIVE_WINDOWS
@@ -117,25 +115,17 @@ $(addprefix $(OUTDIR), %.o): %.s
 	$(VERBOSE) $(AS) $(ASFLAGS) -o $@ $< 
 	
 # *******************************************************************************
-# GENERIC TARGETS
+# GENERIC
 # *******************************************************************************
 
-PHONY: all
-all: $(OBJECTS)
-ifndef MODULE
-	@echo "Invoking: Linker"
-	$(VERBOSE) $(LD) $(APP_LINK_FILE) $(LDFLAGS) $(OBJECTS) $(APP_LIBS)
-	@echo "Finished building target: $(APP_EXECUTABLE)"
+# Arguments: $1=objects $2=libs $3=executable name
+define linker
+	@echo "Invoking: Linker $(OS_DETECTED)"
+	$(VERBOSE) $(LD) $(1) $(2) $(LDFLAGS) -o $(OUTDIR)$(strip $(3))
+	@echo "Finished building target: $(strip $(3))"
 	@echo " "
-endif
+endef
 
-clean:
-	@echo "Cleaning generated files..."
-	$(VERBOSE) $(RM) -rf *.o *.d *.gcov *.gcov.htm
-
-wipe:
-	@echo "Wiping output directory..."
-	$(VERBOSE) $(RM) -rf $(OUTDIR)
 
 # *******************************************************************************
 # 								   END OF MAKEFILE								*

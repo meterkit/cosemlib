@@ -58,40 +58,33 @@
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets">
 		<buildTargets>
 			<target name="Build Tests" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
-				<buildCommand>${MINGW_HOME}/bin/mingw32-make</buildCommand>
-				<buildArguments>-j4</buildArguments>
-				<buildTarget>all</buildTarget>
+				<buildCommand>make</buildCommand>
+				<buildArguments/>
+				<buildTarget>tstu</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>false</useDefaultCommand>
 				<runAllBuilders>false</runAllBuilders>
 			</target>
-			<target name="Clean Tests" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
-				<buildCommand>${MINGW_HOME}/bin/mingw32-make</buildCommand>
+			<target name="Clean" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+				<buildCommand>make</buildCommand>
+				<buildArguments/>
 				<buildTarget>clean</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>false</runAllBuilders>
 			</target>
-			<target name="(Linux) Build Tests" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+			<target name="Wipe" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments>-j4</buildArguments>
-				<buildTarget>all</buildTarget>
+				<buildArguments/>
+				<buildTarget>wipe</buildTarget>
 				<stopOnError>true</stopOnError>
-				<useDefaultCommand>false</useDefaultCommand>
+				<useDefaultCommand>true</useDefaultCommand>
 				<runAllBuilders>false</runAllBuilders>
 			</target>
-			<target name="(Linux) Clean Tests" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
+			<target name="Build Server" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 				<buildCommand>make</buildCommand>
-				<buildArguments>-j4</buildArguments>
-				<buildTarget>clean</buildTarget>
-				<stopOnError>true</stopOnError>
-				<useDefaultCommand>false</useDefaultCommand>
-				<runAllBuilders>false</runAllBuilders>
-			</target>
-			<target name="Copy of (Linux) Clean Tests" path="" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
-				<buildCommand>make</buildCommand>
-				<buildArguments>-j4</buildArguments>
-				<buildTarget>clean</buildTarget>
+				<buildArguments/>
+				<buildTarget>server</buildTarget>
 				<stopOnError>true</stopOnError>
 				<useDefaultCommand>false</useDefaultCommand>
 				<runAllBuilders>false</runAllBuilders>
