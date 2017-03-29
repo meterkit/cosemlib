@@ -35,7 +35,7 @@ export OUTDIR
 LIB_STM32F4		:= lib/rtos 
 
 
-LIB_METER		:= lib/system lib/database lib/application lib/crypto lib/transport
+LIB_METER		:= lib/system lib/database lib/application lib/crypto lib/ip
 LIB_BSP			:= arch/host
 LIB_TESTS		:= tests tests/embunit
 LIB_EXAMPLE		:= examples/server
