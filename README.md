@@ -74,12 +74,7 @@ FIXME insert a diagram
 
 ### Cosem features
 
-  * Provide minimal cosem objects (Association including object list, Clock)
-  * Get by block
-  * Set example
-  * Next occurrence algorithm
   * Attributes 0 and 1 managed by the database
-  * Get/Set with selective access
   * Security Policy 1 (Authenticated & encrypted)
 
 ### Transport layers
@@ -89,19 +84,19 @@ FIXME insert a diagram
 
 ### Environment
 
-  * Main server example using thread on windows (--PENDING--)
-  * Separated unit test executable and test suite engine (--DONE--)
+  * File system HAL (load/save)
+  * System clock management with windows/linux layer
+  * Component system integration (start, stop, suspend, resume)
+
+## Version x.x
+
+  * Get by block
+  * Next occurrence algorithm
+  * Database generation from a JSON Companion Standard (Cosem objects model)
   * Generic profile implementation
   * Generic DateTime implementation
-  * OS Layer (mutex, thread, semaphore) (--PENDING--)
-  * Modular Makefile
-  * File system for NOR flash (--PENDING--)
-  * System clock management with windows/linux layer
-  * Component system integration
-  * Database generation from a JSON Companion Standard (Cosem objects model)
-
-## Version 2.0
-
+  * Get/Set with selective access
+  * Set example
   * CTT 2.7 compliant
   * Test vectors using BlueBook examples and CTT packets
   * Cosem studio: database generator
