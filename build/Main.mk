@@ -26,19 +26,21 @@ endif
 ifeq (gcc, $(findstring gcc, $(ARCH)))
 # Compiler setting
 CC      = gcc
+CPP		= g++
 AR      = ar
 AS      = as
-LD 		= gcc
+LD 		= g++
 LDFLAGS = $(addprefix -L, $(APP_LIBPATH))
 
 # FIXME: different CFLAGS for debug/release targets
 DEFINES	+= -DUNICODE -DCONFIG_NATIVE_WINDOWS
 CFLAGS  = -c -pipe -g -O0 -pedantic -std=c99 -ggdb -Wall -Wextra
+CPPFLAGS = -c -pipe -g -O0 -pedantic -ggdb -Wall -Wextra -std=c++14
 
 ifeq ($(OS_DETECTED), WIN32)
 CFLAGS  += -fno-keep-inline-dllexport
 DEFINES	+= -DUSE_WINDOWS_OS
-LDFLAGS += -Wl,-subsystem,console -lws2_32 -lpsapi -lwinmm
+LDFLAGS += -Wl,-subsystem,console -lws2_32 -lpsapi -lwinmm -static-libgcc -static-libstdc++ -static -lpthread
 else
 
 DEFINES	+= -DUSE_LINUX_OS
@@ -72,9 +74,6 @@ else
 ALL_MODULES = $(sort $(APP_MODULES))
 endif
 
-
-
-
 # Figure out where we are. Taken from Android build system thanks!
 define my-dir
 $(strip \
@@ -96,6 +95,7 @@ INCLUDES 	:=
 
 # Deduct objects to build 
 OBJECTS := $(addprefix $(OUTDIR),$(patsubst %.c, %.o, $(filter %.c,$(SOURCES))))
+OBJECTS += $(addprefix $(OUTDIR),$(patsubst %.cpp, %.o, $(filter %.cpp,$(SOURCES))))
 
 # Include generated dependency files, if any
 -include $(DEPENDENCIES)
@@ -103,11 +103,15 @@ OBJECTS := $(addprefix $(OUTDIR),$(patsubst %.c, %.o, $(filter %.c,$(SOURCES))))
 
 INCLUDES += $(ALL_MODULES)
 
-
 $(addprefix $(OUTDIR), %.o): %.c
 	@echo "Building file: $(notdir $@)"
 	$(VERBOSE) $(MKDIR) -p "$(dir $@)"
 	$(VERBOSE) $(CC) $(CFLAGS) $(DEFINES) $(addprefix -I, $(INCLUDES)) $(DEPEND_FLAGS) -o $@ $<
+
+$(addprefix $(OUTDIR), %.o): %.cpp
+	@echo "Building file: $(notdir $@)"
+	$(VERBOSE) $(MKDIR) -p "$(dir $@)"
+	$(VERBOSE) $(CPP) $(CPPFLAGS) $(DEFINES) $(addprefix -I, $(INCLUDES)) $(DEPEND_FLAGS) -o $@ $<
 
 $(addprefix $(OUTDIR), %.o): %.s
 	@echo "Building file: $(notdir $@)"
