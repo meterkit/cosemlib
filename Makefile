@@ -37,7 +37,7 @@ LIB_STM32F4		:= lib/rtos
 
 LIB_METER		:= lib/system lib/database lib/application lib/crypto lib/ip
 LIB_BSP			:= arch/host
-LIB_TESTS		:= tests tests/embunit
+LIB_TESTS		:= tests
 LIB_EXAMPLE		:= examples/server
 
 export LIB_STM32F4
