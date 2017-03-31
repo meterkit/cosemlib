@@ -1,29 +1,8 @@
 #include "clock.h"
 
 
-/*
-**  Define ISO_CAL to be 1 for ISO (Mon-Sun) calendars
-**
-**  ISO defines the first week with 4 or more days in it to be week #1.
-*/
 
-#ifndef ISO_CAL
- #define ISO_CAL 1
-#endif
-
-#if (ISO_CAL != 0 && ISO_CAL != 1)
- #error ISO_CAL must be set to either 0 or 1
-#endif
-
-#if ISO_CAL
- enum DOW_T {DOW_IGNORE = -1,
-       MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY};
-#else
- enum DOW_T {DOW_IGNORE = -1,
-       SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY};
-#endif
-
-
+static const uint32_t days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 static uint32_t clock_datetime = 0U; //< This is the system time
 
@@ -109,15 +88,33 @@ uint32_t clk_to_epoch(struct tm *timeptr)
 **  Return the day of the week
 */
 
-uint32_t dow(uint32_t yr, uint32_t mo, uint32_t day)
+uint32_t clk_dow(uint32_t yr, uint32_t mo, uint32_t day)
 {
-
-#if (!ISO_CAL)    /* Sunday(0) -> Saturday(6) (i.e. U.S.) calendars  */
-      return (uint32_t)(ymd_to_scalar(yr, mo, day) % 7L);
-#else             /* International Monday(0) -> Sunday(6) calendars  */
       return (uint32_t)((ymd_to_scalar(yr, mo, day) - 1L) % 7L);
-#endif
 }
+
+uint32_t clk_last_dow(uint32_t yr, uint32_t mo, uint32_t dow)
+{
+    uint32_t last_day = 0U;
+
+    if (clk_is_valid_month(mo))
+    {
+        // First get the dow of the last day of the month
+        last_day = days[mo -1];
+        uint32_t last_dow = clk_dow(yr, mo, last_day);
+
+        if (dow <= last_dow)
+        {
+            last_day -= last_dow - dow;
+        }
+        else
+        {
+            last_day -= 7 - (dow - last_dow);
+        }
+    }
+    return last_day;
+}
+
 
 /*
   Note: Pebble doesn't think about timezones. So we pass a time_t to
@@ -141,7 +138,7 @@ void clk_to_datetime(const uint32_t timer, struct tm *tms)
   tms->tm_mday = da;
   tms->tm_yday = (int)(ymd_to_scalar(tms->tm_year + 1900, mo, da)
               - ymd_to_scalar(tms->tm_year + 1900, 1, 1));
-  tms->tm_wday = dow(tms->tm_year + 1900, mo, da);
+  tms->tm_wday = clk_dow(tms->tm_year + 1900, mo, da);
   tms->tm_isdst = -1;
   tms->tm_sec = (int)(secs % 60);
   secs /= 60;
@@ -151,19 +148,34 @@ void clk_to_datetime(const uint32_t timer, struct tm *tms)
 }
 
 
+int clk_is_valid_month(uint32_t mo)
+{
+    int ret = 0;
+
+    if ((mo >=1) && (mo <= 12))
+    {
+        ret = 1;
+    }
+
+    return ret;
+}
+
 /*
 **  Determine if a given date is valid
 */
 
-int is_valid_date(uint32_t yr, uint32_t mo, uint32_t day)
+int clk_is_valid_date(uint32_t yr, uint32_t mo, uint32_t day)
 {
-      uint32_t days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int ret = 0;
 
-      if (1 > mo || 12 < mo)
-            return 0;
-      if (1 > day || day > (days[mo - 1] + (2 == mo && isleap(yr))))
-            return 0;
-      else  return 1;
+    if (clk_is_valid_month(mo))
+    {
+        if ((day >= 1) && (day <= (days[mo - 1] + (2 == mo && isleap(yr)))))
+        {
+            ret = 1;
+        }
+    }
+    return ret;
 }
 
 
@@ -171,7 +183,7 @@ int is_valid_date(uint32_t yr, uint32_t mo, uint32_t day)
 **  Return the day of the year (1 - 365/6)
 */
 
-int daynum(int year, int month, int day)
+int clk_daynum(int year, int month, int day)
 {
     uint32_t jan1date = ymd_to_scalar(year, 1, 1);
     return (int)(ymd_to_scalar(year, month, day) - jan1date + 1L);
@@ -181,16 +193,14 @@ int daynum(int year, int month, int day)
 **  Return the week of the year (1 - 52, 0 - 52 if ISO)
 */
 
-int weeknum(int year, int month, int day)
+int clk_weeknum(int year, int month, int day)
 {
-      int wn, j1n, dn = daynum(year, month, day);
+      int wn, j1n, dn = clk_daynum(year, month, day);
       uint32_t jan1date = ymd_to_scalar(year, 1, 1);
 
-      dn += (j1n = (int)((jan1date - (uint32_t)ISO_CAL) % 7L)) - 1;
+      dn += (j1n = (int)((jan1date - (uint32_t)1) % 7L)) - 1;
       wn = dn / 7;
-      if (ISO_CAL)
-            wn += (j1n < 4);
-      else  ++wn;
+      wn += (j1n < 4);
       return wn;
 }
 
@@ -314,7 +324,7 @@ uint32_t    DST_stop_dt = 31;             /* Date when it can stop      */
 enum DOW_T  DST_stop_dy = SUNDAY;         /* Day of week, or DOW_IGNORE */
 
 /*
-**  is_dst()
+**  clk_is_dst()
 **
 **  Parameters: 1 - Year of interest.
 **              2 - Month to check.
@@ -329,7 +339,7 @@ enum DOW_T  DST_stop_dy = SUNDAY;         /* Day of week, or DOW_IGNORE */
 **           -1 if date is invalid,
 */
 
-int is_dst(uint32_t  yr,
+int clk_is_dst(uint32_t  yr,
             uint32_t  mo,
             uint32_t  dy,
             uint32_t     *Start,
@@ -337,7 +347,7 @@ int is_dst(uint32_t  yr,
 {
       uint32_t date;
 
-      if (!is_valid_date(yr, mo, dy))
+      if (!clk_is_valid_date(yr, mo, dy))
             return -1;
       else  date = ymd_to_scalar(yr, mo, dy);
 

@@ -5,6 +5,12 @@
 #include <stdint.h>
 #include <time.h>
 
+
+
+enum DOW_T {DOW_IGNORE = -1,
+       MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY};
+
+
 /*
 Member	Type	Meaning	Range
 tm_sec	int	seconds after the minute	0-60*
@@ -55,8 +61,20 @@ typedef struct
 } clk_datetime_t;
 
 
+int clk_is_valid_month(uint32_t mo);
+int clk_is_valid_date(uint32_t yr, uint32_t mo, uint32_t day);
+
+// Return the day of the last dow of a given month/year
+// Eg: last sunday of march 2017 is day 26
+uint32_t clk_last_dow(uint32_t yr, uint32_t mo, uint32_t dow);
+uint32_t clk_dow(uint32_t yr, uint32_t mo, uint32_t day);
+int clk_daynum(int year, int month, int day);
+int clk_weeknum(int year, int month, int day);
+
 uint32_t clk_to_epoch(struct tm *timeptr);
 void clk_to_datetime(const uint32_t timer, struct tm *tms);
+int clk_is_dst(uint32_t yr, uint32_t mo, uint32_t dy, uint32_t *Start, uint32_t *Stop);
+
 
 // incremented by the system (top second comming from any BSP RTC device)
 void clk_top_second();
