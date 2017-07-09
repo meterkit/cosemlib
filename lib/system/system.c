@@ -124,6 +124,8 @@ int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf, uint32_t size)
 
     if (size == CSM_DEF_LLS_SIZE)
     {
+        valid = TRUE;
+        // FIXME when the file system will be here
         /*
         for (uint32_t i = 0U; i < CFG_COSEM_NB_ASSOS; i++)
         {

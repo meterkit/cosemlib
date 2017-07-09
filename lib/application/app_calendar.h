@@ -68,6 +68,11 @@ typedef struct
 // =================================================================================================
 // FUNCTIONS
 // =================================================================================================
+
+// General component functions
+int cal_init(cal_scheduler_t *sched);
+
+// Day profiles functions
 int cal_append_day_profile(cal_scheduler_t *sched, const cal_day_profile_t *dp);
 int cal_is_day_profile_valid(const cal_day_profile_t *dp);
 int cal_get_day_profile_by_id(const cal_scheduler_t *sched, uint8_t id, cal_day_profile_t *dp);
