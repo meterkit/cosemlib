@@ -10,7 +10,7 @@
  */
 
 #include "csm_security.h"
-#include "os.h"
+#include "util.h"
 #include <string.h>
 
 csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_request *request, const uint8_t *system_title)

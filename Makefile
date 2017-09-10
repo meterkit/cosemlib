@@ -17,6 +17,8 @@ ARCH		?= host-freertos-gcc
 TOPDIR		:= ./
 OUTDIR		:= $(TOPDIR)build/output/
 
+DEFINES += -DIS_WIN32 
+
 # Export them to be sure that they are available in sub-makefiles
 export PROJECT
 export TARGET
@@ -35,10 +37,12 @@ export OUTDIR
 LIB_STM32F4		:= lib/rtos 
 
 
-LIB_METER		:= lib/system lib/database lib/application lib/crypto lib/ip
-LIB_BSP			:= arch/host
-LIB_TESTS		:= tests
-LIB_EXAMPLE		:= examples/server
+LIB_METER				:= lib/system lib/database lib/application lib/crypto lib/ip
+LIB_CLIENT				:= lib/crypto lib/serial lib/util lib/hdlc
+LIB_BSP					:= arch/host
+LIB_TESTS				:= tests
+LIB_EXAMPLE_SERVER		:= examples/server
+LIB_EXAMPLE_CLIENT		:= examples/client
 
 export LIB_STM32F4
 export LIB_METER
@@ -53,7 +57,18 @@ export LIB_EXAMPLE
 # *******************************************************************************
 ifeq ($(MAKECMDGOALS), server)
 
-APP_MODULES 	:= src $(LIB_METER) $(LIB_BSP) $(LIB_EXAMPLE)
+APP_MODULES 	:= src $(LIB_METER) $(LIB_BSP) $(LIB_EXAMPLE_SERVER)
+APP_LIBPATH 	:= 
+APP_LIBS 		:= 
+
+endif
+
+# *******************************************************************************
+# CLIENT CONFIGURATION
+# *******************************************************************************
+ifeq ($(MAKECMDGOALS), client)
+
+APP_MODULES 	:= src $(LIB_CLIENT) $(LIB_EXAMPLE_CLIENT)
 APP_LIBPATH 	:= 
 APP_LIBS 		:= 
 
@@ -77,6 +92,9 @@ include build/Main.mk
 
 server: $(OBJECTS)
 	$(call linker, $(OBJECTS), $(APP_LIBS), cosem_server)
+
+client: $(OBJECTS)
+	$(call linker, $(OBJECTS), $(APP_LIBS), cosem_client)
 	
 tstu: $(OBJECTS)
 	$(call linker, $(OBJECTS), $(APP_LIBS), cosem_tests)

@@ -13,7 +13,7 @@
 
 struct bitfield
 {
-	u8 *bits;	//!< Pointer to the reserved array of bytes
+    uint8_t *bits;	//!< Pointer to the reserved array of bytes
 	size_t max_bits;
 };
 

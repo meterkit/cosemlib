@@ -104,32 +104,7 @@ static uint8_t is_bit_set(uint8_t value, uint8_t bit)
     return ((value & BIT(bit)) == 0U) ? 0U : 1U;
 }
 
-void print_hex(const uint8_t *buf, size_t size)
-{
-	size_t i = 0U;
-	static const char binHex[] = "0123456789ABCDEF";
 
-	for (i = 0U; i < size; i++)
-    {
-        uint8_t byte = buf[i];
-        printf("%C", binHex[(byte >> 4) & 0x0F]);
-        printf("%c", binHex[byte & 0x0F]);
-    }
-}
-   
-
-int hex2bin(const char *in, uint8_t* out, size_t size)
-{
-    size_t i = 0;
-	size_t j = 0;
-
-    size_t final_len = size / 2U;
-
-    for (i = 0, j = 0; j<final_len; i+=2, j++)
-	{
-        out[j] = (in[i] % 32 + 9) % 25 * 16 + (in[i+1] % 32 + 9) % 25;
-	}
-}
 
 #define HDLC_OK			0
 #define HDLC_ERR		-1
@@ -548,6 +523,8 @@ void print_hdlc_result(hdlc_t *hdlc, int code)
 	}
 }
 
+#ifdef DECODER
+
 // Input file must contains only ANSI hexadecimal characters without spaces
 int main(int argc, char** argv)
 {
@@ -640,4 +617,6 @@ int main(int argc, char** argv)
 	
 	return 0;
 }
+
+#endif //hex2bin
 

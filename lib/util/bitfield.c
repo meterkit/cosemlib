@@ -6,7 +6,7 @@
  * See README for more details.
  */
 
-#include "os.h"
+#include "util.h"
 #include "bitfield.h"
 
 void bitfield_init(struct bitfield *bf, uint8_t init_level)
@@ -48,7 +48,7 @@ int bitfield_is_set(struct bitfield *bf, size_t bit)
 }
 
 
-static int first_zero(u8 val)
+static int first_zero(uint8_t val)
 {
 	int i;
 	for (i = 0; i < 8; i++)
