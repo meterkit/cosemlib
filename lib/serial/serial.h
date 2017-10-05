@@ -8,6 +8,11 @@
 #ifndef MYSERIAL_H_
 #define MYSERIAL_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include <config.h>
 #include <stdint.h>
 
@@ -44,5 +49,8 @@ int serial_read(int fd, char *buf, int size);
 int serial_open(const char *port);
 int serial_close(int fd);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

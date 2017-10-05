@@ -14,9 +14,13 @@ OPTIM 		?= high
 ENABLE_DEP 	?= true
 ARCH		?= host-freertos-gcc
 
+
+
 TOPDIR		:= ./
 OUTDIR		:= $(TOPDIR)build/output/
 
+
+# FIXME: use ARCH to detect OS
 DEFINES += -DIS_WIN32 
 
 # Export them to be sure that they are available in sub-makefiles
@@ -43,13 +47,13 @@ LIB_BSP					:= arch/host
 LIB_TESTS				:= tests
 LIB_EXAMPLE_SERVER		:= examples/server
 LIB_EXAMPLE_CLIENT		:= examples/client
+LIB_GURUX				:= lib/gurux
 
 export LIB_STM32F4
 export LIB_METER
 export LIB_BSP
 export LIB_TESTS
 export LIB_EXAMPLE
-
 
 
 # *******************************************************************************
@@ -68,7 +72,7 @@ endif
 # *******************************************************************************
 ifeq ($(MAKECMDGOALS), client)
 
-APP_MODULES 	:= src $(LIB_CLIENT) $(LIB_EXAMPLE_CLIENT)
+APP_MODULES 	:= src $(LIB_CLIENT) $(LIB_EXAMPLE_CLIENT) $(LIB_GURUX)
 APP_LIBPATH 	:= 
 APP_LIBS 		:= 
 

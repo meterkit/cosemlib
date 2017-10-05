@@ -34,6 +34,9 @@ void csm_init()
 uint8_t buf_in[4*1024] = "Coucou !";
 uint8_t buf_out[4*1024];
 
+static const uint8_t snrm[] = {0x7E, 0xA0, 0x21, 0x00, 0x02, 0x00, 0x23, 0x03, 0x93, 0x9A, 0x74, 0x81, 0x80, 0x12,
+                               0x05, 0x01, 0x80, 0x06, 0x01, 0x80, 0x07, 0x04, 0x00, 0x00, 0x00, 0x01, 0x08, 0x04, 0x00, 0x00, 0x00, 0x07, 0x65, 0x5E, 0x7E };
+
 #define BUF_IN_SIZE sizeof(buf_in)
 #define BUF_OUT_SIZE sizeof(buf_out)
 
@@ -45,13 +48,15 @@ int main(int argc, const char * argv[])
     csm_init();
     printf("Starting DLMS/Cosem client example\r\nCosem library version: %s\r\n\r\n", CSM_DEF_LIB_VERSION);
 
-    int ser_handle = serial_open("COM18");
+    int ser_handle = serial_open("COM4");
     serial_setup(ser_handle, 19200);
 
     //hex2bin(cnx_hdlc, buf_in, sizeof(cnx_hdlc));
 
-    serial_write(ser_handle, (char*)buf_in, 6);//sizeof(cnx_hdlc)/2);
-  //  serial_read(ser_handle, (char*)buf_out, BUF_OUT_SIZE);
+    serial_write(ser_handle, (char*)snrm, sizeof(snrm));//sizeof(cnx_hdlc)/2);
+    int ret = serial_read(ser_handle, (char*)buf_out, BUF_OUT_SIZE);
+
+    print_hex(buf_out, ret);
 
     return 0;
 }
