@@ -72,7 +72,7 @@ endif
 # *******************************************************************************
 ifeq ($(MAKECMDGOALS), client)
 
-APP_MODULES 	:= src $(LIB_CLIENT) $(LIB_EXAMPLE_CLIENT) $(LIB_GURUX)
+APP_MODULES 	:= $(LIB_CLIENT) $(LIB_EXAMPLE_CLIENT) $(LIB_GURUX)
 APP_LIBPATH 	:= 
 APP_LIBS 		:= 
 

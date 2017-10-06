@@ -9,6 +9,12 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 // -----------------------------------  OS includes --------------------------------------------------
 #include <stdlib.h>
 #include <stddef.h>
@@ -93,7 +99,11 @@ int memcmp_const(const void *a, const void *b, size_t len);
 
 void hex2bin(const char *in, uint8_t* out, size_t size);
 
-void print_hex(const uint8_t *buf, size_t size);
+void print_hex(const char *buf, int size);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* OS_H */

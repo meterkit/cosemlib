@@ -35,9 +35,9 @@ int memcmp_const(const void *a, const void *b, size_t len)
 }
 
 
-void print_hex(const uint8_t *buf, size_t size)
+void print_hex(const char *buf, int size)
 {
-    size_t i = 0U;
+    int i = 0U;
     static const char binHex[] = "0123456789ABCDEF";
 
     for (i = 0U; i < size; i++)

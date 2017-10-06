@@ -1,8 +1,10 @@
 
 #include <iostream>
+#include <cstdint>
 #include "serial.h"
+#include "util.h"
 
-
+#if 0
 void MainWindow::ReadClock()
 {
     int attributeIndex = 2;
@@ -26,19 +28,7 @@ void MainWindow::readSocket()
 
 }
 
-void MainWindow::dial()
-{
-    if (modemState == MODEM_OK)
-    {
-    //    socket.write("AT%TCB;ATE0V0M0&I1\\N0S26=2;AT+MS=9,0,0,9600,9600;ATDT;ATM1;ATS0=0\r\n");
-     //   socket.flush();
-    //    std::this_thread::sleep_for(std::chrono::seconds(1U));
 
-        QByteArray dialNumber = QByteArray("ATD") + QByteArray(ui->lineEditPhone->text().toStdString().c_str()) + QByteArray("\r\n");
-        AppendToRequest(dialNumber);
-        Send(dialNumber, false);
-    }
-}
 
 void MainWindow::AppendToRequest(const QByteArray &data)
 {
@@ -54,24 +44,7 @@ void MainWindow::AppendToResponse(const QByteArray &data)
     ui->responseText->setPlainText(txt);
 }
 
-void MainWindow::Send(const QByteArray &data, bool printHex)
-{
-    if (printHex)
-    {
-        AppendToRequest(data.toHex());
-    }
 
-    if (ui->radioTcp->isChecked())
-    {
-        socket.write(data);
-        socket.flush();
-    }
-    else
-    {
-        serial.write(data);
-        serial.flush();
-    }
-}
 
 void MainWindow::Send(CGXByteBuffer &request)
 {
@@ -163,6 +136,134 @@ void MainWindow::connectAarq()
         */
     }
 }
+
+#endif
+
+enum ModemState
+{
+    DISCONNECTED,
+    MODEM_OK,
+    CONNECTED
+};
+
+enum CosemState
+{
+    HDLC,
+    ASSOCIATION_PENDING,
+    ASSOCIATED
+};
+
+enum Printer
+{
+    NO_PRINT,
+    PRINT_RAW,
+    PRINT_HEX
+};
+
+class Modem
+{
+public:
+    Modem();
+
+    void Open(const std::string &comport, uint32_t baudrate);
+    void Test();
+    void Dial(const std::string &phone);
+    void Send(const std::string &data, Printer printer);
+
+private:
+    ModemState mModemState;
+    CosemState mCosemState;
+    bool mUseTcpGateway;
+    int mSerialHandle;
+
+    static const uint32_t cBufferSize = 40U*1024U;
+    char mBuffer[cBufferSize];
+};
+
+
+Modem::Modem()
+    : mModemState(DISCONNECTED)
+    , mCosemState(HDLC)
+    , mUseTcpGateway(false)
+    , mSerialHandle(0)
+{
+
+}
+
+void Modem::Test()
+{
+    Send("AT\r\n", PRINT_RAW);
+}
+
+void Modem::Open(const std::string &comport, uint32_t baudrate)
+{
+    mSerialHandle = serial_open(comport.c_str());
+    serial_setup(mSerialHandle, baudrate);
+}
+
+
+void Modem::Send(const std::string &data, Printer printer)
+{
+    if (printer != NO_PRINT)
+    {
+        if (printer == PRINT_RAW)
+        {
+            printf("%s", data.c_str());
+        }
+        else
+        {
+            print_hex(data.c_str(), data.size());
+        }
+    }
+
+    if (mUseTcpGateway)
+    {
+        // TODO
+      //  socket.write(data);
+      //  socket.flush();
+    }
+    else
+    {
+        serial_write(mSerialHandle, data.c_str(), data.size());//sizeof(cnx_hdlc)/2);
+
+        // Immediately read after send, with a timeout guard
+        int ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize);
+
+        if (printer != NO_PRINT)
+        {
+            if (printer == PRINT_RAW)
+            {
+                fwrite(&mBuffer[0], ret, 1, stdout);
+            }
+            else
+            {
+                print_hex(&mBuffer[0], ret);
+            }
+        }
+    }
+}
+
+void Modem::Dial(const std::string &phone)
+{
+    if (mModemState == MODEM_OK)
+    {
+        std::string dialRequest = std::string("ATD") + phone + std::string("\r\n");
+        Send(dialRequest, PRINT_RAW);
+    }
+}
+
+void StringToBin(const std::string &in, uint8_t *out)
+{
+    uint32_t sz = in.size();
+
+    if (!(sz % 2))
+    {
+        hex2bin(in.c_str(), out, sz);
+    }
+}
+
+#if 0
+
 
 void MainWindow::discModem()
 {
@@ -343,8 +444,7 @@ void MainWindow::processTimeout()
     mReply.clear();
 }
 
-uint8_t buf_in[4*1024] = "Coucou !";
-uint8_t buf_out[4*1024];
+#endif
 
 static const uint8_t snrm[] = {0x7E, 0xA0, 0x21, 0x00, 0x02, 0x00, 0x23, 0x03, 0x93, 0x9A, 0x74, 0x81, 0x80, 0x12,
                                0x05, 0x01, 0x80, 0x06, 0x01, 0x80, 0x07, 0x04, 0x00, 0x00, 0x00, 0x01, 0x08, 0x04, 0x00, 0x00, 0x00, 0x07, 0x65, 0x5E, 0x7E };
@@ -355,16 +455,13 @@ static const uint8_t snrm[] = {0x7E, 0xA0, 0x21, 0x00, 0x02, 0x00, 0x23, 0x03, 0
 
 int main()
 {
+    Modem modem;
 
-    int ser_handle = serial_open("COM4");
-    serial_setup(ser_handle, 19200);
+    modem.Open("COM19", 9600);
+    modem.Test();
+    modem.Dial("0102404040");
 
-    //hex2bin(cnx_hdlc, buf_in, sizeof(cnx_hdlc));
 
-    serial_write(ser_handle, (char*)snrm, sizeof(snrm));//sizeof(cnx_hdlc)/2);
-    int ret = serial_read(ser_handle, (char*)buf_out, BUF_OUT_SIZE);
-
-    print_hex(buf_out, ret);
     return 0;
 
 }
