@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
-
+#include <unistd.h>     // for read/write
 #include <string.h>
 
 #include "serial.h"
