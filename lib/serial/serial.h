@@ -16,7 +16,7 @@ extern "C" {
 #include <config.h>
 #include <stdint.h>
 
-#if IS_WIN32
+#if USE_WINDOWS_OS
 #include <windows.h>
 #include <time.h>
 

@@ -20,9 +20,6 @@ TOPDIR		:= ./
 OUTDIR		:= $(TOPDIR)build/output/
 
 
-# FIXME: use ARCH to detect OS
-DEFINES += -DIS_WIN32 
-
 # Export them to be sure that they are available in sub-makefiles
 export PROJECT
 export TARGET

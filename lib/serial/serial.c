@@ -18,7 +18,7 @@
 
 int serial_setup(int fd, unsigned long speed)
 {
-#if IS_WIN32
+#if USE_WINDOWS_OS
 	COMMTIMEOUTS timeouts;
 	DCB dcb = {0};
 	HANDLE hCom = (HANDLE)fd;
@@ -103,7 +103,7 @@ int serial_setup(int fd, unsigned long speed)
 int serial_write(int fd, const char *buf, int size)
 {
 	int ret = 0;
-#if IS_WIN32
+#if USE_WINDOWS_OS
 	HANDLE hCom = (HANDLE)fd;
 	int res = 0;
 	unsigned long bwritten = 0;
@@ -132,7 +132,7 @@ int serial_read(int fd, char *buf, int size)
 	int len = 0;
 	int ret = 0;
 
-#if IS_WIN32
+#if USE_WINDOWS_OS
 	HANDLE hCom = (HANDLE)fd;
 	unsigned long bread = 0;
 
@@ -177,7 +177,7 @@ int serial_read(int fd, char *buf, int size)
 int serial_open(const char *port)
 {
 	int fd;
-#if IS_WIN32
+#if USE_WINDOWS_OS
 	static char full_path[32] = {0};
 
 	HANDLE hCom = NULL;
@@ -206,7 +206,7 @@ int serial_open(const char *port)
 
 int serial_close(int fd)
 {
-#if IS_WIN32
+#if USE_WINDOWS_OS
 	HANDLE hCom = (HANDLE)fd;
 
 	CloseHandle(hCom);
