@@ -4,6 +4,28 @@
 #include "serial.h"
 #include "util.h"
 
+enum ModemState
+{
+    DISCONNECTED,
+    MODEM_OK,
+    CONNECTED
+};
+
+enum CosemState
+{
+    HDLC,
+    ASSOCIATION_PENDING,
+    ASSOCIATED
+};
+
+enum PrintFormat
+{
+    NO_PRINT,
+    PRINT_RAW,
+    PRINT_HEX
+};
+
+
 int StringToBin(const std::string &in, char *out)
 {
     uint32_t sz = in.size();
@@ -15,6 +37,21 @@ int StringToBin(const std::string &in, char *out)
         ret = sz/2;
     }
     return ret;
+}
+
+void Printer(const char *text, int size, PrintFormat format)
+{
+    if (format != NO_PRINT)
+    {
+        if (format == PRINT_RAW)
+        {
+            fwrite(text, size, 1, stdout);
+        }
+        else
+        {
+            print_hex(text, size);
+        }
+    }
 }
 
 #if 0
@@ -152,26 +189,7 @@ void MainWindow::connectAarq()
 
 #endif
 
-enum ModemState
-{
-    DISCONNECTED,
-    MODEM_OK,
-    CONNECTED
-};
 
-enum CosemState
-{
-    HDLC,
-    ASSOCIATION_PENDING,
-    ASSOCIATED
-};
-
-enum Printer
-{
-    NO_PRINT,
-    PRINT_RAW,
-    PRINT_HEX
-};
 
 class Modem
 {
@@ -183,7 +201,7 @@ public:
     int Dial(const std::string &phone);
 
     // return the bytes read
-    int Send(const std::string &data, Printer printer);
+    int Send(const std::string &data, PrintFormat format);
     int ConnectHdlc();
 
 private:
@@ -239,21 +257,14 @@ bool Modem::Open(const std::string &comport, uint32_t baudrate)
 }
 
 
-int Modem::Send(const std::string &data, Printer printer)
+
+
+int Modem::Send(const std::string &data, PrintFormat format)
 {
     int ret = -1;
 
-    if (printer != NO_PRINT)
-    {
-        if (printer == PRINT_RAW)
-        {
-            printf("%s", data.c_str());
-        }
-        else
-        {
-            print_hex(data.c_str(), data.size());
-        }
-    }
+    // Print request
+    Printer(data.c_str(), data.size(), format);
 
     if (mUseTcpGateway)
     {
@@ -270,17 +281,7 @@ int Modem::Send(const std::string &data, Printer printer)
 
         if (ret > 0)
         {
-            if (printer != NO_PRINT)
-            {
-                if (printer == PRINT_RAW)
-                {
-                    fwrite(&mBuffer[0], ret, 1, stdout);
-                }
-                else
-                {
-                    print_hex(&mBuffer[0], ret);
-                }
-            }
+            Printer(&mBuffer[0], ret, format);
         }
     }
 
@@ -296,6 +297,18 @@ int Modem::Dial(const std::string &phone)
     {
         std::string dialRequest = std::string("ATD") + phone + std::string("\r\n");
         ret = Send(dialRequest, PRINT_RAW);
+        // FIXME: test OK of modem response
+
+        if (ret > 0)
+        {
+            // Now wait for connection
+            ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 30);
+
+            if (ret > 0)
+            {
+                Printer(&mBuffer[0], ret, PRINT_RAW);
+            }
+        }
     }
 
     return ret;
@@ -533,8 +546,6 @@ int main(int argc, char **argv)
         {
             printf("Cannot open serial port.\r\n");
         }
-
-
     }
     else
     {
