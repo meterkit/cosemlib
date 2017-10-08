@@ -223,7 +223,7 @@ int serial_open(const char *port)
 
 	/* Make the file descriptor asynchronous (the manual page says only        |
 	|           O_APPEND and O_NONBLOCK, will work with F_SETFL...) */
-	fcntl(fd, F_SETFL, FASYNC);
+	fcntl(fd, F_SETFL, O_ASYNC);
 #endif
 	return fd;
 }
