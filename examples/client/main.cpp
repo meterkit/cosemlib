@@ -266,7 +266,7 @@ int Modem::Send(const std::string &data, Printer printer)
         serial_write(mSerialHandle, data.c_str(), data.size());//sizeof(cnx_hdlc)/2);
 
         // Immediately read after send, with a timeout guard
-        int ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 30);
+        ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 30);
 
         if (ret > 0)
         {
