@@ -290,7 +290,9 @@ int Modem::Send(const std::string &data, Printer printer)
 int Modem::Dial(const std::string &phone)
 {
     int ret = -1;
-    if (mModemState == MODEM_OK)
+
+    // FIXME: manage state
+   // if (mModemState == MODEM_OK)
     {
         std::string dialRequest = std::string("ATD") + phone + std::string("\r\n");
         ret = Send(dialRequest, PRINT_RAW);
