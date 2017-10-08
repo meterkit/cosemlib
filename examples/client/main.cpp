@@ -165,7 +165,7 @@ class Modem
 public:
     Modem();
 
-    void Open(const std::string &comport, uint32_t baudrate);
+    bool Open(const std::string &comport, uint32_t baudrate);
     void Test();
     void Dial(const std::string &phone);
     void Send(const std::string &data, Printer printer);
@@ -195,10 +195,19 @@ void Modem::Test()
     Send("AT\r\n", PRINT_RAW);
 }
 
-void Modem::Open(const std::string &comport, uint32_t baudrate)
+bool Modem::Open(const std::string &comport, uint32_t baudrate)
 {
+    bool ret = false;
     mSerialHandle = serial_open(comport.c_str());
-    serial_setup(mSerialHandle, baudrate);
+
+    if (mSerialHandle >= 0)
+    {
+        if (serial_setup(mSerialHandle, baudrate) == 0)
+        {
+            ret = true;
+        }
+    }
+    return ret;
 }
 
 
@@ -460,9 +469,15 @@ int main(int argc, char **argv)
 
     if (argc >= 3)
     {
-        modem.Open(argv[1], 9600);
-        modem.Test();
-        modem.Dial(argv[2]);
+        if (modem.Open(argv[1], 9600))
+        {
+            modem.Test();
+        }
+        else
+        {
+            printf("Cannot open serial port.\r\n");
+        }
+       // modem.Dial(argv[2]);
     }
     else
     {

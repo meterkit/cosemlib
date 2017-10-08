@@ -136,7 +136,7 @@ int serial_write(int fd, const char *buf, int size)
 	return ret;
 }
 
-int serial_read(int fd, char *buf, int size)
+int serial_read(int fd, char *buf, int size, int timeout)
 {
 	int len = 0;
 	int ret = 0;
@@ -154,25 +154,36 @@ int serial_read(int fd, char *buf, int size)
 	}
 
 #else
-	int timeout = 0;
-	while (len < size) {
-		ret = read(fd, buf+len, size-len);
-		if (ret == -1){
-			//printf("ret -1");
-			return -1;
-		}
 
-		if (ret == 0) {
-			timeout++;
+	fd_set readfs;
+	int    maxfd;     /* maximum file desciptor used */
+	maxfd = fd + 1;  /* maximum bit entry (fd) to test */
+                                                          |
+    struct timeval Timeout;
 
-			if (timeout >= 10)
-				break;
+    /* set timeout value within input loop */
+    Timeout.tv_usec = 0;  /* milliseconds */
+    Timeout.tv_sec  = timeout;  /* seconds */
 
-			continue;
-		}
+    FD_ZERO(&readfs);
+    FD_SET(fd, &readfs);  /* set testing for source 1 */
 
-		len += ret;
-	}
+    ret = select(maxfd, &readfs, NULL, NULL, &Timeout);
+
+    if (ret)
+    {
+        if (FD_ISSET(fd, &readfs))
+        {
+            ret = read(fd, buf, size);
+            len = ret;
+        }
+    }
+    else
+    {
+        // Timeout
+        len = -1;
+    }
+
 #endif
 
 #if DEBUG
@@ -185,7 +196,7 @@ int serial_read(int fd, char *buf, int size)
 
 int serial_open(const char *port)
 {
-	int fd;
+	int fd = -1;
 #if USE_WINDOWS_OS
 	static char full_path[32] = {0};
 
@@ -204,11 +215,15 @@ int serial_open(const char *port)
 		fd = (int)hCom;
 	}
 #else
-	fd = open(port, O_RDWR | O_NOCTTY | O_NDELAY);
+	fd = open(port, O_RDWR | O_NOCTTY | O_NONBLOCK);
 	if (fd == -1) {
 		//fprintf(stderr, "Could not open serial port.\n");
 		return -1;
 	}
+
+	/* Make the file descriptor asynchronous (the manual page says only        |
+	|           O_APPEND and O_NONBLOCK, will work with F_SETFL...) */
+	fcntl(fd, F_SETFL, FASYNC);
 #endif
 	return fd;
 }

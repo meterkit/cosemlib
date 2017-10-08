@@ -45,7 +45,7 @@ typedef long speed_t;
 
 int serial_setup(int fd, unsigned long speed);
 int serial_write(int fd, const char *buf, int size);
-int serial_read(int fd, char *buf, int size);
+int serial_read(int fd, char *buf, int size, int timeout);
 int serial_open(const char *port);
 int serial_close(int fd);
 
