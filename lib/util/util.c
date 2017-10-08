@@ -49,12 +49,12 @@ void print_hex(const char *buf, int size)
 }
 
 
-void hex2bin(const char *in, char* out, size_t size)
+void hex2bin(const char *in, char* out, int size)
 {
-    size_t i = 0;
-    size_t j = 0;
+    int i = 0;
+    int j = 0;
 
-    size_t final_len = size / 2U;
+    int final_len = size / 2U;
 
     for (i = 0, j = 0; j<final_len; i+=2, j++)
     {

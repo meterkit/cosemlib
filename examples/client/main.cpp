@@ -4,6 +4,19 @@
 #include "serial.h"
 #include "util.h"
 
+int StringToBin(const std::string &in, char *out)
+{
+    uint32_t sz = in.size();
+    int ret = 0;
+
+    if (!(sz % 2))
+    {
+        hex2bin(in.c_str(), out, sz);
+        ret = sz/2;
+    }
+    return ret;
+}
+
 #if 0
 void MainWindow::ReadClock()
 {
@@ -198,10 +211,9 @@ int Modem::ConnectHdlc()
     int ret = -1;
     static const std::string snrm = "7EA0210002002303939A74818012050180060180070400000001080400000007655E7E";
 
-    uint32_t size = snrm.size();
-    hex2bin(snrm.c_str(), &mBuffer[0], size);
+    int size = StringToBin(snrm, &mBuffer[0]);
 
-    ret = Send(std::string(&mBuffer[0], size/2), PRINT_HEX);
+    ret = Send(std::string(&mBuffer[0], size), PRINT_HEX);
 
     return ret;
 }
@@ -287,15 +299,7 @@ int Modem::Dial(const std::string &phone)
     return ret;
 }
 
-void StringToBin(const std::string &in, uint8_t *out)
-{
-    uint32_t sz = in.size();
 
-    if (!(sz % 2))
-    {
-        hex2bin(in.c_str(), out, sz);
-    }
-}
 
 #if 0
 
