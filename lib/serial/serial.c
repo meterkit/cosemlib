@@ -158,7 +158,7 @@ int serial_read(int fd, char *buf, int size, int timeout)
 	fd_set readfs;
 	int    maxfd;     /* maximum file desciptor used */
 	maxfd = fd + 1;  /* maximum bit entry (fd) to test */
-                                                          |
+
     struct timeval Timeout;
 
     /* set timeout value within input loop */
