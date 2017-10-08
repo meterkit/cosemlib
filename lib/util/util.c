@@ -49,7 +49,7 @@ void print_hex(const char *buf, int size)
 }
 
 
-void hex2bin(const char *in, uint8_t* out, size_t size)
+void hex2bin(const char *in, char* out, size_t size)
 {
     size_t i = 0;
     size_t j = 0;

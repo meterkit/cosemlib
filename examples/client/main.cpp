@@ -166,9 +166,12 @@ public:
     Modem();
 
     bool Open(const std::string &comport, uint32_t baudrate);
-    void Test();
-    void Dial(const std::string &phone);
-    void Send(const std::string &data, Printer printer);
+    int Test();
+    int Dial(const std::string &phone);
+
+    // return the bytes read
+    int Send(const std::string &data, Printer printer);
+    int ConnectHdlc();
 
 private:
     ModemState mModemState;
@@ -190,9 +193,22 @@ Modem::Modem()
 
 }
 
-void Modem::Test()
+int Modem::ConnectHdlc()
 {
-    Send("AT\r\n", PRINT_RAW);
+    int ret = -1;
+    static const std::string snrm = "7EA0210002002303939A74818012050180060180070400000001080400000007655E7E";
+
+    uint32_t size = snrm.size();
+    hex2bin(snrm.c_str(), &mBuffer[0], size);
+
+    ret = Send(std::string(&mBuffer[0], size/2), PRINT_HEX);
+
+    return ret;
+}
+
+int Modem::Test()
+{
+    return Send("AT\r\n", PRINT_RAW);
 }
 
 bool Modem::Open(const std::string &comport, uint32_t baudrate)
@@ -211,8 +227,10 @@ bool Modem::Open(const std::string &comport, uint32_t baudrate)
 }
 
 
-void Modem::Send(const std::string &data, Printer printer)
+int Modem::Send(const std::string &data, Printer printer)
 {
+    int ret = -1;
+
     if (printer != NO_PRINT)
     {
         if (printer == PRINT_RAW)
@@ -236,29 +254,37 @@ void Modem::Send(const std::string &data, Printer printer)
         serial_write(mSerialHandle, data.c_str(), data.size());//sizeof(cnx_hdlc)/2);
 
         // Immediately read after send, with a timeout guard
-        int ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 10);
+        int ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 30);
 
-        if (printer != NO_PRINT)
+        if (ret > 0)
         {
-            if (printer == PRINT_RAW)
+            if (printer != NO_PRINT)
             {
-                fwrite(&mBuffer[0], ret, 1, stdout);
-            }
-            else
-            {
-                print_hex(&mBuffer[0], ret);
+                if (printer == PRINT_RAW)
+                {
+                    fwrite(&mBuffer[0], ret, 1, stdout);
+                }
+                else
+                {
+                    print_hex(&mBuffer[0], ret);
+                }
             }
         }
     }
+
+    return ret;
 }
 
-void Modem::Dial(const std::string &phone)
+int Modem::Dial(const std::string &phone)
 {
+    int ret = -1;
     if (mModemState == MODEM_OK)
     {
         std::string dialRequest = std::string("ATD") + phone + std::string("\r\n");
-        Send(dialRequest, PRINT_RAW);
+        ret = Send(dialRequest, PRINT_RAW);
     }
+
+    return ret;
 }
 
 void StringToBin(const std::string &in, uint8_t *out)
@@ -471,13 +497,38 @@ int main(int argc, char **argv)
     {
         if (modem.Open(argv[1], 9600))
         {
-            modem.Test();
+            printf("==> Serial port success!\r\n");
+            if (modem.Test() > 0)
+            {
+                printf("==> Modem test success!\r\n");
+                if (modem.Dial(argv[2]) > 0)
+                {
+                    printf("==> Modem dial success!\r\n");
+                    if (modem.ConnectHdlc() > 0)
+                    {
+                        printf("==> HDLC success!\r\n");
+                    }
+                    else
+                    {
+                        printf("Cannot connect to meter.\r\n");
+                    }
+                }
+                else
+                {
+                    printf("Dial failed.\r\n");
+                }
+            }
+            else
+            {
+                printf("Modem test failed.\r\n");
+            }
         }
         else
         {
             printf("Cannot open serial port.\r\n");
         }
-       // modem.Dial(argv[2]);
+
+
     }
     else
     {
