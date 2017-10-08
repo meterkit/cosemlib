@@ -453,14 +453,21 @@ static const uint8_t snrm[] = {0x7E, 0xA0, 0x21, 0x00, 0x02, 0x00, 0x23, 0x03, 0
 #define BUF_OUT_SIZE sizeof(buf_out)
 
 
-int main()
+
+int main(int argc, char **argv)
 {
     Modem modem;
 
-    modem.Open("COM19", 9600);
-    modem.Test();
-    modem.Dial("0102404040");
-
+    if (argc >= 3)
+    {
+        modem.Open(argv[1], 9600);
+        modem.Test();
+        modem.Dial(argv[2]);
+    }
+    else
+    {
+        printf("Usage: cosem_client /dev/ttyUSB0 0244059867\r\n");
+    }
 
     return 0;
 
