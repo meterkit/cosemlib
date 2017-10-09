@@ -288,7 +288,7 @@ bool Modem::WaitForData(std::string &data)
 
 void * Modem::Reader()
 {
-    printf("Thread number %u\n", pthread_self());
+    printf("Reader thread started\r\n");
 
     while (1)
     {
@@ -296,6 +296,7 @@ void * Modem::Reader()
 
         if (ret > 0)
         {
+            printf("Got data\r\n");
             std::string data(&mBuffer[0], ret);
 
             // Add data
@@ -307,6 +308,15 @@ void * Modem::Reader()
             pthread_mutex_lock( &mCvMutex );
             pthread_cond_signal( &mCvCond );
             pthread_mutex_unlock( &mCvMutex );
+        }
+        else if (ret == 0)
+        {
+            printf("Reader timeout!\r\n");
+        }
+        else
+        {
+            printf("Serial read error, exiting...\r\n");
+            break;
         }
     }
 
@@ -337,6 +347,7 @@ int Modem::Test()
 
         if (WaitForData(data))
         {
+            ret = data.size();
             Printer(data.c_str(), data.size(), PRINT_RAW);
         }
     }
