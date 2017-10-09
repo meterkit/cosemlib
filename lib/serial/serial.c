@@ -170,7 +170,7 @@ int serial_read(int fd, char *buf, int size, int timeout)
 
     ret = select(maxfd, &readfs, NULL, NULL, &Timeout);
 
-    if (ret)
+    if (ret > 0)
     {
         if (FD_ISSET(fd, &readfs))
         {
@@ -178,9 +178,13 @@ int serial_read(int fd, char *buf, int size, int timeout)
             len = ret;
         }
     }
-    else
+    else if (ret == 0)
     {
         // Timeout
+        len = 0;
+    }
+    else
+    {
         len = -1;
     }
 

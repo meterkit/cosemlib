@@ -10,7 +10,6 @@
 enum ModemState
 {
     DISCONNECTED,
-    MODEM_OK,
     CONNECTED
 };
 
@@ -219,7 +218,9 @@ public:
         return ((Modem *)context)->Reader();
     }
 
-    bool PerformCosemRead(const std::string &phone);
+    bool PerformTask(const std::string &phone);
+    bool PerformCosemRead();
+
 
 private:
     ModemState mModemState;
@@ -296,10 +297,12 @@ void * Modem::Reader()
 
         if (ret > 0)
         {
-            printf("Got data: %d bytes\r\n", ret);
+            printf("<==== Got data: %d bytes", ret);
             std::string data(&mBuffer[0], ret);
 
-            Printer(data.c_str(), data.size(), PRINT_RAW);
+            Printer(data.c_str(), data.size(), PRINT_HEX);
+
+            puts("\r\n");
 
             // Add data
             pthread_mutex_lock( &mDataMutex );
@@ -334,7 +337,17 @@ int Modem::ConnectHdlc()
 
     int size = StringToBin(snrm, &mBuffer[0]);
 
-    ret = Send(std::string(&mBuffer[0], size), PRINT_HEX);
+    if (Send(std::string(&mBuffer[0], size), PRINT_HEX))
+    {
+        std::string data;
+        sleep(1); // let the communication go on
+
+        if (WaitForData(data))
+        {
+            ret = data.size();
+            Printer(data.c_str(), data.size(), PRINT_HEX);
+        }
+    }
 
     return ret;
 }
@@ -346,6 +359,8 @@ int Modem::Test()
     if (Send("AT\r\n", PRINT_RAW) > 0)
     {
         std::string data;
+
+        sleep(1); // let the modem answer
 
         if (WaitForData(data))
         {
@@ -399,22 +414,17 @@ int Modem::Dial(const std::string &phone)
 {
     int ret = -1;
 
-    // FIXME: manage state
-   // if (mModemState == MODEM_OK)
+    std::string dialRequest = std::string("ATD") + phone + std::string("\r\n");
+
+    if (Send(dialRequest, PRINT_RAW))
     {
-        std::string dialRequest = std::string("ATD") + phone + std::string("\r\n");
-        ret = Send(dialRequest, PRINT_RAW);
-        // FIXME: test OK of modem response
+        std::string data;
+        sleep(20); // let the modem dial
 
-        if (ret > 0)
+        if (WaitForData(data))
         {
-            // Now wait for connection
-            ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 30);
-
-            if (ret > 0)
-            {
-                Printer(&mBuffer[0], ret, PRINT_RAW);
-            }
+            ret = data.size();
+            Printer(data.c_str(), data.size(), PRINT_RAW);
         }
     }
 
@@ -614,43 +624,59 @@ static const uint8_t snrm[] = {0x7E, 0xA0, 0x21, 0x00, 0x02, 0x00, 0x23, 0x03, 0
 #define BUF_OUT_SIZE sizeof(buf_out)
 
 
+bool  Modem::PerformCosemRead()
+{
+    bool ret = false;
+
+    switch(mCosemState)
+    {
+        case HDLC:
+            if (ConnectHdlc() > 0)
+            {
+               printf("** HDLC success!\r\n");
+               ret = true;
+               mCosemState = ASSOCIATION_PENDING;
+            }
+            else
+            {
+               printf("** Cannot connect to meter.\r\n");
+            }
+         break;
+        default:
+            break;
+
+    }
+
+    return ret;
+}
+
+
 // Global state chart
-bool Modem::PerformCosemRead(const std::string &phone)
+bool Modem::PerformTask(const std::string &phone)
 {
     bool ret = false;
 
     switch (mModemState)
     {
         case DISCONNECTED:
-            break;
-        case MODEM_OK:
+            if (Dial(phone) > 0)
+            {
+               printf("** Modem dial success!\r\n");
+               ret = true;
+               mModemState = CONNECTED;
+            }
+            else
+            {
+               printf("** Dial failed.\r\n");
+            }
+
             break;
         case CONNECTED:
+            ret = PerformCosemRead();
             break;
         default:
             break;
     }
-/*
-
-                if (modem.Dial(argv[2]) > 0)
-                {
-                    printf("==> Modem dial success!\r\n");
-                    if (modem.ConnectHdlc() > 0)
-                    {
-                        printf("==> HDLC success!\r\n");
-                    }
-                    else
-                    {
-                        printf("Cannot connect to meter.\r\n");
-                    }
-                }
-                else
-                {
-                    printf("Dial failed.\r\n");
-                }
-            }
-*/
-
     return ret;
 }
 
@@ -672,26 +698,27 @@ int main(int argc, char **argv)
         {
             // create reader thread
             modem.Initialize();
-            printf("==> Serial port success!\r\n");
+            printf("** Serial port success!\r\n");
             if (modem.Test() > 0)
             {
-                printf("==> Modem test success!\r\n");
+                printf("** Modem test success!\r\n");
             }
             else
             {
-                printf("Modem test failed.\r\n");
+                printf("** Modem test failed.\r\n");
                 ok = false;
             }
         }
         else
         {
-            printf("Cannot open serial port.\r\n");
+            printf("** Cannot open serial port.\r\n");
             ok = false;
         }
 
         while(ok)
         {
-            //ok = modem.PerformCosemRead(phone);
+            sleep(1);
+            ok = modem.PerformTask(phone);
         }
     }
     else
