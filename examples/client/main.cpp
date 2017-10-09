@@ -194,7 +194,7 @@ public:
     int Send(const std::string &data, PrintFormat format);
     int ConnectHdlc();
 
-    bool WaitForData(std::string &data);
+    bool WaitForData(std::string &data, int timeout);
 
     void * Reader();
 
@@ -255,7 +255,7 @@ void Modem::WaitForStop()
 }
 
 
-bool Modem::WaitForData(std::string &data)
+bool Modem::WaitForData(std::string &data, int timeout)
 {
     bool ok = false;
     struct timespec ts;
@@ -265,7 +265,7 @@ bool Modem::WaitForData(std::string &data)
         //throw error
     }
 
-    ts.tv_sec += 5;
+    ts.tv_sec += timeout;
 
     int ret = 0;
     // Loop until data is received, 5 seconds max
@@ -337,9 +337,8 @@ int Modem::Test()
     {
         std::string data;
 
-        sleep(1); // let the modem answer
-
-        if (WaitForData(data))
+        // Wait 2 seconds
+        if (WaitForData(data, 2))
         {
             ret = data.size();
             Printer(data.c_str(), data.size(), PRINT_RAW);
@@ -357,16 +356,16 @@ int Modem::Dial(const std::string &phone)
     if (Send(dialRequest, PRINT_RAW))
     {
         std::string data;
-        sleep(1); // let the modem dial
+        sleep(10); // let the modem dial
 
         // Modem should send 'OK'
-        if (WaitForData(data))
+        if (WaitForData(data, 10))
         {
             Printer(data.c_str(), data.size(), PRINT_RAW);
 
-            sleep(20); // let the modem dial
+            sleep(10); // let the modem dial
 
-            if (WaitForData(data))
+            if (WaitForData(data, 10))
             {
                 ret = data.size();
                 Printer(data.c_str(), data.size(), PRINT_RAW);
@@ -397,7 +396,7 @@ int Modem::ConnectHdlc()
         std::string data;
         sleep(1); // let the communication go on
 
-        if (WaitForData(data))
+        if (WaitForData(data, 5))
         {
             ret = data.size();
             Printer(data.c_str(), data.size(), PRINT_HEX);
@@ -425,7 +424,7 @@ int Modem::ConnectAarq()
             std::string data;
             sleep(1); // let the communication go on
 
-            if (WaitForData(data))
+            if (WaitForData(data, 5))
             {
                 ret = data.size();
                 Printer(data.c_str(), data.size(), PRINT_HEX);
@@ -456,7 +455,7 @@ int Modem::ReadClock()
             std::string data;
             sleep(1); // let the communication go on
 
-            if (WaitForData(data))
+            if (WaitForData(data, 5))
             {
                 ret = data.size();
                 Printer(data.c_str(), data.size(), PRINT_HEX);
