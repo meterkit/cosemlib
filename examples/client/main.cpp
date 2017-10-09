@@ -296,7 +296,7 @@ void * Modem::Reader()
 
         if (ret > 0)
         {
-            puts("Got data\r\n");
+            printf("Got data: %d bytes\r\n", ret);
             std::string data(&mBuffer[0], ret);
 
             Printer(data.c_str(), data.size(), PRINT_RAW);
@@ -663,14 +663,15 @@ int main(int argc, char **argv)
 
     if (argc >= 3)
     {
-        // reader thread
-        modem.Initialize();
+
         std::string port(argv[1]);
         std::string phone(argv[2]);
 
         // Before application, test connectivity
         if (modem.Open(port, 9600))
         {
+            // create reader thread
+            modem.Initialize();
             printf("==> Serial port success!\r\n");
             if (modem.Test() > 0)
             {
