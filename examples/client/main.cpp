@@ -64,118 +64,6 @@ void Printer(const char *text, int size, PrintFormat format)
     }
 }
 
-#if 0
-void MainWindow::ReadClock()
-{
-    int attributeIndex = 2;
-    int ret;
-    std::vector<CGXByteBuffer> data;
-    CGXReplyData reply;
-    //Read data from the meter.
-    ret = client.Read(&clock, attributeIndex, data);
-    if ((ret == 0) && (data.size() > 0))
-    {
-        Send(data.at(0));
-    }
-}
-
-void MainWindow::readSocket()
-{
-    mReply = socket.readAll();
-
-    if (!timer.isActive())
-        timer.start(200);
-
-}
-
-
-
-void MainWindow::AppendToRequest(const QByteArray &data)
-{
-    QString txt = ui->requestText->toPlainText();
-    txt = txt + data + "\r\n";
-    ui->requestText->setPlainText(txt);
-}
-
-void MainWindow::AppendToResponse(const QByteArray &data)
-{
-    QString txt = ui->responseText->toPlainText();
-    txt = txt + data + "\r\n";
-    ui->responseText->setPlainText(txt);
-}
-
-
-
-void MainWindow::Send(CGXByteBuffer &request)
-{
-    QByteArray req((const char *)request.GetData(), request.GetSize());
-    Send(req);
-}
-
-void MainWindow::connectHdlc()
-{
-    if (modemState == CONNECTED)
-    {
-        if (cosemState == HDLC)
-        {
-            std::vector<CGXByteBuffer> data;
-
-            // FIXME: SNRM does not seems to work, restest after changes made in HDLC framing
-             int ret = 0;
-             ret = client.SNRMRequest(data);
-
-             if ((ret == 0) && (data.size() > 0))
-             {
-                 //CGXByteBuffer request = data.at(0);
-                 //QByteArray req((const char *)request.GetData(), request.GetSize());
-                 QByteArray req = QByteArray::fromHex("7EA0210002002303939A74818012050180060180070400000001080400000007655E7E");
-                 Send(req);
-             }
-        }
-/*
-        //Get meter's send and receive buffers size.
-        if (() != 0 ||
-            (ret = ReadDataBlock(data, reply)) != 0 ||
-            (ret = m_Parser->ParseUAResponse(reply.GetData())) != 0)
-        {
-            TRACE("SNRMRequest failed %d.\r\n", ret);
-            return ret;
-        }
-        reply.Clear();
-        if ((ret = m_Parser->AARQRequest(data)) != 0 ||
-                (ret = ReadDataBlock(data, reply)) != 0 ||
-                (ret = m_Parser->ParseAAREResponse(reply.GetData())) != 0)
-        {
-            if (ret == DLMS_DLMS_ERROR_CODE_APPLICATION_CONTEXT_NAME_NOT_SUPPORTED)
-            {
-                TRACE1("Use Logical Name referencing is wrong. Change it!\r\n");
-                return ret;
-            }
-            TRACE("AARQRequest failed %d.\r\n", ret);
-            return ret;
-        }
-
-        */
-
-        /*
-        // 7EA0210002002303939A74818012050180060180070400000001080400000007655E7E adresse 17
-        //QByteArray req = QByteArray::fromHex("7EA0210002481BF1932188818012050180060180070400000001080400000007655E7E"); // adresse 4621
-        QByteArray req = QByteArray::fromHex("7EA0210002002303939A74818012050180060180070400000001080400000007655E7E"); // adresse 17
-
-        // reponse : 7ea023030002002373c0488180140502008006HEX: 02008007040000000708040000000103327e
-
-        //socket.write("/?!\r\n");
-        socket.write(req);
-        socket.flush();
-
-        */
-    }
-}
-
-
-
-#endif
-
 
 
 class Modem
@@ -238,6 +126,7 @@ Modem::Modem()
     , mBufSize(0)
     , mThread(NULL)
     , mDataMutex(PTHREAD_MUTEX_INITIALIZER)
+    , client(true, 17, 1, DLMS_AUTHENTICATION_LOW, "001CA021", DLMS_INTERFACE_TYPE_HDLC)
 {
     sem_init(&mSem, 0, 0);
 }

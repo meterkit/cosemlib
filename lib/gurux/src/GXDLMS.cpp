@@ -356,7 +356,7 @@ int CGXDLMS::GetHdlcFrame(
     reply.SetUInt8(2U);
     reply.SetUInt8(0U);
     reply.SetUInt8(0x23U);
-    reply.SetUInt8(5U);
+    reply.SetUInt8(3U);
 
     // Add frame ID.
     if (frame == 0)
