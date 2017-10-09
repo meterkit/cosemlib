@@ -296,7 +296,7 @@ void * Modem::Reader()
 
         if (ret > 0)
         {
-            printf("Got data\r\n");
+            puts("Got data\r\n");
             std::string data(&mBuffer[0], ret);
 
             // Add data
@@ -311,11 +311,11 @@ void * Modem::Reader()
         }
         else if (ret == 0)
         {
-            printf("Reader timeout!\r\n");
+            puts("Reader timeout!\r\n");
         }
         else
         {
-            printf("Serial read error, exiting...\r\n");
+            puts("Serial read error, exiting...\r\n");
             break;
         }
     }
@@ -387,7 +387,7 @@ int Modem::Send(const std::string &data, PrintFormat format)
     }
     else
     {
-        ret = serial_write(mSerialHandle, data.c_str(), data.size());//sizeof(cnx_hdlc)/2);
+        ret = serial_write(mSerialHandle, data.c_str(), data.size());
     }
 
     return ret;
@@ -656,6 +656,8 @@ int main(int argc, char **argv)
 {
     bool ok = true;
     Modem modem;
+
+    setbuf(stdout, NULL); // disable printf buffering
 
     if (argc >= 3)
     {
