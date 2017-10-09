@@ -260,8 +260,12 @@ bool Modem::WaitForData(std::string &data)
     bool ok = false;
     struct timespec ts;
 
-    ts.tv_nsec = 0;
-    ts.tv_sec = 5;
+    if (clock_gettime(CLOCK_REALTIME, &ts) == -1)
+    {
+        //throw error
+    }
+
+    ts.tv_sec += 5;
 
     int ret = 0;
     // Loop until data is received, 5 seconds max
