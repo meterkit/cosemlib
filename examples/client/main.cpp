@@ -2,7 +2,8 @@
 #include <iostream>
 #include <cstdint>
 #include <pthread.h>
-
+#include <semaphore.h>
+#include <unistd.h>
 
 #include "serial.h"
 #include "util.h"
@@ -239,6 +240,8 @@ private:
     pthread_mutex_t mCvMutex;
     pthread_cond_t  mCvCond;
 
+    sem_t mSem;
+
 };
 
 Modem::Modem()
@@ -251,6 +254,7 @@ Modem::Modem()
     , mDataMutex(PTHREAD_MUTEX_INITIALIZER)
     , mCvMutex(PTHREAD_MUTEX_INITIALIZER)
     , mCvCond(PTHREAD_COND_INITIALIZER)
+    , mSem(NULL)
 {
 
 }
@@ -258,6 +262,7 @@ Modem::Modem()
 
 void Modem::Initialize()
 {
+    sem_init(&mSem, 0, 0);
     pthread_create(&mThread, NULL, &Modem::thread_reader, this);
 }
 
@@ -271,9 +276,11 @@ bool Modem::WaitForData(std::string &data)
 {
     bool ret = false;
 
-    pthread_mutex_lock( &mCvMutex );
-    pthread_cond_wait( &mCvCond, &mCvMutex );
-    pthread_mutex_unlock( &mCvMutex );
+
+    sem_wait(&mSem);
+//    pthread_mutex_lock( &mCvMutex );
+//    pthread_cond_wait( &mCvCond, &mCvMutex );
+//    pthread_mutex_unlock( &mCvMutex );
 
     pthread_mutex_lock( &mDataMutex );
     data = mData;
@@ -297,7 +304,7 @@ void * Modem::Reader()
 
         if (ret > 0)
         {
-            printf("<==== Got data: %d bytes", ret);
+            printf("<==== Got data: %d bytes: ", ret);
             std::string data(&mBuffer[0], ret);
 
             Printer(data.c_str(), data.size(), PRINT_HEX);
@@ -310,9 +317,10 @@ void * Modem::Reader()
             pthread_mutex_unlock( &mDataMutex );
 
             // Signal new data available
-            pthread_mutex_lock( &mCvMutex );
-            pthread_cond_signal( &mCvCond );
-            pthread_mutex_unlock( &mCvMutex );
+            sem_post(&mSem);
+//            pthread_mutex_lock( &mCvMutex );
+//            pthread_cond_signal( &mCvCond );
+//            pthread_mutex_unlock( &mCvMutex );
         }
         else if (ret == 0)
         {
@@ -726,6 +734,7 @@ int main(int argc, char **argv)
         printf("Usage: cosem_client /dev/ttyUSB0 0244059867\r\n");
     }
 
+    printf("** Exit task loop, waiting for reading thread...\r\n");
     modem.WaitForStop();
 
     return 0;
