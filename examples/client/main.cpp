@@ -356,9 +356,9 @@ int Modem::Dial(const std::string &phone)
     if (Send(dialRequest, PRINT_RAW))
     {
         std::string data;
-        sleep(10); // let the modem dial
+        sleep(20); // let the modem dial
 
-        if (WaitForData(data, 20))
+        if (WaitForData(data, 60))
         {
             ret = data.size();
             Printer(data.c_str(), data.size(), PRINT_RAW);
