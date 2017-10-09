@@ -1,6 +1,9 @@
 
 #include <iostream>
 #include <cstdint>
+#include <pthread.h>
+
+
 #include "serial.h"
 #include "util.h"
 
@@ -196,6 +199,9 @@ class Modem
 public:
     Modem();
 
+    void Initialize();
+    void WaitForStop();
+
     bool Open(const std::string &comport, uint32_t baudrate);
     int Test();
     int Dial(const std::string &phone);
@@ -203,6 +209,17 @@ public:
     // return the bytes read
     int Send(const std::string &data, PrintFormat format);
     int ConnectHdlc();
+
+    bool WaitForData(std::string &data);
+
+    void * Reader();
+
+    static void *thread_reader(void *context)
+    {
+        return ((Modem *)context)->Reader();
+    }
+
+    bool PerformCosemRead(const std::string &phone);
 
 private:
     ModemState mModemState;
@@ -212,17 +229,91 @@ private:
 
     static const uint32_t cBufferSize = 40U*1024U;
     char mBuffer[cBufferSize];
-};
+    int mBufSize;
 
+    std::string mData;
+
+    pthread_t mThread;
+    pthread_mutex_t mDataMutex;
+    pthread_mutex_t mCvMutex;
+    pthread_cond_t  mCvCond;
+
+};
 
 Modem::Modem()
     : mModemState(DISCONNECTED)
     , mCosemState(HDLC)
     , mUseTcpGateway(false)
     , mSerialHandle(0)
+    , mBufSize(0)
+    , mThread(NULL)
+    , mDataMutex(PTHREAD_MUTEX_INITIALIZER)
+    , mCvMutex(PTHREAD_MUTEX_INITIALIZER)
+    , mCvCond(PTHREAD_COND_INITIALIZER)
 {
 
 }
+
+
+void Modem::Initialize()
+{
+    pthread_create(&mThread, NULL, &Modem::thread_reader, this);
+}
+
+
+void Modem::WaitForStop()
+{
+    pthread_join(mThread, NULL);
+}
+
+bool Modem::WaitForData(std::string &data)
+{
+    bool ret = false;
+
+    pthread_mutex_lock( &mCvMutex );
+    pthread_cond_wait( &mCvCond, &mCvMutex );
+    pthread_mutex_unlock( &mCvMutex );
+
+    pthread_mutex_lock( &mDataMutex );
+    data = mData;
+    pthread_mutex_unlock( &mDataMutex );
+
+    if (data.size() > 0)
+    {
+        ret = true;
+    }
+
+    return ret;
+}
+
+void * Modem::Reader()
+{
+    printf("Thread number %u\n", pthread_self());
+
+    while (1)
+    {
+        int ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 30);
+
+        if (ret > 0)
+        {
+            std::string data(&mBuffer[0], ret);
+
+            // Add data
+            pthread_mutex_lock( &mDataMutex );
+            mData += data;
+            pthread_mutex_unlock( &mDataMutex );
+
+            // Signal new data available
+            pthread_mutex_lock( &mCvMutex );
+            pthread_cond_signal( &mCvCond );
+            pthread_mutex_unlock( &mCvMutex );
+        }
+    }
+
+    return NULL;
+}
+
+
 
 int Modem::ConnectHdlc()
 {
@@ -238,7 +329,18 @@ int Modem::ConnectHdlc()
 
 int Modem::Test()
 {
-    return Send("AT\r\n", PRINT_RAW);
+    int ret = -1;
+
+    if (Send("AT\r\n", PRINT_RAW) > 0)
+    {
+        std::string data;
+
+        if (WaitForData(data))
+        {
+            Printer(data.c_str(), data.size(), PRINT_RAW);
+        }
+    }
+    return ret;
 }
 
 bool Modem::Open(const std::string &comport, uint32_t baudrate)
@@ -275,14 +377,6 @@ int Modem::Send(const std::string &data, PrintFormat format)
     else
     {
         serial_write(mSerialHandle, data.c_str(), data.size());//sizeof(cnx_hdlc)/2);
-
-        // Immediately read after send, with a timeout guard
-        ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 30);
-
-        if (ret > 0)
-        {
-            Printer(&mBuffer[0], ret, format);
-        }
     }
 
     return ret;
@@ -507,19 +601,24 @@ static const uint8_t snrm[] = {0x7E, 0xA0, 0x21, 0x00, 0x02, 0x00, 0x23, 0x03, 0
 #define BUF_OUT_SIZE sizeof(buf_out)
 
 
-
-int main(int argc, char **argv)
+// Global state chart
+bool Modem::PerformCosemRead(const std::string &phone)
 {
-    Modem modem;
+    bool ret = false;
 
-    if (argc >= 3)
+    switch (mModemState)
     {
-        if (modem.Open(argv[1], 9600))
-        {
-            printf("==> Serial port success!\r\n");
-            if (modem.Test() > 0)
-            {
-                printf("==> Modem test success!\r\n");
+        case DISCONNECTED:
+            break;
+        case MODEM_OK:
+            break;
+        case CONNECTED:
+            break;
+        default:
+            break;
+    }
+/*
+
                 if (modem.Dial(argv[2]) > 0)
                 {
                     printf("==> Modem dial success!\r\n");
@@ -537,20 +636,54 @@ int main(int argc, char **argv)
                     printf("Dial failed.\r\n");
                 }
             }
+*/
+
+    return ret;
+}
+
+int main(int argc, char **argv)
+{
+    bool ok = true;
+    Modem modem;
+
+    if (argc >= 3)
+    {
+        // reader thread
+        modem.Initialize();
+        std::string port(argv[1]);
+        std::string phone(argv[2]);
+
+        // Before application, test connectivity
+        if (modem.Open(port, 9600))
+        {
+            printf("==> Serial port success!\r\n");
+            if (modem.Test() > 0)
+            {
+                printf("==> Modem test success!\r\n");
+            }
             else
             {
                 printf("Modem test failed.\r\n");
+                ok = false;
             }
         }
         else
         {
             printf("Cannot open serial port.\r\n");
+            ok = false;
+        }
+
+        while(ok)
+        {
+            //ok = modem.PerformCosemRead(phone);
         }
     }
     else
     {
         printf("Usage: cosem_client /dev/ttyUSB0 0244059867\r\n");
     }
+
+    modem.WaitForStop();
 
     return 0;
 
