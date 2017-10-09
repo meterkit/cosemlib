@@ -254,15 +254,13 @@ Modem::Modem()
     , mDataMutex(PTHREAD_MUTEX_INITIALIZER)
     , mCvMutex(PTHREAD_MUTEX_INITIALIZER)
     , mCvCond(PTHREAD_COND_INITIALIZER)
-    , mSem(NULL)
 {
-
+    sem_init(&mSem, 0, 0);
 }
 
 
 void Modem::Initialize()
 {
-    sem_init(&mSem, 0, 0);
     pthread_create(&mThread, NULL, &Modem::thread_reader, this);
 }
 
@@ -324,7 +322,7 @@ void * Modem::Reader()
         }
         else if (ret == 0)
         {
-            puts("Reader timeout!\r\n");
+            puts("Still waiting for data...\r\n");
         }
         else
         {
@@ -336,7 +334,34 @@ void * Modem::Reader()
     return NULL;
 }
 
+int Modem::Dial(const std::string &phone)
+{
+    int ret = -1;
 
+    std::string dialRequest = std::string("ATD") + phone + std::string("\r\n");
+
+    if (Send(dialRequest, PRINT_RAW))
+    {
+        std::string data;
+        sleep(1); // let the modem dial
+
+        // Modem should send 'OK'
+        if (WaitForData(data))
+        {
+            Printer(data.c_str(), data.size(), PRINT_RAW);
+
+            sleep(20); // let the modem dial
+
+            if (WaitForData(data))
+            {
+                ret = data.size();
+                Printer(data.c_str(), data.size(), PRINT_RAW);
+            }
+        }
+    }
+
+    return ret;
+}
 
 int Modem::ConnectHdlc()
 {
@@ -344,6 +369,8 @@ int Modem::ConnectHdlc()
     static const std::string snrm = "7EA0210002002303939A74818012050180060180070400000001080400000007655E7E";
 
     int size = StringToBin(snrm, &mBuffer[0]);
+
+    sleep(1); // let the communication go on
 
     if (Send(std::string(&mBuffer[0], size), PRINT_HEX))
     {
@@ -413,27 +440,6 @@ int Modem::Send(const std::string &data, PrintFormat format)
     else
     {
         ret = serial_write(mSerialHandle, data.c_str(), data.size());
-    }
-
-    return ret;
-}
-
-int Modem::Dial(const std::string &phone)
-{
-    int ret = -1;
-
-    std::string dialRequest = std::string("ATD") + phone + std::string("\r\n");
-
-    if (Send(dialRequest, PRINT_RAW))
-    {
-        std::string data;
-        sleep(20); // let the modem dial
-
-        if (WaitForData(data))
-        {
-            ret = data.size();
-            Printer(data.c_str(), data.size(), PRINT_RAW);
-        }
     }
 
     return ret;
