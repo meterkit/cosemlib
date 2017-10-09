@@ -8,6 +8,10 @@
 #include "serial.h"
 #include "util.h"
 
+// Gurux
+#include "GXDLMSClient.h"
+#include "GXDLMSClock.h"
+
 enum ModemState
 {
     DISCONNECTED,
@@ -166,29 +170,6 @@ void MainWindow::connectHdlc()
 }
 
 
-void MainWindow::connectAarq()
-{
-    if (modemState == CONNECTED)
-    {
-        std::vector<CGXByteBuffer> data;
-
-        int ret = 0;
-        ret = client.AARQRequest(data);
-
-        if ((ret == 0) && (data.size() > 0))
-        {
-          //  QByteArray req = QByteArray::fromHex("7EA0210002002303939A74818012050180060180070400000001080400000007655E7E");
-            Send(data.at(0));
-        }
-
-        /*
-        QByteArray req = QByteArray::fromHex("6036A1090607608574050801018A0207808B0760857405080201AC0A80084142434445464748BE10040E01000000065F1F04001C1E7D0000");
-
-        socket.write(req);
-        socket.flush();
-        */
-    }
-}
 
 #endif
 
@@ -221,7 +202,8 @@ public:
 
     bool PerformTask(const std::string &phone);
     bool PerformCosemRead();
-
+    int ConnectAarq();
+    int ReadClock();
 
 private:
     ModemState mModemState;
@@ -237,11 +219,12 @@ private:
 
     pthread_t mThread;
     pthread_mutex_t mDataMutex;
-    pthread_mutex_t mCvMutex;
-    pthread_cond_t  mCvCond;
 
     sem_t mSem;
 
+    CGXDLMSClient client;
+    // Meter objects
+    CGXDLMSClock clock;
 };
 
 Modem::Modem()
@@ -252,8 +235,6 @@ Modem::Modem()
     , mBufSize(0)
     , mThread(NULL)
     , mDataMutex(PTHREAD_MUTEX_INITIALIZER)
-    , mCvMutex(PTHREAD_MUTEX_INITIALIZER)
-    , mCvCond(PTHREAD_COND_INITIALIZER)
 {
     sem_init(&mSem, 0, 0);
 }
@@ -269,6 +250,7 @@ void Modem::WaitForStop()
 {
     pthread_join(mThread, NULL);
 }
+
 
 bool Modem::WaitForData(std::string &data)
 {
@@ -287,6 +269,7 @@ bool Modem::WaitForData(std::string &data)
     if (data.size() > 0)
     {
         ret = true;
+        data.clear();
     }
 
     return ret;
@@ -368,6 +351,12 @@ int Modem::ConnectHdlc()
     int ret = -1;
     static const std::string snrm = "7EA0210002002303939A74818012050180060180070400000001080400000007655E7E";
 
+    std::vector<CGXByteBuffer> data;
+
+   // FIXME: SNRM does not seems to work, restest after changes made in HDLC framing
+    (void) client.SNRMRequest(data);
+
+
     int size = StringToBin(snrm, &mBuffer[0]);
 
     sleep(1); // let the communication go on
@@ -381,6 +370,80 @@ int Modem::ConnectHdlc()
         {
             ret = data.size();
             Printer(data.c_str(), data.size(), PRINT_HEX);
+        }
+    }
+
+    return ret;
+}
+
+int Modem::ConnectAarq()
+{
+    std::vector<CGXByteBuffer> data;
+
+    int ret = 0;
+    ret = client.AARQRequest(data);
+
+    if ((ret == 0) && (data.size() > 0))
+    {
+      //  QByteArray req = QByteArray::fromHex("7EA0210002002303939A74818012050180060180070400000001080400000007655E7E");
+        CGXByteBuffer gxPacket = data.at(0);
+        std::string request((const char *)gxPacket.GetData(), gxPacket.GetSize());
+
+        if (Send(request, PRINT_HEX))
+        {
+            std::string data;
+            sleep(1); // let the communication go on
+
+            if (WaitForData(data))
+            {
+                ret = data.size();
+                Printer(data.c_str(), data.size(), PRINT_HEX);
+            }
+        }
+    }
+
+    return ret;
+}
+
+
+int Modem::ReadClock()
+{
+    int attributeIndex = 2;
+    int ret;
+    std::vector<CGXByteBuffer> data;
+    CGXReplyData reply;
+    //Read data from the meter.
+    ret = client.Read(&clock, attributeIndex, data);
+
+    if ((ret == 0) && (data.size() > 0))
+    {
+        CGXByteBuffer gxPacket = data.at(0);
+        std::string request((const char *)gxPacket.GetData(), gxPacket.GetSize());
+
+        if (Send(request, PRINT_HEX))
+        {
+            std::string data;
+            sleep(1); // let the communication go on
+
+            if (WaitForData(data))
+            {
+                ret = data.size();
+                Printer(data.c_str(), data.size(), PRINT_HEX);
+
+                CGXByteBuffer buffer;
+                buffer.Set(data.data(), data.size());
+
+                // Lecture de l'heure:
+                             // 7ea021030002002352f04fe6e700c401c100090c07e0010906152638ff80000095237e
+                CGXReplyData reply;
+                client.GetData(buffer, reply);
+                CGXDLMSVariant replyData = reply.GetValue();
+                if (client.UpdateValue(clock, 2, replyData) == 0)
+                {
+                    std::string time = clock.GetTime().ToString();
+                    printf("Meter time: %s", time.c_str());
+                }
+            }
         }
     }
 
@@ -447,190 +510,6 @@ int Modem::Send(const std::string &data, PrintFormat format)
 
 
 
-#if 0
-
-
-void MainWindow::discModem()
-{
-    QByteArray disc("+++\r\n");
-    QByteArray ath0("ATH0\r\n");
-
-    AppendToRequest(disc);
-    Send(disc);
-    std::this_thread::sleep_for(std::chrono::seconds(1U));
-
-    AppendToRequest(ath0);
-    Send(ath0);
-
-    modemState = DISCONNECTED;
-    cosemState = HDLC;
-
-    socket.close();
-    serial.close();
-    ui->connectButton->setText("Disconnect");
-    connected = false;
-}
-
-
-void MainWindow::WriteToFile(QString data)
-{
-    QFile file("gps_output.wor");
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-       return;
-
-    QTextStream out(&file);
-    out << data << "\n";
-
-}
-
-void MainWindow::startSlave()
-{
-    if (!connected)
-    {
-        modemState = DISCONNECTED;
-        if (ui->radioTcp->isChecked())
-        {
-            const int Timeout = 5 * 1000;
-            socket.connectToHost(ui->tcpAddress->text(), ui->tcpPort->value());
-            if (!socket.waitForConnected(Timeout))
-            {
-                QString error = socket.errorString();
-                processError(error);
-                return;
-            }
-        }
-        else
-        {
-            serial.close();
-            serial.setPortName(ui->serialPortComboBox->currentText());
-
-            serial.setDataBits(m_settingsDialog->settings().dataBits);
-            serial.setBaudRate(m_settingsDialog->settings().baud);
-            serial.setParity(m_settingsDialog->settings().parity);
-            serial.setStopBits(m_settingsDialog->settings().stopBits);
-
-            if (!serial.open(QIODevice::ReadWrite)) {
-                processError(tr("Can't open %1, error code %2")
-                             .arg(serial.portName()).arg(serial.error()));
-                return;
-            }
-
-        }
-
-        if (!ui->checkUseModem->isChecked())
-        {
-            modemState = CONNECTED;
-        }
-        else
-        {
-            QByteArray checkModem = "AT\r\n";
-            AppendToRequest(checkModem);
-            Send(checkModem, false);
-        }
-
-        connected = true;
-        ui->connectButton->setText("Disconnect");
-        statusBar()->showMessage(tr("Port open."), 5000);
-    }
-    else
-    {
-        if (ui->radioTcp->isChecked())
-        {
-            discModem();
-        }
-        else
-        {
-            serial.close();
-        }
-
-        connected = false;
-        ui->connectButton->setText("Connect");
-        statusBar()->showMessage(tr("Port closed."), 5000);
-    }
-}
-
-
-void MainWindow::readRequest()
-{
-    while (!serial.atEnd()) {
-      mReply += serial.read(serial.bytesAvailable());
-    }
-
-    if (!timer.isActive())
-        timer.start(200);
-
-}
-
-void MainWindow::Decode(const QByteArray &response)
-{
-    if (modemState == CONNECTED)
-    {
-        CGXByteBuffer buffer;
-        buffer.Set(response.data(), response.size());
-
-        if (cosemState == HDLC)
-        {
-            if (client.ParseUAResponse(buffer) == 0)
-            {
-                cosemState = ASSOCIATION_PENDING;
-            }
-        } else if (cosemState == ASSOCIATION_PENDING)
-        {
-         //   if (client.ParseAAREResponse(buffer) == 0)
-            {
-                cosemState = ASSOCIATED;
-            }
-        } else if (cosemState == ASSOCIATED)
-        {
-            // Lecture de l'heure:
-            // 7ea021030002002352f04fe6e700c401c100090c07e0010906152638ff80000095237e
-            CGXReplyData reply;
-            client.GetData(buffer, reply);
-            CGXDLMSVariant replyData = reply.GetValue();
-            if (client.UpdateValue(clock, 2, replyData) == 0)
-            {
-                std::string time = clock.GetTime().ToString();
-                QByteArray timeString = "Meter time: " + QByteArray(time.c_str());
-                AppendToResponse(timeString);
-            }
-        }
-    }
-    else
-    {
-        QString modemReply = response.toStdString() .c_str();
-
-        switch(modemState)
-        {
-        case DISCONNECTED:
-            if (modemReply.contains("OK"))
-            {
-                modemState = MODEM_OK;
-            }
-            break;
-        case MODEM_OK:
-            if (modemReply.contains("CONNECT"))
-            {
-                modemState = CONNECTED;
-            }
-            break;
-        case CONNECTED:
-        default:
-             break;
-        }
-    }
-
-    AppendToResponse(response.toHex());
-}
-
-void MainWindow::processTimeout()
-{
-    timer.stop();
-    Decode(mReply);
-    mReply.clear();
-}
-
-#endif
-
 static const uint8_t snrm[] = {0x7E, 0xA0, 0x21, 0x00, 0x02, 0x00, 0x23, 0x03, 0x93, 0x9A, 0x74, 0x81, 0x80, 0x12,
                                0x05, 0x01, 0x80, 0x06, 0x01, 0x80, 0x07, 0x04, 0x00, 0x00, 0x00, 0x01, 0x08, 0x04, 0x00, 0x00, 0x00, 0x07, 0x65, 0x5E, 0x7E };
 
@@ -641,6 +520,7 @@ static const uint8_t snrm[] = {0x7E, 0xA0, 0x21, 0x00, 0x02, 0x00, 0x23, 0x03, 0
 bool  Modem::PerformCosemRead()
 {
     bool ret = false;
+    static bool onetime = false;
 
     switch(mCosemState)
     {
@@ -656,6 +536,37 @@ bool  Modem::PerformCosemRead()
                printf("** Cannot connect to meter.\r\n");
             }
          break;
+        case ASSOCIATION_PENDING:
+
+            if (ConnectAarq() > 0)
+            {
+               printf("** AARQ success!\r\n");
+               ret = true;
+               mCosemState = ASSOCIATED;
+            }
+            else
+            {
+               printf("** Cannot AARQ to meter.\r\n");
+            }
+            break;
+        case ASSOCIATED:
+            if (!onetime)
+            {
+                onetime = true;
+                if (ReadClock() > 0)
+                {
+                   printf("** AARQ success!\r\n");
+                   ret = true;
+                   mCosemState = ASSOCIATED;
+                }
+                else
+                {
+                   printf("** Cannot AARQ to meter.\r\n");
+                }
+                break;
+            }
+            break;
+
         default:
             break;
 

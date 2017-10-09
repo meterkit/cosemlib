@@ -91,6 +91,6 @@ GXStandardObisCodeCollection.cpp
 
 LOCAL_DIR = $(call my-dir)/
 
-INCLUDES +=  $(LOCAL_DIR)inc
+INCLUDES +=  $(LOCAL_DIR)include
 
 SOURCES += $(addprefix $(LOCAL_DIR)src/, $(gurux_src))
