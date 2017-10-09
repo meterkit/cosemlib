@@ -299,6 +299,8 @@ void * Modem::Reader()
             puts("Got data\r\n");
             std::string data(&mBuffer[0], ret);
 
+            Printer(data.c_str(), data.size(), PRINT_RAW);
+
             // Add data
             pthread_mutex_lock( &mDataMutex );
             mData += data;
