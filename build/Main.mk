@@ -44,7 +44,7 @@ LDFLAGS += -Wl,-subsystem,console -lws2_32 -lpsapi -lwinmm -static-libgcc -stati
 else
 
 DEFINES	+= -DUSE_LINUX_OS
-LDFLAGS += -ldl
+LDFLAGS += -ldl -lpthread
 
 endif
 
