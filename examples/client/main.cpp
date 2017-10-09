@@ -358,18 +358,10 @@ int Modem::Dial(const std::string &phone)
         std::string data;
         sleep(10); // let the modem dial
 
-        // Modem should send 'OK'
-        if (WaitForData(data, 10))
+        if (WaitForData(data, 20))
         {
+            ret = data.size();
             Printer(data.c_str(), data.size(), PRINT_RAW);
-
-            sleep(10); // let the modem dial
-
-            if (WaitForData(data, 10))
-            {
-                ret = data.size();
-                Printer(data.c_str(), data.size(), PRINT_RAW);
-            }
         }
     }
 
