@@ -9,8 +9,11 @@
 #include "util.h"
 
 // Gurux
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #include "GXDLMSClient.h"
 #include "GXDLMSClock.h"
+#pragma GCC diagnostic pop
 
 enum ModemState
 {
@@ -254,13 +257,18 @@ void Modem::WaitForStop()
 
 bool Modem::WaitForData(std::string &data)
 {
-    bool ret = false;
+    bool ok = false;
+    struct timespec ts;
 
+    ts.tv_nsec = 0;
+    ts.tv_sec = 5;
 
-    sem_wait(&mSem);
-//    pthread_mutex_lock( &mCvMutex );
-//    pthread_cond_wait( &mCvCond, &mCvMutex );
-//    pthread_mutex_unlock( &mCvMutex );
+    int ret = 0;
+    // Loop until data is received, 5 seconds max
+    do {
+        ret = sem_timedwait(&mSem, &ts);
+    } while (ret != -1);
+
 
     pthread_mutex_lock( &mDataMutex );
     data = mData;
@@ -268,11 +276,11 @@ bool Modem::WaitForData(std::string &data)
 
     if (data.size() > 0)
     {
-        ret = true;
-        data.clear();
+        ok = true;
+        mData.clear();
     }
 
-    return ret;
+    return ok;
 }
 
 void * Modem::Reader()
@@ -315,6 +323,25 @@ void * Modem::Reader()
     }
 
     return NULL;
+}
+
+int Modem::Test()
+{
+    int ret = -1;
+
+    if (Send("AT\r\n", PRINT_RAW) > 0)
+    {
+        std::string data;
+
+        sleep(1); // let the modem answer
+
+        if (WaitForData(data))
+        {
+            ret = data.size();
+            Printer(data.c_str(), data.size(), PRINT_RAW);
+        }
+    }
+    return ret;
 }
 
 int Modem::Dial(const std::string &phone)
@@ -450,24 +477,6 @@ int Modem::ReadClock()
     return ret;
 }
 
-int Modem::Test()
-{
-    int ret = -1;
-
-    if (Send("AT\r\n", PRINT_RAW) > 0)
-    {
-        std::string data;
-
-        sleep(1); // let the modem answer
-
-        if (WaitForData(data))
-        {
-            ret = data.size();
-            Printer(data.c_str(), data.size(), PRINT_RAW);
-        }
-    }
-    return ret;
-}
 
 bool Modem::Open(const std::string &comport, uint32_t baudrate)
 {
