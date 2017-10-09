@@ -91,7 +91,7 @@ public:
         return ((Modem *)context)->Reader();
     }
 
-    bool PerformTask(const std::string &phone);
+    bool PerformTask(const std::string &phone, int client, const std::string &lls);
     bool PerformCosemRead();
     int ConnectAarq();
     int ReadClock();
@@ -107,13 +107,12 @@ private:
     int mBufSize;
 
     std::string mData;
-
     pthread_t mThread;
-    pthread_mutex_t mDataMutex;
+    CGXDLMSClient mClient;
 
+    pthread_mutex_t mDataMutex;
     sem_t mSem;
 
-    CGXDLMSClient client;
     // Meter objects
     CGXDLMSClock clock;
 };
@@ -125,9 +124,9 @@ Modem::Modem()
     , mSerialHandle(0)
     , mBufSize(0)
     , mThread(NULL)
-    , mDataMutex(PTHREAD_MUTEX_INITIALIZER)
-    , client(true, 17, 1, DLMS_AUTHENTICATION_LOW, "001CA021", DLMS_INTERFACE_TYPE_HDLC)
+    , mClient(true, 1, 1, DLMS_AUTHENTICATION_LOW, "001CA021", DLMS_INTERFACE_TYPE_HDLC)
 {
+    mDataMutex = PTHREAD_MUTEX_INITIALIZER;
     sem_init(&mSem, 0, 0);
 }
 
@@ -200,9 +199,6 @@ void * Modem::Reader()
 
             // Signal new data available
             sem_post(&mSem);
-//            pthread_mutex_lock( &mCvMutex );
-//            pthread_cond_signal( &mCvCond );
-//            pthread_mutex_unlock( &mCvMutex );
         }
         else if (ret == 0)
         {
@@ -265,7 +261,7 @@ int Modem::ConnectHdlc()
     std::vector<CGXByteBuffer> data;
 
    // FIXME: SNRM does not seems to work, restest after changes made in HDLC framing
-    (void) client.SNRMRequest(data);
+    (void) mClient.SNRMRequest(data);
 
 
     int size = StringToBin(snrm, &mBuffer[0]);
@@ -292,7 +288,7 @@ int Modem::ConnectAarq()
     std::vector<CGXByteBuffer> data;
 
     int ret = 0;
-    ret = client.AARQRequest(data);
+    ret = mClient.AARQRequest(data);
 
     if ((ret == 0) && (data.size() > 0))
     {
@@ -324,7 +320,7 @@ int Modem::ReadClock()
     std::vector<CGXByteBuffer> data;
     CGXReplyData reply;
     //Read data from the meter.
-    ret = client.Read(&clock, attributeIndex, data);
+    ret = mClient.Read(&clock, attributeIndex, data);
 
     if ((ret == 0) && (data.size() > 0))
     {
@@ -351,9 +347,9 @@ int Modem::ReadClock()
 
 
                 CGXReplyData reply;
-                client.GetData(buffer, reply);
+                mClient.GetData(buffer, reply);
                 CGXDLMSVariant replyData = reply.GetValue();
-                if (client.UpdateValue(clock, 2, replyData) == 0)
+                if (mClient.UpdateValue(clock, 2, replyData) == 0)
                 {
                     std::string time = clock.GetTime().ToString();
                     printf("Meter time: %s\r\n", time.c_str());
@@ -406,14 +402,6 @@ int Modem::Send(const std::string &data, PrintFormat format)
 
     return ret;
 }
-
-
-
-static const uint8_t snrm[] = {0x7E, 0xA0, 0x21, 0x00, 0x02, 0x00, 0x23, 0x03, 0x93, 0x9A, 0x74, 0x81, 0x80, 0x12,
-                               0x05, 0x01, 0x80, 0x06, 0x01, 0x80, 0x07, 0x04, 0x00, 0x00, 0x00, 0x01, 0x08, 0x04, 0x00, 0x00, 0x00, 0x07, 0x65, 0x5E, 0x7E };
-
-#define BUF_IN_SIZE sizeof(buf_in)
-#define BUF_OUT_SIZE sizeof(buf_out)
 
 
 bool  Modem::PerformCosemRead()
@@ -479,7 +467,7 @@ bool  Modem::PerformCosemRead()
 
 
 // Global state chart
-bool Modem::PerformTask(const std::string &phone)
+bool Modem::PerformTask(const std::string &phone, int client, const std::string &lls)
 {
     bool ret = false;
 
@@ -499,8 +487,15 @@ bool Modem::PerformTask(const std::string &phone)
 
             break;
         case CONNECTED:
+        {
+            CGXByteBuffer pass;
+            pass.AddString(lls);
+
+            mClient.m_Settings.SetPassword(pass);
+            mClient.m_Settings.SetClientAddress(client);
             ret = PerformCosemRead();
             break;
+        }
         default:
             break;
     }
@@ -514,11 +509,12 @@ int main(int argc, char **argv)
 
     setbuf(stdout, NULL); // disable printf buffering
 
-    if (argc >= 3)
+    if (argc >= 5)
     {
-
         std::string port(argv[1]);
         std::string phone(argv[2]);
+        int client = atoi(argv[3]);
+        std::string lls(argv[4]);
 
         // Before application, test connectivity
         if (modem.Open(port, 9600))
@@ -545,12 +541,12 @@ int main(int argc, char **argv)
         while(ok)
         {
             sleep(1);
-            ok = modem.PerformTask(phone);
+            ok = modem.PerformTask(phone, client, lls);
         }
     }
     else
     {
-        printf("Usage: cosem_client /dev/ttyUSB0 0244059867\r\n");
+        printf("Usage: cosem_client /dev/ttyUSB0 0244059867 2 ABCDEFGH\r\n");
     }
 
     printf("** Exit task loop, waiting for reading thread...\r\n");

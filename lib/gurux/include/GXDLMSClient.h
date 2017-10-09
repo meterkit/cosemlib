@@ -43,7 +43,7 @@
 
 class CGXDLMSClient
 {
-protected:
+public:
     CGXDLMSSettings m_Settings;
 private:
     bool m_IsAuthenticationRequired;
