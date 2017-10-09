@@ -24,6 +24,36 @@ typedef enum
     CSM_ERR_DATA_CONTENT_NOT_OK, ///< Data content is not accepted.
 } csm_db_code;
 
+
+/*
+    Data-Access-Result ::= ENUMERATED
+    {
+    success                            (0),
+    hardware-fault                     (1),
+    temporary-failure                  (2),
+    read-write-denied                  (3),
+    object-undefined                   (4),
+    object-class-inconsistent          (9),
+    object-unavailable                 (11),
+    type-unmatched                     (12),
+    scope-of-access-violated            (13),
+    data-block-unavailable             (14),
+    long-get-aborted                   (15),
+    no-long-get-in-progress            (16),
+    long-set-aborted                   (17),
+    no-long-set-in-progress            (18),
+    data-block-number-invalid          (19),
+    other-reason                       (250)
+    }
+    */
+typedef enum
+{
+    CSM_ACCESS_RESULT_SUCCESS = 0,
+    CSM_ACCESS_RESULT_HARDWARE_FAULT = 1,
+    CSM_ACCESS_RESULT_TEMPORARY_FAILURE = 2,
+    CSM_ACCESS_RESULT_READ_WRITE_DENIED = 3,
+} csm_data_access_result;
+
 typedef csm_db_code (*csm_db_access_handler)(csm_array *in, csm_array *out, csm_request *request);
 
 void csm_services_init(const csm_db_access_handler db_access);

@@ -115,6 +115,16 @@ typedef struct
 
 } csm_request;
 
+typedef struct
+{
+    uint8_t type; // Type of the response (normal, next ...)
+    uint8_t invoke_id;
+    uint8_t result; // 0 = Data, 1 = Data-Access-Result
+
+} csm_response;
+
+
+
 // ----------------------------- IMPLEMENTATION SPECIFIC INTERFACE -----------------------------
 
 /* GreenBook 8

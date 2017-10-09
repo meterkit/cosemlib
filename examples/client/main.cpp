@@ -456,14 +456,18 @@ int Modem::ReadClock()
                 buffer.Set(data.data(), data.size());
 
                 // Lecture de l'heure:
-                             // 7ea021030002002352f04fe6e700c401c100090c07e0010906152638ff80000095237e
+                             // 7ea021030002002352f04fe6e700 c401c1 00 09 0c07e0010906152638ff80000095237e
+
+                // Bad: 7EA0140300020023521969E6E700 C401C10103 73827E
+
+
                 CGXReplyData reply;
                 client.GetData(buffer, reply);
                 CGXDLMSVariant replyData = reply.GetValue();
                 if (client.UpdateValue(clock, 2, replyData) == 0)
                 {
                     std::string time = clock.GetTime().ToString();
-                    printf("Meter time: %s", time.c_str());
+                    printf("Meter time: %s\r\n", time.c_str());
                 }
             }
         }
@@ -496,7 +500,9 @@ int Modem::Send(const std::string &data, PrintFormat format)
     int ret = -1;
 
     // Print request
+    puts("====> Sending: ");
     Printer(data.c_str(), data.size(), format);
+    puts("\r\n");
 
     if (mUseTcpGateway)
     {
@@ -529,6 +535,7 @@ bool  Modem::PerformCosemRead()
     switch(mCosemState)
     {
         case HDLC:
+            printf("** Sending HDLC...\r\n");
             if (ConnectHdlc() > 0)
             {
                printf("** HDLC success!\r\n");
@@ -542,6 +549,7 @@ bool  Modem::PerformCosemRead()
          break;
         case ASSOCIATION_PENDING:
 
+            printf("** Sending AARQ...\r\n");
             if (ConnectAarq() > 0)
             {
                printf("** AARQ success!\r\n");
@@ -557,15 +565,16 @@ bool  Modem::PerformCosemRead()
             if (!onetime)
             {
                 onetime = true;
+                printf("** Sending ReadClock request...\r\n");
                 if (ReadClock() > 0)
                 {
-                   printf("** AARQ success!\r\n");
+                   printf("** Read clock success!\r\n");
                    ret = true;
                    mCosemState = ASSOCIATED;
                 }
                 else
                 {
-                   printf("** Cannot AARQ to meter.\r\n");
+                   printf("** Cannot read clock from meter.\r\n");
                 }
                 break;
             }
