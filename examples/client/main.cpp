@@ -387,7 +387,7 @@ int Modem::Send(const std::string &data, PrintFormat format)
     }
     else
     {
-        serial_write(mSerialHandle, data.c_str(), data.size());//sizeof(cnx_hdlc)/2);
+        ret = serial_write(mSerialHandle, data.c_str(), data.size());//sizeof(cnx_hdlc)/2);
     }
 
     return ret;
