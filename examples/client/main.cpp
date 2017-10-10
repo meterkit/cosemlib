@@ -13,6 +13,7 @@
 #pragma GCC diagnostic ignored "-Wpedantic"
 #include "GXDLMSClient.h"
 #include "GXDLMSClock.h"
+#include "GXDLMSRegister.h"
 #pragma GCC diagnostic pop
 
 enum ModemState
@@ -95,6 +96,7 @@ public:
     bool PerformCosemRead();
     int ConnectAarq();
     int ReadClock();
+    int ReadRegister();
 
 private:
     ModemState mModemState;
@@ -109,12 +111,11 @@ private:
     std::string mData;
     pthread_t mThread;
     CGXDLMSClient mClient;
+    bool mTerminate;
 
     pthread_mutex_t mDataMutex;
     sem_t mSem;
 
-    // Meter objects
-    CGXDLMSClock clock;
 };
 
 Modem::Modem()
@@ -123,8 +124,9 @@ Modem::Modem()
     , mUseTcpGateway(false)
     , mSerialHandle(0)
     , mBufSize(0)
-    , mThread(NULL)
+    , mThread(0)
     , mClient(true, 1, 1, DLMS_AUTHENTICATION_LOW, "001CA021", DLMS_INTERFACE_TYPE_HDLC)
+    , mTerminate(false)
 {
     mDataMutex = PTHREAD_MUTEX_INITIALIZER;
     sem_init(&mSem, 0, 0);
@@ -139,6 +141,7 @@ void Modem::Initialize()
 
 void Modem::WaitForStop()
 {
+    mTerminate = true;
     pthread_join(mThread, NULL);
 }
 
@@ -179,7 +182,7 @@ void * Modem::Reader()
 {
     printf("Reader thread started\r\n");
 
-    while (1)
+    while (!mTerminate)
     {
         int ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 30);
 
@@ -207,7 +210,7 @@ void * Modem::Reader()
         else
         {
             puts("Serial read error, exiting...\r\n");
-            break;
+            mTerminate = true;
         }
     }
 
@@ -319,6 +322,8 @@ int Modem::ReadClock()
     int ret;
     std::vector<CGXByteBuffer> data;
     CGXReplyData reply;
+    CGXDLMSClock clock;
+
     //Read data from the meter.
     ret = mClient.Read(&clock, attributeIndex, data);
 
@@ -353,6 +358,56 @@ int Modem::ReadClock()
                 {
                     std::string time = clock.GetTime().ToString();
                     printf("Meter time: %s\r\n", time.c_str());
+                }
+            }
+        }
+    }
+
+    return ret;
+}
+
+int Modem::ReadRegister()
+{
+    int attributeIndex = 2;
+    int ret;
+    std::vector<CGXByteBuffer> data;
+    CGXReplyData reply;
+
+    CGXDLMSRegister reg("1.1.1.8.0.255", 0, DLMS_UNIT_ACTIVE_ENERGY, CGXDLMSVariant(0UL)); // ImportActiveEnergyAggregate
+
+    //Read data from the meter.
+    ret = mClient.Read(&reg, attributeIndex, data);
+
+    if ((ret == 0) && (data.size() > 0))
+    {
+        CGXByteBuffer gxPacket = data.at(0);
+        std::string request((const char *)gxPacket.GetData(), gxPacket.GetSize());
+
+        if (Send(request, PRINT_HEX))
+        {
+            std::string data;
+            sleep(1); // let the communication go on
+
+            if (WaitForData(data, 5))
+            {
+                ret = data.size();
+                Printer(data.c_str(), data.size(), PRINT_HEX);
+
+                CGXByteBuffer buffer;
+                buffer.Set(data.data(), data.size());
+
+                // Lecture de l'heure:
+                             // 7ea021030002002352f04fe6e700 c401c1 00 09 0c07e0010906152638ff80000095237e
+
+                // Bad: 7EA0140300020023521969E6E700 C401C10103 73827E
+
+
+                CGXReplyData reply;
+                mClient.GetData(buffer, reply);
+                CGXDLMSVariant replyData = reply.GetValue();
+                if (mClient.UpdateValue(reg, 2, replyData) == 0)
+                {
+                    printf("ImportActiveEnergyAggregate: %d\r\n", reg.GetValue().ToInteger());
                 }
             }
         }
@@ -447,7 +502,16 @@ bool  Modem::PerformCosemRead()
                 {
                    printf("** Read clock success!\r\n");
                    ret = true;
-                   mCosemState = ASSOCIATED;
+
+                   printf("** Sending ReadRegister request...\r\n");
+                   if (ReadRegister() > 0)
+                   {
+                       printf("** Read register success!\r\n");
+                   }
+                   else
+                  {
+                     printf("** Cannot read register from meter.\r\n");
+                  }
                 }
                 else
                 {
