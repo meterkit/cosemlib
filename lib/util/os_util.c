@@ -16,7 +16,7 @@
  * examples and are not optimized for speed.
  */
 
-#include "util.h"
+#include "os_util.h"
 #include <stdio.h>
 
 int memcmp_const(const void *a, const void *b, size_t len)

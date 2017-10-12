@@ -45,6 +45,7 @@ LIB_TESTS				:= tests
 LIB_EXAMPLE_SERVER		:= examples/server
 LIB_EXAMPLE_CLIENT		:= examples/client
 LIB_GURUX				:= lib/gurux
+LIB_ICL					:= lib/icl
 
 export LIB_STM32F4
 export LIB_METER
@@ -69,7 +70,7 @@ endif
 # *******************************************************************************
 ifeq ($(MAKECMDGOALS), client)
 
-APP_MODULES 	:= $(LIB_CLIENT) $(LIB_EXAMPLE_CLIENT) $(LIB_GURUX)
+APP_MODULES 	:= $(LIB_CLIENT) $(LIB_EXAMPLE_CLIENT) $(LIB_GURUX) $(LIB_ICL)
 APP_LIBPATH 	:= 
 APP_LIBS 		:= 
 
@@ -110,5 +111,5 @@ wipe:
 
 
 # *******************************************************************************
-# 								   END OF MAKEFILE								*
+# END OF MAKEFILE
 # *******************************************************************************

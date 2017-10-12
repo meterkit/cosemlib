@@ -6,7 +6,7 @@
  * See README for more details.
  */
 
-#include "util.h"
+#include "os_util.h"
 #include "bitfield.h"
 
 void bitfield_init(struct bitfield *bf, uint8_t init_level)
