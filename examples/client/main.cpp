@@ -18,6 +18,8 @@ int main(int argc, char **argv)
         int client = atoi(argv[3]);
         std::string lls(argv[4]);
 
+        printf("** Opening serial port %s\r\n", port.c_str());
+
         // Before application, test connectivity
         if (modem.Open(port, 9600))
         {
