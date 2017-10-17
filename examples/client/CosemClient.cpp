@@ -217,7 +217,7 @@ int CosemClient::Dial(const std::string &phone)
     {
         std::string data;
 
-        if (WaitForData(data, 40))
+        if (WaitForData(data, 60))
         {
             ret = data.size();
             Printer(data.c_str(), data.size(), PRINT_RAW);
