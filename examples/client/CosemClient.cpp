@@ -1,5 +1,5 @@
 
-
+#include <Util.h>
 #include <iostream>
 #include "CosemClient.h"
 #include "serial.h"
@@ -20,6 +20,8 @@ int StringToBin(const std::string &in, char *out)
 
 void Printer(const char *text, int size, PrintFormat format)
 {
+    std::cout << Util::CurrentDateTime("%Y-%m-%d.%X") << ": ";
+
     if (format != NO_PRINT)
     {
         if (format == PRINT_RAW)
@@ -214,9 +216,8 @@ int CosemClient::Dial(const std::string &phone)
     if (Send(dialRequest, PRINT_RAW))
     {
         std::string data;
-        sleep(20); // let the modem dial
 
-        if (WaitForData(data, 60))
+        if (WaitForData(data, 40))
         {
             ret = data.size();
             Printer(data.c_str(), data.size(), PRINT_RAW);
@@ -245,7 +246,7 @@ int CosemClient::ConnectHdlc()
         std::string data;
         sleep(1); // let the communication go on
 
-        if (WaitForData(data, 5))
+        if (WaitForData(data, 4))
         {
             ret = data.size();
             Printer(data.c_str(), data.size(), PRINT_HEX);
@@ -310,6 +311,7 @@ int CosemClient::ReadClock()
             if (WaitForData(data, 5))
             {
                 ret = data.size();
+
                 Printer(data.c_str(), data.size(), PRINT_HEX);
 
                 CGXByteBuffer buffer;
@@ -501,6 +503,8 @@ bool  CosemClient::PerformCosemRead(const std::vector<Object> &list)
                 {
                     std::cout << "** Unknown class ID.\r\n";
                 }
+
+                mReadIndex++;
             }
             break;
         }
