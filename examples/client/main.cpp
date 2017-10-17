@@ -128,8 +128,6 @@ int main(int argc, char **argv)
             std::cout << "** Using LLS: " << cosem.lls << std::endl;
         }
 
-
-        printf("** Opening serial port %s, phone numer: %s\r\n", modem.port.c_str(), modem.phone.c_str());
         // Before application, test connectivity
         if (client.Open(modem.port, 9600))
         {

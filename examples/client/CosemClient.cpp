@@ -207,6 +207,8 @@ int CosemClient::Dial(const std::string &phone)
 {
     int ret = -1;
 
+    std::cout << "** Dial: " << phone << std::endl;
+
     std::string dialRequest = std::string("ATD") + phone + std::string("\r\n");
 
     if (Send(dialRequest, PRINT_RAW))
@@ -404,6 +406,8 @@ int CosemClient::ReadRegister(const Object &obj)
 bool CosemClient::Open(const std::string &comport, uint32_t baudrate)
 {
     bool ret = false;
+
+    std::cout << "** Opening serial port " << comport << " at " << baudrate << std::endl;
     mSerialHandle = serial_open(comport.c_str());
 
     if (mSerialHandle >= 0)
