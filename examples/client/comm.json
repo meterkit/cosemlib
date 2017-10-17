@@ -1,0 +1,27 @@
+{
+	"version": "1.0.0",		
+	"protocol": "hdlc",
+	"device": "modem",
+	
+	"modem": {
+	   "init": "AT",
+	   "phone": "0000000000",
+	   "port": "/dev/ttyUSB0"
+	},
+	
+	"hdlc": {
+	   "address": 17
+	},
+	
+	"ip": {
+	   "transport": "tcp",
+	   "address": "192.168.1.63",
+	   "port": 703
+	},
+	
+	"cosem": {
+    	 "client": 1,
+    	 "logical_device": 1,
+    	 "lls": "ABCDEFGH"
+	 }
+}

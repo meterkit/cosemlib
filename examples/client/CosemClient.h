@@ -7,6 +7,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
+#include <list>
 
 // Gurux
 #pragma GCC diagnostic push
@@ -36,6 +37,48 @@ enum PrintFormat
     PRINT_RAW,
     PRINT_HEX
 };
+
+struct Modem
+{
+    std::string port;
+    std::string phone;
+    std::string init;
+};
+
+struct Cosem
+{
+    Cosem()
+        : client(1U)
+        , server(1U)
+    {
+
+    }
+    std::string lls;
+    std::uint16_t client;
+    std::uint16_t server;
+};
+
+
+struct Object
+{
+    Object()
+        : class_id(0U)
+        , attribute_id(0)
+    {
+
+    }
+
+    void Print()
+    {
+        std::cout << "Object " << name << ": " << ln << " Class ID: " << class_id << " Attribute: " << attribute_id << std::endl;
+    }
+
+    std::string name;
+    std::string ln;
+    std::uint16_t class_id;
+    std::int16_t attribute_id;
+};
+
 
 class Semaphore
 {
@@ -71,7 +114,7 @@ public:
     void Initialize();
     void WaitForStop();
 
-    bool Open(const std::string &comport, uint32_t baudrate);
+    bool Open(const std::string &comport, std::uint32_t baudrate);
     int Test();
     int Dial(const std::string &phone);
 
@@ -88,11 +131,11 @@ public:
         return ((CosemClient *)context)->Reader();
     }
 
-    bool PerformTask(const std::string &phone, int client, const std::string &lls);
-    bool PerformCosemRead();
+    bool PerformTask(const Modem &modem, const Cosem &cosem, const std::vector<Object> &list);
+    bool PerformCosemRead(const std::vector<Object> &list);
     int ConnectAarq();
     int ReadClock();
-    int ReadRegister();
+    int ReadRegister(const Object &obj);
 
 private:
     ModemState mModemState;
@@ -108,6 +151,7 @@ private:
     pthread_t mThread;
     CGXDLMSClient mClient;
     bool mTerminate;
+    std::uint32_t mReadIndex;
 
     pthread_mutex_t mDataMutex;
     Semaphore mSem;

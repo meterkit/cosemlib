@@ -1,32 +1,142 @@
 
-
-
+#include <iostream>
+#include "JsonReader.h"
 #include "CosemClient.h"
+
+
+bool ParseComFile(Modem &modem, Cosem &cosem, const std::string &file)
+{
+    JsonReader reader;
+    JsonValue json;
+    bool ok = false;
+
+    if (reader.ParseFile(json, file))
+    {
+        JsonValue obj = json.FindValue("modem");
+
+        if (obj.IsObject())
+        {
+            JsonValue val = obj.FindValue("phone");
+            if (val.IsString())
+            {
+                modem.phone = val.GetString();
+
+                val = obj.FindValue("port");
+                if (val.IsString())
+                {
+                    modem.port = val.GetString();
+                    ok = true;
+                }
+            }
+        }
+
+        if (ok)
+        {
+            ok = false;
+            obj = json.FindValue("cosem");
+            if (obj.IsObject())
+            {
+                JsonValue val = obj.FindValue("lls");
+                if (val.IsString())
+                {
+                    cosem.lls = val.GetString();
+                    ok = true;
+                }
+            }
+        }
+    }
+    else
+    {
+        std::cout << "** Error opening file: \r\n" << file;
+    }
+
+    return ok;
+}
+
+bool ParseObjectsFile(std::vector<Object> &list, const std::string &file)
+{
+    JsonReader reader;
+    JsonValue json;
+    bool ok = false;
+
+    if (reader.ParseFile(json, file))
+    {
+        JsonValue val = json.FindValue("objects");
+        if (val.IsArray())
+        {
+            JsonArray arr = val.GetArray();
+            for (std::uint32_t i = 0U; i < arr.Size(); i++)
+            {
+                Object object;
+                JsonValue obj = arr.GetEntry(i);
+
+                val = obj.FindValue("name");
+                if (val.IsString())
+                {
+                    object.name = val.GetString();
+                }
+                val = obj.FindValue("logical_name");
+                if (val.IsString())
+                {
+                    object.ln = val.GetString();
+                }
+                val = obj.FindValue("class_id");
+                if (val.IsInteger())
+                {
+                    object.class_id = static_cast<std::uint16_t>(val.GetInteger());
+                }
+                val = obj.FindValue("attribute_id");
+                if (val.IsInteger())
+                {
+                    object.attribute_id = static_cast<std::int16_t>(val.GetInteger());
+                }
+
+                object.Print();
+                list.push_back(object);
+            }
+            ok = true;
+        }
+    }
+
+    return ok;
+}
 
 
 int main(int argc, char **argv)
 {
     bool ok = true;
-    CosemClient modem;
+    CosemClient client;
 
     setbuf(stdout, NULL); // disable printf buffering
 
-    if (argc >= 5)
+    puts("** DLMS/Cosem Client started\r\n");
+
+    if (argc >= 3)
     {
-        std::string port(argv[1]);
-        std::string phone(argv[2]);
-        int client = atoi(argv[3]);
-        std::string lls(argv[4]);
+        Cosem cosem;
+        Modem modem;
+        std::vector<Object> list;
 
-        printf("** Opening serial port %s\r\n", port.c_str());
+        std::string commFile(argv[1]); // First file is the communication parameters
+        std::string objectsFile(argv[2]); // Second is the objects to retrieve
 
+        ok = ParseComFile(modem, cosem, commFile);
+
+        if (ok)
+        {
+            ok = ParseObjectsFile(list, objectsFile);
+            std::cout << "** Using LLS: " << cosem.lls << std::endl;
+        }
+
+
+        printf("** Opening serial port %s, phone numer: %s\r\n", modem.port.c_str(), modem.phone.c_str());
         // Before application, test connectivity
-        if (modem.Open(port, 9600))
+        if (client.Open(modem.port, 9600))
         {
             // create reader thread
-            modem.Initialize();
+            client.Initialize();
             printf("** Serial port success!\r\n");
-            if (modem.Test() > 0)
+            if (client.Test() > 0)
             {
                 printf("** Modem test success!\r\n");
             }
@@ -45,16 +155,16 @@ int main(int argc, char **argv)
         while(ok)
         {
             sleep(1);
-            ok = modem.PerformTask(phone, client, lls);
+            ok = client.PerformTask(modem, cosem, list);
         }
     }
     else
     {
-        printf("Usage: cosem_client /dev/ttyUSB0 0244059867 2 ABCDEFGH\r\n");
+        printf("Usage: cosem_client /path/comm.json /another/objectlist.json\r\n");
     }
 
     printf("** Exit task loop, waiting for reading thread...\r\n");
-    modem.WaitForStop();
+    client.WaitForStop();
 
     return 0;
 

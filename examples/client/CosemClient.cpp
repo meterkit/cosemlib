@@ -103,6 +103,7 @@ CosemClient::CosemClient()
     , mThread(0)
     , mClient(true, 1, 1, DLMS_AUTHENTICATION_LOW, "001CA021", DLMS_INTERFACE_TYPE_HDLC)
     , mTerminate(false)
+    , mReadIndex(0U)
 {
     mDataMutex = PTHREAD_MUTEX_INITIALIZER;
 }
@@ -298,6 +299,7 @@ int CosemClient::ReadClock()
         CGXByteBuffer gxPacket = data.at(0);
         std::string request((const char *)gxPacket.GetData(), gxPacket.GetSize());
 
+        printf("** Sending ReadClock request...\r\n");
         if (Send(request, PRINT_HEX))
         {
             std::string data;
@@ -315,31 +317,45 @@ int CosemClient::ReadClock()
                              // 7ea021030002002352f04fe6e700 c401c1 00 09 0c07e0010906152638ff80000095237e
 
                 // Bad: 7EA0140300020023521969E6E700 C401C10103 73827E
+                // FIXME: parser les erreurs
 
-
+                printf("** Read clock success!\r\n");
                 CGXReplyData reply;
                 mClient.GetData(buffer, reply);
                 CGXDLMSVariant replyData = reply.GetValue();
                 if (mClient.UpdateValue(clock, 2, replyData) == 0)
                 {
                     std::string time = clock.GetTime().ToString();
-                    printf("Meter time: %s\r\n", time.c_str());
+                    std::cout << "\r\n|DATA|Clock|" <<  time << "|" << std::endl;
                 }
             }
+            else
+            {
+                ret = -1;
+            }
         }
+        else
+        {
+            ret = -1;
+        }
+    }
+
+    if (ret < 0)
+    {
+       printf("** Cannot read clock from meter.\r\n");
     }
 
     return ret;
 }
 
-int CosemClient::ReadRegister()
+int CosemClient::ReadRegister(const Object &obj)
 {
     int attributeIndex = 2;
     int ret;
     std::vector<CGXByteBuffer> data;
     CGXReplyData reply;
 
-    CGXDLMSRegister reg("1.1.1.8.0.255", 0, DLMS_UNIT_ACTIVE_ENERGY, CGXDLMSVariant(0UL)); // ImportActiveEnergyAggregate
+    CGXDLMSRegister reg(obj.ln, 0, DLMS_UNIT_ACTIVE_ENERGY, CGXDLMSVariant(0UL)); // ImportActiveEnergyAggregate
 
     //Read data from the meter.
     ret = mClient.Read(&reg, attributeIndex, data);
@@ -349,6 +365,7 @@ int CosemClient::ReadRegister()
         CGXByteBuffer gxPacket = data.at(0);
         std::string request((const char *)gxPacket.GetData(), gxPacket.GetSize());
 
+        printf("** Sending ReadRegister request...\r\n");
         if (Send(request, PRINT_HEX))
         {
             std::string data;
@@ -367,13 +384,14 @@ int CosemClient::ReadRegister()
 
                 // Bad: 7EA0140300020023521969E6E700 C401C10103 73827E
 
-
+                // FIXME: parser les erreurs
+                printf("** Read register success!\r\n");
                 CGXReplyData reply;
                 mClient.GetData(buffer, reply);
                 CGXDLMSVariant replyData = reply.GetValue();
                 if (mClient.UpdateValue(reg, 2, replyData) == 0)
                 {
-                    printf("ImportActiveEnergyAggregate: %d\r\n", reg.GetValue().ToInteger());
+                    std::cout << "\r\n|DATA|ImportActiveEnergyAggregate|" <<  reg.GetValue().ToInteger() << "|" << std::endl;
                 }
             }
         }
@@ -425,10 +443,9 @@ int CosemClient::Send(const std::string &data, PrintFormat format)
 }
 
 
-bool  CosemClient::PerformCosemRead()
+bool  CosemClient::PerformCosemRead(const std::vector<Object> &list)
 {
     bool ret = false;
-    static bool onetime = false;
 
     switch(mCosemState)
     {
@@ -452,6 +469,7 @@ bool  CosemClient::PerformCosemRead()
             {
                printf("** AARQ success!\r\n");
                ret = true;
+               mReadIndex = 0U;
                mCosemState = ASSOCIATED;
             }
             else
@@ -460,33 +478,28 @@ bool  CosemClient::PerformCosemRead()
             }
             break;
         case ASSOCIATED:
-            if (!onetime)
+        {
+            if (mReadIndex < list.size())
             {
-                onetime = true;
-                printf("** Sending ReadClock request...\r\n");
-                if (ReadClock() > 0)
-                {
-                   printf("** Read clock success!\r\n");
-                   ret = true;
+                Object obj = list[mReadIndex];
 
-                   printf("** Sending ReadRegister request...\r\n");
-                   if (ReadRegister() > 0)
-                   {
-                       printf("** Read register success!\r\n");
-                   }
-                   else
-                  {
-                     printf("** Cannot read register from meter.\r\n");
-                  }
+                if (obj.class_id == 8)
+                {
+                    (void) ReadClock();
+                    ret = true;
+                }
+                else if (obj.class_id == 3)
+                {
+                    (void) ReadRegister(obj);
+                    ret = true;
                 }
                 else
                 {
-                   printf("** Cannot read clock from meter.\r\n");
+                    std::cout << "** Unknown class ID.\r\n";
                 }
-                break;
             }
             break;
-
+        }
         default:
             break;
 
@@ -497,14 +510,20 @@ bool  CosemClient::PerformCosemRead()
 
 
 // Global state chart
-bool CosemClient::PerformTask(const std::string &phone, int client, const std::string &lls)
+bool CosemClient::PerformTask(const Modem &modem, const Cosem &cosem, const std::vector<Object> &list)
 {
     bool ret = false;
+
+    CGXByteBuffer pass;
+    pass.AddString(cosem.lls);
+
+    mClient.m_Settings.SetPassword(pass);
+    mClient.m_Settings.SetClientAddress(cosem.client);
 
     switch (mModemState)
     {
         case DISCONNECTED:
-            if (Dial(phone) > 0)
+            if (Dial(modem.phone) > 0)
             {
                printf("** Modem dial success!\r\n");
                ret = true;
@@ -518,12 +537,7 @@ bool CosemClient::PerformTask(const std::string &phone, int client, const std::s
             break;
         case CONNECTED:
         {
-            CGXByteBuffer pass;
-            pass.AddString(lls);
-
-            mClient.m_Settings.SetPassword(pass);
-            mClient.m_Settings.SetClientAddress(client);
-            ret = PerformCosemRead();
+            ret = PerformCosemRead(list);
             break;
         }
         default:

@@ -43,7 +43,7 @@ DEFINES	+= -DUSE_WINDOWS_OS
 LDFLAGS += -Wl,-subsystem,console -lws2_32 -lpsapi -lwinmm -static-libgcc -static-libstdc++ -static -lpthread
 else
 
-DEFINES	+= -DUSE_LINUX_OS
+DEFINES	+= -DUSE_UNIX_OS
 LDFLAGS += -ldl -lpthread
 
 endif
