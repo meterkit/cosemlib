@@ -415,8 +415,8 @@ int CosemClient::ReadProfile(const Object &obj, const Cosem &cosem)
     std::stringstream ss(cosem.start_date);
     ss >> std::get_time(&tm_start, "%Y-%m-%d.%H:%M:%S");
 
-    ss.str(cosem.end_date);
-    ss >> std::get_time(&tm_end, "%Y-%m-%d.%H:%M:%S");
+    std::stringstream ss2(cosem.end_date);
+    ss2 >> std::get_time(&tm_end, "%Y-%m-%d.%H:%M:%S");
 
     //Read data from the meter.
     ret = mClient.ReadRowsByRange(&profile, &tm_start, &tm_end, data);
