@@ -56,6 +56,9 @@ struct Cosem
     std::string lls;
     std::uint16_t client;
     std::uint16_t server;
+
+    std::string start_date;
+    std::string end_date;
 };
 
 
@@ -132,10 +135,11 @@ public:
     }
 
     bool PerformTask(const Modem &modem, const Cosem &cosem, const std::vector<Object> &list);
-    bool PerformCosemRead(const std::vector<Object> &list);
+    bool PerformCosemRead(const std::vector<Object> &list, const Cosem &cosem);
     int ConnectAarq();
     int ReadClock();
     int ReadRegister(const Object &obj);
+    int ReadProfile(const Object &obj, const Cosem &cosem);
 
 private:
     ModemState mModemState;

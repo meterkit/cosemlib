@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 
     puts("** DLMS/Cosem Client started\r\n");
 
-    if (argc >= 3)
+    if (argc >= 5)
     {
         Cosem cosem;
         Modem modem;
@@ -119,6 +119,8 @@ int main(int argc, char **argv)
 
         std::string commFile(argv[1]); // First file is the communication parameters
         std::string objectsFile(argv[2]); // Second is the objects to retrieve
+        cosem.start_date = std::string(argv[3]); // startDate for the profiles
+        cosem.end_date = std::string(argv[4]); // endDate for the profiles
 
         ok = ParseComFile(modem, cosem, commFile);
 
@@ -158,7 +160,8 @@ int main(int argc, char **argv)
     }
     else
     {
-        printf("Usage: cosem_client /path/comm.json /another/objectlist.json\r\n");
+        printf("Usage example: cosem_client /path/comm.json /another/objectlist.json 2001-08-23.14:55:02\r\n");
+        puts("\r\nDate-time format: %Y-%m-%d.%H:%M:%S");
     }
 
     printf("** Exit task loop, waiting for reading thread...\r\n");

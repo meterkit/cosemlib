@@ -1,6 +1,7 @@
 
 #include <Util.h>
 #include <iostream>
+#include <iomanip>
 #include "CosemClient.h"
 #include "serial.h"
 #include "os_util.h"
@@ -291,7 +292,6 @@ int CosemClient::ReadClock()
     int attributeIndex = 2;
     int ret;
     std::vector<CGXByteBuffer> data;
-    CGXReplyData reply;
     CGXDLMSClock clock;
 
     //Read data from the meter.
@@ -306,8 +306,6 @@ int CosemClient::ReadClock()
         if (Send(request, PRINT_HEX))
         {
             std::string data;
-            sleep(1); // let the communication go on
-
             if (WaitForData(data, 5))
             {
                 ret = data.size();
@@ -357,7 +355,6 @@ int CosemClient::ReadRegister(const Object &obj)
     int attributeIndex = 2;
     int ret;
     std::vector<CGXByteBuffer> data;
-    CGXReplyData reply;
 
     CGXDLMSRegister reg(obj.ln, 0, DLMS_UNIT_ACTIVE_ENERGY, CGXDLMSVariant(0UL)); // ImportActiveEnergyAggregate
 
@@ -373,8 +370,6 @@ int CosemClient::ReadRegister(const Object &obj)
         if (Send(request, PRINT_HEX))
         {
             std::string data;
-            sleep(1); // let the communication go on
-
             if (WaitForData(data, 5))
             {
                 ret = data.size();
@@ -395,7 +390,7 @@ int CosemClient::ReadRegister(const Object &obj)
                 CGXDLMSVariant replyData = reply.GetValue();
                 if (mClient.UpdateValue(reg, 2, replyData) == 0)
                 {
-                    std::cout << "\r\n|DATA|ImportActiveEnergyAggregate|" <<  reg.GetValue().ToInteger() << "|" << std::endl;
+                    std::cout << "\r\n|DATA|" << obj.name << "|" <<  reg.GetValue().ToInteger() << "|" << std::endl;
                 }
             }
         }
@@ -403,6 +398,98 @@ int CosemClient::ReadRegister(const Object &obj)
 
     return ret;
 }
+
+
+int CosemClient::ReadProfile(const Object &obj, const Cosem &cosem)
+{
+    int ret;
+    std::vector<CGXByteBuffer> data;
+
+    CGXDLMSProfileGeneric profile(obj.ln);
+
+    CGXDLMSClock clock("0.0.1.0.0.255");
+    profile.SetSortObject(&clock);
+
+    std::tm tm_start = {};
+    std::tm tm_end = {};
+    std::stringstream ss(cosem.start_date);
+    ss >> std::get_time(&tm_start, "%Y-%m-%d.%H:%M:%S");
+
+    ss.str(cosem.end_date);
+    ss >> std::get_time(&tm_end, "%Y-%m-%d.%H:%M:%S");
+
+    //Read data from the meter.
+    ret = mClient.ReadRowsByRange(&profile, &tm_start, &tm_end, data);
+
+    if ((ret == 0) && (data.size() > 0))
+    {
+        CGXByteBuffer gxPacket = data.at(0);
+        std::string request((const char *)gxPacket.GetData(), gxPacket.GetSize());
+
+        printf("** Sending ReadProfile request...\r\n");
+        if (Send(request, PRINT_HEX))
+        {
+            std::string data;
+
+            if (WaitForData(data, 5))
+            {
+                ret = data.size();
+                Printer(data.c_str(), data.size(), PRINT_HEX);
+
+                gxPacket.Set(data.data(), data.size());
+                CGXReplyData reply;
+                if (mClient.GetData(gxPacket, reply) == DLMS_ERROR_CODE_OK)
+                {
+                    bool noError = true;
+                    while (reply.IsMoreData() && noError)
+                    {
+                        gxPacket.Clear();
+                        if ((ret = mClient.ReceiverReady(reply.GetMoreData(), gxPacket)) != 0)
+                        {
+                            noError = false;
+                        }
+
+                        printf("** Get next block...\r\n");
+                        request.assign((const char *)gxPacket.GetData(), gxPacket.GetSize());
+                        if (Send(request, PRINT_HEX))
+                        {
+                            if (WaitForData(data, 5))
+                            {
+                                ret = data.size();
+                                Printer(data.c_str(), data.size(), PRINT_HEX);
+
+                                gxPacket.Set(data.data(), data.size());
+                                if (mClient.GetData(gxPacket, reply) != DLMS_ERROR_CODE_OK)
+                                {
+                                    noError = false;
+                                }
+                            }
+                            else
+                            {
+                                noError = false;
+                            }
+                        }
+                    }
+
+                    // We have received all the packets
+                    if (mClient.UpdateValue(profile, 2, reply.GetValue()) !=0 )
+                    {
+                        printf("** Read profile failure \r\n");
+                        ret = -1;
+                    }
+                    else
+                    {
+                        printf("** Read profile success\r\n");
+                        ret = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    return ret;
+}
+
 
 
 bool CosemClient::Open(const std::string &comport, uint32_t baudrate)
@@ -449,7 +536,7 @@ int CosemClient::Send(const std::string &data, PrintFormat format)
 }
 
 
-bool  CosemClient::PerformCosemRead(const std::vector<Object> &list)
+bool  CosemClient::PerformCosemRead(const std::vector<Object> &list, const Cosem &cosem)
 {
     bool ret = false;
 
@@ -499,6 +586,11 @@ bool  CosemClient::PerformCosemRead(const std::vector<Object> &list)
                     (void) ReadRegister(obj);
                     ret = true;
                 }
+                else if (obj.class_id == 7)
+                {
+                    (void) ReadProfile(obj, cosem);
+                    ret = true;
+                }
                 else
                 {
                     std::cout << "** Unknown class ID.\r\n";
@@ -545,7 +637,7 @@ bool CosemClient::PerformTask(const Modem &modem, const Cosem &cosem, const std:
             break;
         case CONNECTED:
         {
-            ret = PerformCosemRead(list);
+            ret = PerformCosemRead(list, cosem);
             break;
         }
         default:
@@ -553,3 +645,4 @@ bool CosemClient::PerformTask(const Modem &modem, const Cosem &cosem, const std:
     }
     return ret;
 }
+
