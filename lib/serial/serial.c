@@ -111,19 +111,54 @@ int serial_setup(int fd, unsigned long speed)
 
 int serial_write(int fd, const char *buf, int size)
 {
-	int ret = 0;
+	int ret = -1;
 #if USE_WINDOWS_OS
 	HANDLE hCom = (HANDLE)fd;
-	int res = 0;
 	unsigned long bwritten = 0;
 
-	res = WriteFile(hCom, buf, size, &bwritten, NULL);
+    OVERLAPPED osWrite = {0};
+    DWORD dwRes;
 
-	if( res == FALSE ) {
-		ret = -1;
-	} else {
-		ret = bwritten;
-	}
+    // Create this write operation's OVERLAPPED structure's hEvent.
+    osWrite.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (osWrite.hEvent != NULL)
+    {
+        // Issue write.
+        if (!WriteFile(hCom, buf, size, &bwritten, &osWrite))
+        {
+            if (GetLastError() == ERROR_IO_PENDING)
+            {
+                 // Write is pending.
+                 dwRes = WaitForSingleObject(osWrite.hEvent, INFINITE);
+                 switch(dwRes)
+                 {
+                    // OVERLAPPED structure's event has been signaled.
+                    case WAIT_OBJECT_0:
+                         if (GetOverlappedResult(hCom, &osWrite, &bwritten, FALSE))
+                         {
+                             ret = bwritten;
+                         }
+                         break;
+
+                    default:
+                         // An error has occurred in WaitForSingleObject.
+                         // This usually indicates a problem with the
+                        // OVERLAPPED structure's event handle.
+                         break;
+                 }
+            }
+            else
+            {
+              // WriteFile failed, but isn't delayed. Report error and abort.
+            }
+        }
+        else
+        {
+          // WriteFile completed immediately.
+           ret = bwritten;
+        }
+    }
+
 #else
 	ret = write(fd, buf, size);
 #endif
@@ -136,24 +171,96 @@ int serial_write(int fd, const char *buf, int size)
 	return ret;
 }
 
+// timeout in seconds
 int serial_read(int fd, char *buf, int size, int timeout)
 {
 	int len = 0;
-	int ret = 0;
 
 #if USE_WINDOWS_OS
 	HANDLE hCom = (HANDLE)fd;
-	unsigned long bread = 0;
 
-	ret = ReadFile(hCom, buf, size, &bread, NULL);
+	DWORD dwRead;
+	BOOL fWaitingOnRead = FALSE;
+	OVERLAPPED osReader = {0};
+	timeout = timeout * 1000; // in milliseconds
 
-	if( ret == FALSE || ret==-1 ) {
-		len = -1;
-	} else {
-		len = bread;
+	// Create the overlapped event. Must be closed before exiting
+	// to avoid a handle leak.
+	osReader.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+	if (osReader.hEvent != NULL)
+	{
+	    if (!fWaitingOnRead)
+	    {
+	       // Issue read operation.
+	       if (!ReadFile(hCom, buf, size, &dwRead, &osReader))
+	       {
+	          if (GetLastError() != ERROR_IO_PENDING)     // read not delayed?
+	          {
+	             // Error in communications; report it.
+	          }
+	          else
+	          {
+	             fWaitingOnRead = TRUE;
+	          }
+	       }
+	       else
+	       {
+	          // read completed immediately
+	          len = dwRead;
+	        }
+	    }
+
+	    if (fWaitingOnRead == TRUE)
+	    {
+            DWORD dwRes;
+            dwRes = WaitForSingleObject(osReader.hEvent, timeout);
+            switch(dwRes)
+            {
+              // Read completed.
+              case WAIT_OBJECT_0:
+                  if (!GetOverlappedResult(hCom, &osReader, &dwRead, FALSE))
+                  {
+                     // Error in communications; report it.
+                  }
+                  else
+                  {
+                     // Read completed successfully.
+                      len = dwRead;
+                  }
+
+                  //  Reset flag so that another opertion can be issued.
+                  fWaitingOnRead = FALSE;
+                  break;
+
+              case WAIT_TIMEOUT:
+                  // Operation isn't complete yet. fWaitingOnRead flag isn't
+                  // changed since I'll loop back around, and I don't want
+                  // to issue another read until the first one finishes.
+                  //
+                  // This is a good time to do some background work.
+                  len = 0;
+                  break;
+
+              default:
+                  // Error in the WaitForSingleObject; abort.
+                  // This indicates a problem with the OVERLAPPED structure's
+                  // event handle.
+                  break;
+            }
+	    }
 	}
 
+//	ret = ReadFile(hCom, buf, size, &bread, NULL);
+//
+//	if( ret == FALSE || ret==-1 ) {
+//		len = -1;
+//	} else {
+//		len = bread;
+//	}
+
 #else
+    int ret = 0;
 
 	fd_set readfs;
 	int    maxfd;     /* maximum file desciptor used */
@@ -211,7 +318,7 @@ int serial_open(const char *port)
 		port = full_path;
 	}
 
-	hCom = CreateFileA(port, GENERIC_WRITE | GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	hCom = CreateFileA(port, GENERIC_WRITE | GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
 
 	if( !hCom || hCom == INVALID_HANDLE_VALUE ) {
 		fd = -1;
