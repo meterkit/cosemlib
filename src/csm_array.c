@@ -10,7 +10,7 @@
  */
 
 #include "csm_array.h"
-#include "util.h"
+#include "os_util.h"
 #include <string.h>
 
 #define INDEX(array, i)         (i+array->offset)
