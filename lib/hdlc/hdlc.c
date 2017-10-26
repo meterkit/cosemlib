@@ -3,6 +3,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "hdlc.h"
+#include "os_util.h"
+
 #ifndef BIT
 #define BIT(x) (1U << (x))
 #endif
@@ -99,36 +102,6 @@ uint16_t pppfcs16(uint16_t fcs, const uint8_t* cp, uint32_t len)
 } 
 
 
-static uint8_t is_bit_set(uint8_t value, uint8_t bit)
-{
-    return ((value & BIT(bit)) == 0U) ? 0U : 1U;
-}
-
-
-
-#define HDLC_OK			0
-#define HDLC_ERR		-1
-#define HDLC_ERR_7E		-2
-#define HDLC_ERR_FORMAT	-3
-#define HDLC_ERR_SIZE	-4 // bad packet size
-#define HDLC_ERR_ADDR	-5 // address format invalid
-#define HDLC_ERR_FCS	-6
-#define HDLC_ERR_HCS	-7
-
-typedef struct
-{
-	uint16_t len;
-	uint16_t logical_device;
-	uint16_t phy_address;
-	uint16_t client_addr; // Client is always one byte length, but store it on 16 bytes for Cosem LLC compatibility
-	uint8_t addr_len; // server addressing scheme (1, 2 or 4 bytes)
-	uint8_t segmentation;
-	uint8_t rrr;
-	uint8_t sss;
-	uint8_t type;
-	uint8_t poll_final;
-} hdlc_t;
-
 #define HDLC_FORMAT_TYPE	(0xA0)
 #define HDLC_SEGMENTATION	(0x08)
 #define HDLC_LEN_HI			(0x03)
@@ -154,11 +127,14 @@ void hdlc_init(hdlc_t *hdlc)
 	hdlc->client_addr = 0U;
 	hdlc->addr_len = 0;
 	hdlc->segmentation = 0U;
-	hdlc->len = 0U;
+	hdlc->frame_size = 0U;
 	hdlc->rrr = 0U;
 	hdlc->sss = 0U;
 	hdlc->type = 0U;
 	hdlc->poll_final = 0U;
+	hdlc->cmd_resp = 0U;
+	hdlc->data_index = 0U;
+	hdlc->data_size = 0U;
 }
 
 /**
@@ -351,16 +327,32 @@ int hdlc_decode_info_field(hdlc_t *hdlc, const uint8_t *buf, uint16_t info_field
 {
 	int ret = HDLC_OK;
 	
-	printf("Info field size: %d\r\n", info_field_size);
-	
-	
-	
 	switch(hdlc->type)
 	{
 		case HDLC_PACKET_TYPE_SNRM:
 		{
-			
+			// FIXME: decode framing options
 			break;
+		}
+
+		case HDLC_PACKET_TYPE_I:
+		{
+		    // First thre bytes are the LLC (E6 E6 00 or E6 E7 00)
+
+		    if ((buf[hdlc->data_index] == 0xE6U) &&
+		        ((buf[hdlc->data_index + 1] & 0xFEU) == 0xE6U) &&
+		        (buf[hdlc->data_index + 2] == 0U))
+		    {
+		        hdlc->data_index = hdlc->data_index + 3U; // jump over LLC
+		        hdlc->data_size = info_field_size - 3U;
+		        // LLC is good
+		        debug_print("Packet type: %s\r\n", hdlc_packet_to_string(hdlc));
+		    }
+		    else
+		    {
+		        ret = HDLC_ERR_I_FORMAT;
+		    }
+		    break;
 		}
 		default :
 			break;
@@ -379,24 +371,26 @@ int hdlc_check_fcs(const uint8_t* buf, uint16_t size)
 	
 	fcs ^= 0xffff;
 	
-	printf("FCS calculated: 0x%.4X\r\n", fcs);
-	printf("FCS expected: 0x%.4X\r\n", expected);
+	debug_print("FCS calculated: 0x%.4X\r\n", fcs);
+	debug_print("FCS expected: 0x%.4X\r\n", expected);
 	
 	return (expected == fcs) ? HDLC_OK : HDLC_ERR_FCS;
 }
 
+// buf: pointer to the start of the frame
+// size: header size, including HCS
 int hdlc_check_hcs(const uint8_t* buf, uint16_t size)
 {
-	uint16_t hcs = pppfcs16(PPPINITFCS16, &buf[1], size-4);
+	uint16_t hcs = pppfcs16(PPPINITFCS16, &buf[1], size-3);
 	
 	// check last two bytes before the last 7E
-	uint16_t expected = buf[size-2];
-	expected = (expected << 8) + buf[size-3];
+	uint16_t expected = buf[size-1];
+	expected = (expected << 8) + buf[size-2];
 	
 	hcs ^= 0xffff;
 	
-	printf("HCS calculated: 0x%.4X\r\n", hcs);
-	printf("HCS expected: 0x%.4X\r\n", expected);
+	debug_print("HCS calculated: 0x%.4X\r\n", hcs);
+	debug_print("HCS expected: 0x%.4X\r\n", expected);
 	
 	return (expected == hcs) ? HDLC_OK : HDLC_ERR_HCS;
 }
@@ -407,81 +401,99 @@ int hdlc_decode(hdlc_t *hdlc, const uint8_t *buf, uint16_t size)
 	int ret = HDLC_ERR;
 
 	// test packet structure
-	if ((buf[0] == 0x7E) && (buf[size-1] == 0x7E))
+	if (buf[0] == 0x7E)
 	{
-		// Test FCS, always present
-		ret = hdlc_check_fcs(buf, size);
-		
-		if (!ret)
-		{
-			// next byte is the frame format
-			uint8_t format = buf[1] & HDLC_FORMAT_TYPE;
-			
-			if (format == HDLC_FORMAT_TYPE)
-			{
-				hdlc->segmentation = is_bit_set(format, HDLC_SEGMENTATION);
-				hdlc->len = hdlc_get_len(&buf[1]);
-				
-				// Sanity check: The value of the frame length subfield is the count of octets in the frame excluding the opening and 
-				// closing frame flag sequences. 
-				if ((hdlc->len + 2U) == size)
-				{
-					// FIXME: Sanity check: test a minimal size
-					// 7E + frame format + dest + src +         + FCS + 7E
-					//  1        2           1      1              2     1
-					 
-					const uint8_t* ptr = &buf[3];
-					// Destination address decoder (here, the server)
-					uint8_t dst_size = hdlc_decode_addr_size(ptr, size);
-					ret = hdlc_get_addr(ptr, dst_size, &hdlc->logical_device, &hdlc->phy_address);
-					
-					if (!ret)
-					{
-						// advance to source address
-						ptr += dst_size;
-						uint8_t src_size = hdlc_decode_addr_size(ptr, size);
-						uint16_t dummy;
-						ret = hdlc_get_addr(ptr, src_size, &hdlc->client_addr, &dummy);
-						
-						if ((!ret) && (src_size == 1))
-						{
-							// Advance to next frame part
-							ptr += src_size;
-							// now decode the control field
-							ret = hdlc_decode_control_field(hdlc, *ptr);
-							
-							if (!ret)
-							{
-								ptr += 1; // skip control field
-								
-								// Now check the user information, if any.
-								// compute the remaining data size
-								uint16_t remaining_size = (uint16_t)(&buf[size-3] - ptr);
-								
-								if (remaining_size > 0)
-								{
-									// Compute Header checksum
-								}	
-								
-								ret = hdlc_decode_info_field(hdlc, ptr, remaining_size);
-							}
-						}
-						else
-						{
-							ret = HDLC_ERR_ADDR;
-						}
-					}
-				}
-				else
-				{
-					ret = HDLC_ERR_SIZE;
-				}
-			}
-			else
-			{
-				ret = HDLC_ERR_FORMAT;
-			}
-		}
+        // next byte is the frame format
+        uint8_t format = buf[1] & HDLC_FORMAT_TYPE;
+
+        if (format == HDLC_FORMAT_TYPE)
+        {
+            hdlc->segmentation = is_bit_set(format, HDLC_SEGMENTATION);
+
+            // We have the real length of the frame, now we can test the whole frame structure
+            hdlc->frame_size = hdlc_get_len(&buf[1]) + 2U; // The value of the frame length subfield is the count of octets in the frame excluding the opening and
+                                                        // closing frame flag sequences.
+
+            if ((hdlc->frame_size <= size) && (buf[hdlc->frame_size-1] == 0x7E))
+            {
+                // Test FCS, always present
+                ret = hdlc_check_fcs(buf, hdlc->frame_size);
+
+                // Sanity check:
+                if (ret == HDLC_OK)
+                {
+                    // FIXME: Sanity check: test a minimal size
+                    // 7E + frame format + dest + src +         + FCS + 7E
+                    //  1        2           1      1              2     1
+
+                    const uint8_t* ptr = &buf[3];
+                    // Destination address decoder (here, the server)
+                    uint8_t dst_size = hdlc_decode_addr_size(ptr, hdlc->frame_size);
+                    ret = hdlc_get_addr(ptr, dst_size, &hdlc->logical_device, &hdlc->phy_address);
+
+                    if (!ret)
+                    {
+                        // advance to source address
+                        ptr += dst_size;
+                        uint8_t src_size = hdlc_decode_addr_size(ptr, hdlc->frame_size);
+
+                        // FIXME: test source size if we decode a client frame (always 1 byte)
+
+                        uint16_t dummy;
+                        ret = hdlc_get_addr(ptr, src_size, &hdlc->client_addr, &dummy);
+
+                        if (!ret)
+                        {
+                            // Advance to next frame part
+                            ptr += src_size;
+                            // now decode the control field
+                            ret = hdlc_decode_control_field(hdlc, *ptr);
+
+                            if (!ret)
+                            {
+                                ptr += 1; // skip control field
+
+                                // Now check the user information, if any.
+                                // compute the remaining data size
+                                // We remove FCS and last 7E
+                                uint16_t remaining_size = (uint16_t)(&buf[hdlc->frame_size-3] - ptr);
+
+                                // If there is an HCS, then there is data. HCS is 2 bytes length
+                                if (remaining_size >= 2U)
+                                {
+                                    ptr += 2U; // jump over HCS
+                                    uint16_t header_size = (uint16_t)(ptr - &buf[0]); // include the HCS to get it and test it
+                                    // Compute Header checksum
+                                    ret = hdlc_check_hcs(buf, header_size);
+
+                                    if (!ret)
+                                    {
+                                        // Info field size
+                                        hdlc->data_index = (uint16_t)(ptr - &buf[0]);
+
+                                        ret = hdlc_decode_info_field(hdlc, buf, remaining_size - 2U); // remove HCS from the remaining size
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            ret = HDLC_ERR_ADDR;
+                        }
+                    }
+                    // return error code is already set here
+                }
+                // return error code is already set here
+            }
+            else
+            {
+                ret = HDLC_ERR_SIZE;
+            }
+        }
+        else
+        {
+            ret = HDLC_ERR_FORMAT;
+        }
 	}
 	else
 	{
@@ -498,7 +510,7 @@ void print_hdlc_result(hdlc_t *hdlc, int code)
 		
 		// Then print HDLC parameters:
 		printf("Segmentation: %s\r\n", hdlc->segmentation ? "yes" : "no");
-		printf("Size: %d\r\n", hdlc->len);
+		printf("Frame Size: %d\r\n", hdlc->frame_size);
 		printf("Physical address: %d\r\n", hdlc->phy_address);
 		printf("Logical device: %d\r\n", hdlc->logical_device);
 		printf("Client SAP: %d\r\n", hdlc->client_addr);
@@ -523,100 +535,5 @@ void print_hdlc_result(hdlc_t *hdlc, int code)
 	}
 }
 
-#ifdef DECODER
 
-// Input file must contains only ANSI hexadecimal characters without spaces
-int main(int argc, char** argv)
-{
-	if (argc == 2)
-	{
-		char *buffer = NULL;
-		size_t sz = 0U;
-		FILE *f = fopen(argv[1], "r");
-		if (f != NULL)
-		{
-			fseek(f, 0L, SEEK_END);
-			sz = ftell(f);
-			rewind(f);
-			printf("File size: %d\r\n", sz);
-			
-			buffer = malloc(sz);
-			if (buffer != NULL)
-			{
-				fread(buffer, 1, sz, f);
-				// now close the file as we have finish with it
-				fclose(f);
-			}
-			else
-			{
-				printf("Cannot allocate memory!\r\n");
-			}
-		}
-		else
-		{
-			printf("Not a file, reading input string\r\n");
-			sz = strlen(argv[1]);
-			printf("String size: %d\r\n", sz);
-			buffer = malloc(sz);
-			if (buffer != NULL)
-			{
-				memcpy(buffer, argv[1], sz);
-			}
-			else
-			{
-				printf("Cannot allocate memory!\r\n");
-			}
-		}
-			
-		// Simple test: we must have a even number of bytes
-		if (!(sz%2))
-		{
-			printf("Input string: ");
-			for(int i = 0; i<sz; i++) printf("%c", buffer[i]);
-			printf("\r\n");
-			
-			// Now, transform the hexadecimal string into an array of integers
-			size_t packet_size = sz/2U;
-			uint8_t *packet = malloc(packet_size);
-			
-			if (packet != NULL)
-			{
-				int ret;
-				
-				hex2bin(buffer, packet, sz);
-				//print_hex(packet, packet_size);
-				
-				hdlc_t hdlc;
-				hdlc_init(&hdlc);
-				
-				ret = hdlc_decode(&hdlc, packet, packet_size);
-				print_hdlc_result(&hdlc, ret);
-				
-				free(packet);
-			}
-			else
-			{
-				printf("Cannot allocate memory!\r\n");
-			}
-		}
-		else
-		{
-			printf("String size must have a event number of characters!\r\n");
-		}
-		
-		if (buffer != NULL)
-		{
-			free(buffer);
-		}
-	}
-	else
-	{
-		printf("HDLC packet decoder, from input file or a HEX string as parameter.\r\n");
-		printf("Usage: %s [inputfile.txt] [7E...7E]\r\n", argv[0]);
-	}
-	
-	return 0;
-}
-
-#endif //hex2bin
 
