@@ -6,8 +6,8 @@
  * See README for more details.
  */
 
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef OS_UTIL_H
+#define OS_UTIL_H
 
 
 #ifdef __cplusplus
@@ -102,9 +102,17 @@ void hex2bin(const char *in, char* out, int size);
 
 void print_hex(const char *buf, int size);
 
+
+#define debug_print(fmt, ...) \
+        do { if (DEBUG) fprintf(stderr, "%s:%d:%s(): " fmt, __FILE__, \
+                                __LINE__, __func__, __VA_ARGS__); } while (0)
+
+#define debug_puts(str) \
+        do { if (DEBUG) fprintf(stderr, str); } while (0)
+
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif /* OS_H */
+#endif /* OS_UTIL_H */
