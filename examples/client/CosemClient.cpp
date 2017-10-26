@@ -107,6 +107,7 @@ CosemClient::CosemClient()
     , mClient(true, 1, 1, DLMS_AUTHENTICATION_LOW, "001CA021", DLMS_INTERFACE_TYPE_HDLC)
     , mTerminate(false)
     , mReadIndex(0U)
+    , mDevice(NONE)
 {
     mDataMutex = PTHREAD_MUTEX_INITIALIZER;
 }
@@ -114,6 +115,16 @@ CosemClient::CosemClient()
 
 void CosemClient::Initialize()
 {
+    if (mDevice != MODEM)
+    {
+        // Skip Modem state chart when no modem is in use
+        mModemState = CONNECTED;
+    }
+    else
+    {
+        mModemState = DISCONNECTED;
+    }
+
     pthread_create(&mThread, NULL, &CosemClient::thread_reader, this);
 }
 
@@ -240,12 +251,9 @@ int CosemClient::ConnectHdlc()
 
     int size = StringToBin(snrm, &mBuffer[0]);
 
-    sleep(1); // let the communication go on
-
     if (Send(std::string(&mBuffer[0], size), PRINT_HEX))
     {
         std::string data;
-        sleep(1); // let the communication go on
 
         if (WaitForData(data, 4))
         {
@@ -623,6 +631,24 @@ bool CosemClient::PerformTask(const Modem &modem, const Cosem &cosem, const std:
     switch (mModemState)
     {
         case DISCONNECTED:
+        {
+            if (Test() > 0)
+            {
+                printf("** Modem test success!\r\n");
+
+                mModemState = DIAL;
+                ret = true;
+            }
+            else
+            {
+                printf("** Modem test failed.\r\n");
+            }
+
+            break;
+        }
+
+        case DIAL:
+        {
             if (Dial(modem.phone) > 0)
             {
                printf("** Modem dial success!\r\n");
@@ -635,6 +661,8 @@ bool CosemClient::PerformTask(const Modem &modem, const Cosem &cosem, const std:
             }
 
             break;
+        }
+
         case CONNECTED:
         {
             ret = PerformCosemRead(list, cosem);

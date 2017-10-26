@@ -21,6 +21,7 @@
 enum ModemState
 {
     DISCONNECTED,
+    DIAL,
     CONNECTED
 };
 
@@ -40,9 +41,19 @@ enum PrintFormat
 
 struct Modem
 {
-    std::string port;
     std::string phone;
     std::string init;
+};
+
+struct Serial
+{
+    Serial()
+        : baudrate(9600)
+    {
+
+    }
+    std::string port;
+    unsigned int baudrate;
 };
 
 struct Cosem
@@ -59,6 +70,12 @@ struct Cosem
 
     std::string start_date;
     std::string end_date;
+};
+
+enum Device
+{
+    NONE = 0,
+    MODEM = 1
 };
 
 
@@ -121,6 +138,10 @@ public:
     int Test();
     int Dial(const std::string &phone);
 
+    void SetDevice(Device dev) {
+        mDevice = dev;
+    }
+
     // return the bytes read
     int Send(const std::string &data, PrintFormat format);
     int ConnectHdlc();
@@ -156,6 +177,7 @@ private:
     CGXDLMSClient mClient;
     bool mTerminate;
     std::uint32_t mReadIndex;
+    Device mDevice;
 
     pthread_mutex_t mDataMutex;
     Semaphore mSem;

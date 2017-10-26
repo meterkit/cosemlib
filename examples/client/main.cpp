@@ -4,15 +4,32 @@
 #include "CosemClient.h"
 
 
-bool ParseComFile(Modem &modem, Cosem &cosem, const std::string &file)
+Device device;
+
+bool ParseComFile(Modem &modem, Cosem &cosem, Serial &serial, const std::string &file)
 {
     JsonReader reader;
     JsonValue json;
     bool ok = false;
 
-    if (reader.ParseFile(json, file))
+    if (reader.ParseFile(json, "comm.json"))
     {
         JsonValue obj = json.FindValue("modem");
+
+        JsonValue dev = obj.FindValue("device");
+        if (dev.IsString())
+        {
+            std::string devString = dev.GetString();
+            if (devString == "modem")
+            {
+                device = MODEM;
+            }
+            else
+            {
+                device = NONE;
+            }
+        }
+
 
         if (obj.IsObject())
         {
@@ -21,10 +38,10 @@ bool ParseComFile(Modem &modem, Cosem &cosem, const std::string &file)
             {
                 modem.phone = val.GetString();
 
-                val = obj.FindValue("port");
+                val = obj.FindValue("init");
                 if (val.IsString())
                 {
-                    modem.port = val.GetString();
+                    modem.init = val.GetString();
                     ok = true;
                 }
             }
@@ -44,6 +61,26 @@ bool ParseComFile(Modem &modem, Cosem &cosem, const std::string &file)
                 }
             }
         }
+
+        if (ok)
+        {
+            ok = false;
+            obj = json.FindValue("serial");
+            if (obj.IsObject())
+            {
+                JsonValue val = obj.FindValue("port");
+                if (val.IsString())
+                {
+                    serial.port = val.GetString();
+                    val = obj.FindValue("baudrate");
+                    if (val.IsInteger())
+                    {
+                        serial.baudrate = static_cast<unsigned int>(val.GetInteger());
+                        ok = true;
+                    }
+                }
+            }
+        }
     }
     else
     {
@@ -59,7 +96,7 @@ bool ParseObjectsFile(std::vector<Object> &list, const std::string &file)
     JsonValue json;
     bool ok = false;
 
-    if (reader.ParseFile(json, file))
+    if (reader.ParseFile(json, "objectlist.json"))
     {
         JsonValue val = json.FindValue("objects");
         if (val.IsArray())
@@ -115,6 +152,7 @@ int main(int argc, char **argv)
     {
         Cosem cosem;
         Modem modem;
+        Serial serial;
         std::vector<Object> list;
 
         std::string commFile(argv[1]); // First file is the communication parameters
@@ -122,29 +160,27 @@ int main(int argc, char **argv)
         cosem.start_date = std::string(argv[3]); // startDate for the profiles
         cosem.end_date = std::string(argv[4]); // endDate for the profiles
 
-        ok = ParseComFile(modem, cosem, commFile);
+        ok = ParseComFile(modem, cosem, serial, commFile);
 
         if (ok)
         {
             ok = ParseObjectsFile(list, objectsFile);
             std::cout << "** Using LLS: " << cosem.lls << std::endl;
+
+            client.SetDevice(device);
+
+            if (device == MODEM)
+            {
+                std::cout << "** Using Modem device" << std::endl;
+            }
         }
 
         // Before application, test connectivity
-        if (client.Open(modem.port, 9600))
+        if (client.Open(serial.port, serial.baudrate))
         {
             // create reader thread
             client.Initialize();
             printf("** Serial port success!\r\n");
-            if (client.Test() > 0)
-            {
-                printf("** Modem test success!\r\n");
-            }
-            else
-            {
-                printf("** Modem test failed.\r\n");
-                ok = false;
-            }
         }
         else
         {
@@ -160,7 +196,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        printf("Usage example: cosem_client /path/comm.json /another/objectlist.json 2001-08-23.14:55:02\r\n");
+        printf("Usage example: cosem_client /path/comm.json /another/objectlist.json 2017-08-01.00:00:00 2017-10-23.14:55:02\r\n");
         puts("\r\nDate-time format: %Y-%m-%d.%H:%M:%S");
     }
 
