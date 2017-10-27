@@ -49,6 +49,7 @@ typedef struct
 
 void hdlc_init(hdlc_t *hdlc);
 int hdlc_decode(hdlc_t *hdlc, const uint8_t *buf, uint16_t size);
+void print_hdlc_result(hdlc_t *hdlc, int code);
 
 //void hdlc_init(hdlc_channel *chan);
 //int hdlc_handle(hdlc_channel *chan, uint8_t *data, uint16_t size);

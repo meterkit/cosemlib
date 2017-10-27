@@ -102,10 +102,13 @@ uint16_t pppfcs16(uint16_t fcs, const uint8_t* cp, uint32_t len)
 } 
 
 
+// MASKS
 #define HDLC_FORMAT_TYPE	(0xA0)
-#define HDLC_SEGMENTATION	(0x08)
-#define HDLC_LEN_HI			(0x03)
-#define HDLC_POLL_FINAL_BIT	(5)
+#define HDLC_LEN_HI         (0x03)
+
+// BITS
+#define HDLC_SEGMENTATION_BIT	(3)
+#define HDLC_POLL_FINAL_BIT	    (4)
 
 static uint16_t hdlc_get_len(const uint8_t *buf)
 {
@@ -337,21 +340,20 @@ int hdlc_decode_info_field(hdlc_t *hdlc, const uint8_t *buf, uint16_t info_field
 
 		case HDLC_PACKET_TYPE_I:
 		{
-		    // First thre bytes are the LLC (E6 E6 00 or E6 E7 00)
+		    // First three bytes are the LLC (E6 E6 00 or E6 E7 00)
 
-		    if ((buf[hdlc->data_index] == 0xE6U) &&
-		        ((buf[hdlc->data_index + 1] & 0xFEU) == 0xE6U) &&
-		        (buf[hdlc->data_index + 2] == 0U))
-		    {
-		        hdlc->data_index = hdlc->data_index + 3U; // jump over LLC
+//		    if ((buf[hdlc->data_index] == 0xE6U) &&
+//		        ((buf[hdlc->data_index + 1] & 0xFEU) == 0xE6U) &&
+//		        (buf[hdlc->data_index + 2] == 0U))
+//		    {
+//		        hdlc->data_index = hdlc->data_index + 3U; // jump over LLC
 		        hdlc->data_size = info_field_size - 3U;
-		        // LLC is good
-		        debug_print("Packet type: %s\r\n", hdlc_packet_to_string(hdlc));
-		    }
-		    else
-		    {
-		        ret = HDLC_ERR_I_FORMAT;
-		    }
+
+//		    }
+//		    else
+//		    {
+//		        ret = HDLC_ERR_I_FORMAT;
+//		    }
 		    break;
 		}
 		default :
@@ -408,7 +410,7 @@ int hdlc_decode(hdlc_t *hdlc, const uint8_t *buf, uint16_t size)
 
         if (format == HDLC_FORMAT_TYPE)
         {
-            hdlc->segmentation = is_bit_set(format, HDLC_SEGMENTATION);
+            hdlc->segmentation = is_bit_set(buf[1], HDLC_SEGMENTATION_BIT);
 
             // We have the real length of the frame, now we can test the whole frame structure
             hdlc->frame_size = hdlc_get_len(&buf[1]) + 2U; // The value of the frame length subfield is the count of octets in the frame excluding the opening and
@@ -510,11 +512,15 @@ void print_hdlc_result(hdlc_t *hdlc, int code)
 		
 		// Then print HDLC parameters:
 		printf("Segmentation: %s\r\n", hdlc->segmentation ? "yes" : "no");
-		printf("Frame Size: %d\r\n", hdlc->frame_size);
+		printf("Frame size: %d\r\n", hdlc->frame_size);
+		printf("Data size: %d\r\n", hdlc->data_size);
+		printf("Data index: %d\r\n", hdlc->data_index);
 		printf("Physical address: %d\r\n", hdlc->phy_address);
 		printf("Logical device: %d\r\n", hdlc->logical_device);
 		printf("Client SAP: %d\r\n", hdlc->client_addr);
-		printf("Packet type: %d (%s)", hdlc->type, hdlc_packet_to_string(hdlc));
+		printf("Packet type: %d (%s)\r\n", hdlc->type, hdlc_packet_to_string(hdlc));
+		printf("N(Sender): %d\r\n", hdlc->sss);
+		printf("N(Receiver): %d\r\n", hdlc->rrr);
 		printf("Poll/Final bit: %d\r\n", hdlc->poll_final);
 	}
 	else if (code == HDLC_ERR_7E)

@@ -20,9 +20,11 @@ void StreamingDecoder()
     size_t packet_size = sz/2U;
     uint8_t *packet = (uint8_t *) malloc(packet_size);
 
+
     if (packet != NULL)
     {
         int ret;
+        uint8_t *packet_ptr = packet;
 
         hex2bin(multi_frames, (char *)packet, sz);
         //print_hex(packet, packet_size);
@@ -30,14 +32,23 @@ void StreamingDecoder()
         hdlc_t hdlc;
         hdlc_init(&hdlc);
 
-        ret = hdlc_decode(&hdlc, packet, packet_size);
+        do
+        {
+            ret = hdlc_decode(&hdlc, packet_ptr, packet_size);
 
-        REQUIRE(HDLC_OK == ret);
+            print_hdlc_result(&hdlc, ret);
 
-        debug_print("HDLC: frame_size=%d, data_size=%d, data_index=%d\r\n", hdlc.frame_size, hdlc.data_size, hdlc.data_index);
+            REQUIRE(HDLC_OK == ret);
 
-        debug_puts("HDLC data::\r\n");
-        print_hex((const char*)&packet[hdlc.data_index], hdlc.data_size);
+            debug_puts("HDLC data: ");
+            print_hex((const char*)&packet[hdlc.data_index], hdlc.data_size);
+            debug_puts("\r\n");
+
+            packet_size -= hdlc.frame_size;
+            packet_ptr += hdlc.frame_size;
+        }
+        while (packet_size);
+
 
         free(packet);
     }
