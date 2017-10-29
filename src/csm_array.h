@@ -12,6 +12,10 @@
 #ifndef CSM_ARRAY_H
 #define CSM_ARRAY_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // standard includes
 #include <stdint.h>
 
@@ -53,5 +57,12 @@ uint32_t csm_array_unread(csm_array *array);
 
 // Return free size to write
 uint32_t csm_array_free_size(csm_array *array);
+
+// Return the data written so far
+uint32_t csm_array_written(csm_array *array);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CSM_ARRAY_H

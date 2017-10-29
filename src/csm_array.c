@@ -176,6 +176,11 @@ uint32_t csm_array_free_size(csm_array *array)
     return (array->size - WR_INDEX(array));
 }
 
+uint32_t csm_array_written(csm_array *array)
+{
+    return (WR_INDEX(array));
+}
+
 uint8_t *csm_array_rd_data(csm_array *array)
 {
     return (array->buff + RD_INDEX(array));
