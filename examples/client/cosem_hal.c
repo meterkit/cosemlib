@@ -4,7 +4,7 @@
 #include "csm_definitions.h"
 
 // OS/System definitions
-#include "util.h"
+#include "os_util.h"
 #include "client_config.h"
 
 // Ciphering library

@@ -6,17 +6,16 @@
 
 Device device;
 
-bool ParseComFile(Modem &modem, Cosem &cosem, Serial &serial, const std::string &file)
+// Very tolerant, use default values of classes if corresponding parameter is not found
+void ParseComFile(Modem &modem, Cosem &cosem, Serial &serial, Hdlc &hdlc, const std::string &file)
 {
     JsonReader reader;
     JsonValue json;
-    bool ok = false;
 
-    if (reader.ParseFile(json, "comm.json"))
+    if (reader.ParseFile(json, file))
     {
-        JsonValue obj = json.FindValue("modem");
 
-        JsonValue dev = obj.FindValue("device");
+        JsonValue dev = json.FindValue("device");
         if (dev.IsString())
         {
             std::string devString = dev.GetString();
@@ -30,55 +29,54 @@ bool ParseComFile(Modem &modem, Cosem &cosem, Serial &serial, const std::string 
             }
         }
 
-
-        if (obj.IsObject())
+        JsonValue modemObj = json.FindValue("modem");
+        if (modemObj.IsObject())
         {
-            JsonValue val = obj.FindValue("phone");
+            JsonValue val = modemObj.FindValue("phone");
             if (val.IsString())
             {
                 modem.phone = val.GetString();
 
-                val = obj.FindValue("init");
+                val = modemObj.FindValue("init");
                 if (val.IsString())
                 {
                     modem.init = val.GetString();
-                    ok = true;
                 }
             }
         }
 
-        if (ok)
+        JsonValue cosemObj = json.FindValue("cosem");
+        if (cosemObj.IsObject())
         {
-            ok = false;
-            obj = json.FindValue("cosem");
-            if (obj.IsObject())
+            JsonValue val = cosemObj.FindValue("lls");
+            if (val.IsString())
             {
-                JsonValue val = obj.FindValue("lls");
-                if (val.IsString())
+                cosem.lls = val.GetString();
+            }
+        }
+
+        JsonValue portObj = json.FindValue("serial");
+        if (portObj.IsObject())
+        {
+            JsonValue val = portObj.FindValue("port");
+            if (val.IsString())
+            {
+                serial.port = val.GetString();
+                val = portObj.FindValue("baudrate");
+                if (val.IsInteger())
                 {
-                    cosem.lls = val.GetString();
-                    ok = true;
+                    serial.baudrate = static_cast<unsigned int>(val.GetInteger());
                 }
             }
         }
 
-        if (ok)
+        JsonValue hdlcObj = json.FindValue("hdlc");
+        if (hdlcObj.IsObject())
         {
-            ok = false;
-            obj = json.FindValue("serial");
-            if (obj.IsObject())
+            JsonValue val = hdlcObj.FindValue("phy_addr");
+            if (val.IsInteger())
             {
-                JsonValue val = obj.FindValue("port");
-                if (val.IsString())
-                {
-                    serial.port = val.GetString();
-                    val = obj.FindValue("baudrate");
-                    if (val.IsInteger())
-                    {
-                        serial.baudrate = static_cast<unsigned int>(val.GetInteger());
-                        ok = true;
-                    }
-                }
+                hdlc.phy_addr = static_cast<unsigned int>(val.GetInteger());
             }
         }
     }
@@ -87,7 +85,6 @@ bool ParseComFile(Modem &modem, Cosem &cosem, Serial &serial, const std::string 
         std::cout << "** Error opening file: \r\n" << file;
     }
 
-    return ok;
 }
 
 bool ParseObjectsFile(std::vector<Object> &list, const std::string &file)
@@ -96,7 +93,7 @@ bool ParseObjectsFile(std::vector<Object> &list, const std::string &file)
     JsonValue json;
     bool ok = false;
 
-    if (reader.ParseFile(json, "objectlist.json"))
+    if (reader.ParseFile(json, file))
     {
         JsonValue val = json.FindValue("objects");
         if (val.IsArray())
@@ -153,6 +150,7 @@ int main(int argc, char **argv)
         Cosem cosem;
         Modem modem;
         Serial serial;
+        Hdlc hdlc;
         std::vector<Object> list;
 
         std::string commFile(argv[1]); // First file is the communication parameters
@@ -160,26 +158,17 @@ int main(int argc, char **argv)
         cosem.start_date = std::string(argv[3]); // startDate for the profiles
         cosem.end_date = std::string(argv[4]); // endDate for the profiles
 
-        ok = ParseComFile(modem, cosem, serial, commFile);
+        ParseComFile(modem, cosem, serial, hdlc, commFile);
 
-        if (ok)
-        {
-            ok = ParseObjectsFile(list, objectsFile);
-            std::cout << "** Using LLS: " << cosem.lls << std::endl;
-
-            client.SetDevice(device);
-
-            if (device == MODEM)
-            {
-                std::cout << "** Using Modem device" << std::endl;
-            }
-        }
+        ok = ParseObjectsFile(list, objectsFile);
+        std::cout << "** Using LLS: " << cosem.lls << std::endl;
+        std::cout << "** Using HDLC address: " << hdlc.phy_addr << std::endl;
 
         // Before application, test connectivity
         if (client.Open(serial.port, serial.baudrate))
         {
             // create reader thread
-            client.Initialize();
+            client.Initialize(device, modem, cosem, hdlc, list);
             printf("** Serial port success!\r\n");
         }
         else
@@ -191,7 +180,7 @@ int main(int argc, char **argv)
         while(ok)
         {
             sleep(1);
-            ok = client.PerformTask(modem, cosem, list);
+            ok = client.PerformTask();
         }
     }
     else

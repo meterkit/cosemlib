@@ -6,6 +6,9 @@
 #include "serial.h"
 #include "os_util.h"
 
+#include "hdlc.h"
+#include "csm_array.h"
+
 int StringToBin(const std::string &in, char *out)
 {
     uint32_t sz = in.size();
@@ -102,7 +105,6 @@ CosemClient::CosemClient()
     , mCosemState(HDLC)
     , mUseTcpGateway(false)
     , mSerialHandle(0)
-    , mBufSize(0)
     , mThread(0)
     , mClient(true, 1, 1, DLMS_AUTHENTICATION_LOW, "001CA021", DLMS_INTERFACE_TYPE_HDLC)
     , mTerminate(false)
@@ -113,8 +115,22 @@ CosemClient::CosemClient()
 }
 
 
-void CosemClient::Initialize()
+void CosemClient::Initialize(Device device, const Modem &modem, const Cosem &cosem, const Hdlc &hdlc, const std::vector<Object> &list)
 {
+    CGXByteBuffer pass;
+    pass.AddString(cosem.lls);
+
+    mDevice = device;
+    mModem = modem;
+    mCosem = cosem;
+    mHdlc = hdlc;
+    mList = list;
+
+    mClient.m_Settings.SetPassword(pass);
+    mClient.m_Settings.SetClientAddress(cosem.client);
+    mClient.m_Settings.SetServerAddress(hdlc.phy_addr);
+
+
     if (mDevice != MODEM)
     {
         // Skip Modem state chart when no modem is in use
@@ -122,6 +138,7 @@ void CosemClient::Initialize()
     }
     else
     {
+        std::cout << "** Using Modem device" << std::endl;
         mModemState = DISCONNECTED;
     }
 
@@ -149,15 +166,84 @@ bool CosemClient::WaitForData(std::string &data, int timeout)
 
     pthread_mutex_lock( &mDataMutex );
     data = mData;
+    mData.clear();
     pthread_mutex_unlock( &mDataMutex );
+
+    // Echo cancellation
+    if (data.compare(0, mSendCopy.size(), mSendCopy) == 0)
+    {
+        // remove echo from the string
+        data = data.substr(mSendCopy.size());
+    }
 
     if (data.size() > 0)
     {
         ok = true;
-        mData.clear();
     }
 
     return ok;
+}
+
+
+bool CosemClient::HdlcProcess(std::string &data, int timeout)
+{
+    hdlc_t hdlc;
+
+
+    bool retCode = false;
+
+    csm_array array;
+
+    csm_array_init(&array, (uint8_t*)&mHdlcBuf[0], cBufferSize, 0U, 0U);
+
+    bool loop = true;
+    do
+    {
+        int ret = mSem.wait_for(std::chrono::seconds(timeout));
+
+        if (ret != -1)
+        {
+            // We have something, add buffer
+            pthread_mutex_lock( &mDataMutex );
+            csm_array_write_buff(&array, (const uint8_t*)mData.c_str(), mData.size());
+            mData.clear();
+            pthread_mutex_unlock( &mDataMutex );
+
+            hdlc_init(&hdlc);
+            uint8_t *ptr = csm_array_rd_data(&array);
+            uint32_t size = csm_array_unread(&array);
+            if (hdlc_decode(&hdlc, ptr, size) == HDLC_OK)
+            {
+                // God packet! Copy to cosem data
+                data.append((const char*)&ptr[hdlc.data_index], hdlc.data_size);
+
+                // Continue with next one
+                csm_array_reader_jump(&array, hdlc.data_size);
+
+                // Test if it is a last HDLC packet
+                if ((hdlc.segmentation == 0U) &&
+                    (hdlc.poll_final == 1U))
+                {
+                    retCode = true; // good Cosem packet
+                    loop = false; // quit
+                }
+            }
+            else
+            {
+                // Maybe a partial packet, re-try later
+            }
+        }
+        else
+        {
+            // Timeout, we can't wait further for HDLC packets
+            retCode = false;
+            loop = false;
+        }
+
+    }
+    while (loop);
+
+    return retCode;
 }
 
 void * CosemClient::Reader()
@@ -166,7 +252,7 @@ void * CosemClient::Reader()
 
     while (!mTerminate)
     {
-        int ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 30);
+        int ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 10);
 
         if (ret > 0)
         {
@@ -408,7 +494,7 @@ int CosemClient::ReadRegister(const Object &obj)
 }
 
 
-int CosemClient::ReadProfile(const Object &obj, const Cosem &cosem)
+int CosemClient::ReadProfile(const Object &obj)
 {
     int ret;
     std::vector<CGXByteBuffer> data;
@@ -420,10 +506,10 @@ int CosemClient::ReadProfile(const Object &obj, const Cosem &cosem)
 
     std::tm tm_start = {};
     std::tm tm_end = {};
-    std::stringstream ss(cosem.start_date);
+    std::stringstream ss(mCosem.start_date);
     ss >> std::get_time(&tm_start, "%Y-%m-%d.%H:%M:%S");
 
-    std::stringstream ss2(cosem.end_date);
+    std::stringstream ss2(mCosem.end_date);
     ss2 >> std::get_time(&tm_end, "%Y-%m-%d.%H:%M:%S");
 
     //Read data from the meter.
@@ -537,6 +623,7 @@ int CosemClient::Send(const std::string &data, PrintFormat format)
     }
     else
     {
+        mSendCopy = data;
         ret = serial_write(mSerialHandle, data.c_str(), data.size());
     }
 
@@ -544,7 +631,7 @@ int CosemClient::Send(const std::string &data, PrintFormat format)
 }
 
 
-bool  CosemClient::PerformCosemRead(const std::vector<Object> &list, const Cosem &cosem)
+bool  CosemClient::PerformCosemRead()
 {
     bool ret = false;
 
@@ -580,9 +667,9 @@ bool  CosemClient::PerformCosemRead(const std::vector<Object> &list, const Cosem
             break;
         case ASSOCIATED:
         {
-            if (mReadIndex < list.size())
+            if (mReadIndex < mList.size())
             {
-                Object obj = list[mReadIndex];
+                Object obj = mList[mReadIndex];
 
                 if (obj.class_id == 8)
                 {
@@ -596,7 +683,7 @@ bool  CosemClient::PerformCosemRead(const std::vector<Object> &list, const Cosem
                 }
                 else if (obj.class_id == 7)
                 {
-                    (void) ReadProfile(obj, cosem);
+                    (void) ReadProfile(obj);
                     ret = true;
                 }
                 else
@@ -618,15 +705,9 @@ bool  CosemClient::PerformCosemRead(const std::vector<Object> &list, const Cosem
 
 
 // Global state chart
-bool CosemClient::PerformTask(const Modem &modem, const Cosem &cosem, const std::vector<Object> &list)
+bool CosemClient::PerformTask()
 {
     bool ret = false;
-
-    CGXByteBuffer pass;
-    pass.AddString(cosem.lls);
-
-    mClient.m_Settings.SetPassword(pass);
-    mClient.m_Settings.SetClientAddress(cosem.client);
 
     switch (mModemState)
     {
@@ -649,7 +730,7 @@ bool CosemClient::PerformTask(const Modem &modem, const Cosem &cosem, const std:
 
         case DIAL:
         {
-            if (Dial(modem.phone) > 0)
+            if (Dial(mModem.phone) > 0)
             {
                printf("** Modem dial success!\r\n");
                ret = true;
@@ -665,7 +746,7 @@ bool CosemClient::PerformTask(const Modem &modem, const Cosem &cosem, const std:
 
         case CONNECTED:
         {
-            ret = PerformCosemRead(list, cosem);
+            ret = PerformCosemRead();
             break;
         }
         default:
