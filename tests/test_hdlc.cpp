@@ -4,6 +4,8 @@
 
 #include "catch.hpp"
 #include <iostream>
+#include <cstdlib>
+#include <cstring>
 
 // The following packet contains three HDLC frames.
 // We are using it to test the streaming capability of the decoder
@@ -59,11 +61,64 @@ void StreamingDecoder()
 
 }
 
-
-TEST_CASE( "HDLC", "[hdlc_test]" )
+static const char snrm_expected[] = "7EA0210002002303939A74818012050180060180070400000001080400000007655E7E";
+void SnrmEncoder()
 {
-    StreamingDecoder();
+    // transform the hexadecimal string into an array of integers
+    int sz = sizeof(snrm_expected);
+    uint8_t hdlc_buffer[256];
 
+    size_t snrm_size = sz/2U;
+    uint8_t *snrm = (uint8_t *) malloc(snrm_size);
+
+    if (snrm != NULL)
+    {
+        int ret;
+
+        hex2bin(snrm_expected, (char *)snrm, sz);
+
+        hdlc_t hdlc;
+        hdlc_init(&hdlc);
+
+        hdlc.sender = HDLC_CLIENT;
+        hdlc.client_addr = 1U;
+        hdlc.addr_len = 4U;
+        hdlc.logical_device = 1U;
+        hdlc.phy_address = 17U;
+
+        ret = hdlc_encode_snrm(&hdlc, hdlc_buffer, sizeof(hdlc_buffer));
+
+        debug_puts("HDLC data: ");
+        print_hex((const char*)&hdlc_buffer[0], ret);
+        debug_puts("\r\n");
+        print_hex((const char*)&snrm[0], ret);
+        debug_puts("\r\n");
+
+        REQUIRE(ret == snrm_size);
+
+        int compare = memcmp(hdlc_buffer, snrm, snrm_size);
+
+        REQUIRE(compare == 0);
+
+        free(snrm);
+    }
+    else
+    {
+       printf("Cannot allocate memory!\r\n");
+    }
+}
+
+
+TEST_CASE( "HDLC1", "[Streaming]" )
+{
+    puts("\r\n--------------------------  HDLC TEST 1  --------------------------\r\n");
+    StreamingDecoder();
+}
+
+TEST_CASE( "HDLC2", "[SNRM]" )
+{
+    puts("\r\n--------------------------  HDLC TEST 2  --------------------------\r\n");
+    SnrmEncoder();
 }
 
 

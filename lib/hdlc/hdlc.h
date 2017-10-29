@@ -29,6 +29,12 @@ extern "C" {
 #define HDLC_ERR_HCS    -7
 #define HDLC_ERR_I_FORMAT    -8     // Frame type I bad format
 
+typedef enum
+{
+    HDLC_CLIENT = 0,
+    HDLC_SERVER = 1
+} HDLC_SENDER;
+
 typedef struct
 {
     uint16_t data_index; // index to the information data
@@ -48,6 +54,8 @@ typedef struct
 } hdlc_t;
 
 void hdlc_init(hdlc_t *hdlc);
+int hdlc_encode_snrm(hdlc_t *hdlc, uint8_t *buf, uint16_t size);
+int hdlc_encode(hdlc_t *hdlc, uint8_t *buf, uint16_t size, uint8_t frame_type, const uint8_t *data, uint16_t data_size);
 int hdlc_decode(hdlc_t *hdlc, const uint8_t *buf, uint16_t size);
 void print_hdlc_result(hdlc_t *hdlc, int code);
 

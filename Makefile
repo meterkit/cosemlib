@@ -39,7 +39,7 @@ LIB_STM32F4		:= lib/rtos
 
 
 LIB_METER				:= lib/system lib/database lib/application lib/crypto lib/ip
-LIB_CLIENT				:= lib/crypto lib/serial lib/util lib/hdlc
+LIB_CLIENT				:= lib/crypto lib/serial lib/util lib/hdlc src
 LIB_BSP					:= arch/host
 LIB_TESTS				:= tests lib/util lib/hdlc
 LIB_EXAMPLE_SERVER		:= examples/server
@@ -69,6 +69,8 @@ endif
 # CLIENT CONFIGURATION
 # *******************************************************************************
 ifeq ($(MAKECMDGOALS), client)
+
+DEFINES += -DDEBUG=0
 
 APP_MODULES 	:= $(LIB_CLIENT) $(LIB_EXAMPLE_CLIENT) $(LIB_GURUX) $(LIB_ICL)
 APP_LIBPATH 	:= 

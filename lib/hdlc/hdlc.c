@@ -183,6 +183,13 @@ uint16_t hdlc_getuint16_addr(const uint8_t *buf)
 	return data;
 }
 
+
+void hdlc_set_uint16_low_first(uint8_t *buf, uint16_t val)
+{
+    buf[0] = (uint8_t)(val & 0x00FFU);
+    buf[1U] = (uint8_t)((val >> 8U) & 0x00FFU);
+}
+
 int hdlc_get_addr(const uint8_t *buf, uint8_t addr_size, uint16_t *upper, uint16_t *lower)
 {
 	int ret = HDLC_OK;
@@ -202,11 +209,33 @@ int hdlc_get_addr(const uint8_t *buf, uint8_t addr_size, uint16_t *upper, uint16
 	 default:
 	   ret = HDLC_ERR_ADDR;
 	}
-	
-	//DEBUG printf("Addr: %d\r\n", addr_size);
-	
 	return ret;
 }
+
+int hdlc_set_addr(uint8_t *buf, uint8_t addr_size, uint16_t upper, uint16_t lower)
+{
+    int ret = HDLC_OK;
+    switch(addr_size)
+    {
+    case 1:
+        buf[0] = ((uint8_t)(upper << 1U)) | 0x01U;
+        break;
+    case 2:
+        buf[0] = ((uint8_t)(upper << 1U)) & 0x7EU;
+        buf[1] = ((uint8_t)(lower << 1U)) | 0x01U;
+        break;
+    case 4:
+        buf[0] = ((uint8_t)(upper >> 7U)) & 0x7EU;
+        buf[1] = ((uint8_t)(upper << 1U)) & 0x7EU;
+        buf[2] = ((uint8_t)(lower >> 7U)) & 0x7EU;
+        buf[3] = ((uint8_t)(lower << 1U)) | 0x01U;
+        break;
+     default:
+       ret = HDLC_ERR_ADDR;
+    }
+    return ret;
+}
+
 
 // Packet types
 #define HDLC_PACKET_TYPE_BAD	(0)
@@ -330,6 +359,9 @@ int hdlc_decode_info_field(hdlc_t *hdlc, const uint8_t *buf, uint16_t info_field
 {
 	int ret = HDLC_OK;
 	
+	(void) buf;
+	(void) info_field_size;
+
 	switch(hdlc->type)
 	{
 		case HDLC_PACKET_TYPE_SNRM:
@@ -340,20 +372,6 @@ int hdlc_decode_info_field(hdlc_t *hdlc, const uint8_t *buf, uint16_t info_field
 
 		case HDLC_PACKET_TYPE_I:
 		{
-		    // First three bytes are the LLC (E6 E6 00 or E6 E7 00)
-
-//		    if ((buf[hdlc->data_index] == 0xE6U) &&
-//		        ((buf[hdlc->data_index + 1] & 0xFEU) == 0xE6U) &&
-//		        (buf[hdlc->data_index + 2] == 0U))
-//		    {
-//		        hdlc->data_index = hdlc->data_index + 3U; // jump over LLC
-		        hdlc->data_size = info_field_size - 3U;
-
-//		    }
-//		    else
-//		    {
-//		        ret = HDLC_ERR_I_FORMAT;
-//		    }
 		    break;
 		}
 		default :
@@ -366,12 +384,11 @@ int hdlc_decode_info_field(hdlc_t *hdlc, const uint8_t *buf, uint16_t info_field
 int hdlc_check_fcs(const uint8_t* buf, uint16_t size)
 {
 	uint16_t fcs = pppfcs16(PPPINITFCS16, &buf[1], size-4);
+	fcs ^= 0xffff;
 	
 	// check last two bytes before the last 7E
 	uint16_t expected = buf[size-2];
 	expected = (expected << 8) + buf[size-3];
-	
-	fcs ^= 0xffff;
 	
 	debug_print("FCS calculated: 0x%.4X\r\n", fcs);
 	debug_print("FCS expected: 0x%.4X\r\n", expected);
@@ -380,21 +397,121 @@ int hdlc_check_fcs(const uint8_t* buf, uint16_t size)
 }
 
 // buf: pointer to the start of the frame
-// size: header size, including HCS
+// size: header size, including HCS and 7E
 int hdlc_check_hcs(const uint8_t* buf, uint16_t size)
 {
-	uint16_t hcs = pppfcs16(PPPINITFCS16, &buf[1], size-3);
+	uint16_t hcs = pppfcs16(PPPINITFCS16, &buf[1], size-3); // 3 = minus 7E and HCS
+	hcs ^= 0xffff;
 	
 	// check last two bytes before the last 7E
 	uint16_t expected = buf[size-1];
 	expected = (expected << 8) + buf[size-2];
 	
-	hcs ^= 0xffff;
-	
 	debug_print("HCS calculated: 0x%.4X\r\n", hcs);
 	debug_print("HCS expected: 0x%.4X\r\n", expected);
 	
 	return (expected == hcs) ? HDLC_OK : HDLC_ERR_HCS;
+}
+
+
+// SNRM examples
+//    7EA021000200230393 9A74 818012050180060180070400000001080400000007655E7E
+//    7EA021000200250793 23C5 818012050180060180070400000001080400000007655E7E
+
+    // UA:
+
+//  7EA01D070002002573D75C 81800E0502008006020080070101080101 25C77E
+
+static const uint8_t snrm_nego[] = { 0x81U, 0x80U, 0x12U, 0x05U, 0x01U, 0x80U, 0x06U, 0x01U, 0x80U, 0x07U, 0x04U, 0x00U, 0x00U, 0x00U, 0x01U,
+                                     0x08U, 0x04U, 0x00U, 0x00U, 0x00U, 0x07 };
+static const uint16_t snrm_size = sizeof(snrm_nego);
+
+static const uint8_t ua_nego[] = { 0x81U, 0x80U, 0x0EU, 0x05U, 0x02U, 0x00U, 0x80U, 0x06U, 0x02U, 0x00U, 0x80U, 0x07U, 0x01U, 0x01U, 0x08U, 0x01U, 0x01 };
+static const uint16_t ua_size = sizeof(ua_nego);
+
+
+int hdlc_encode_snrm(hdlc_t *hdlc, uint8_t *buf, uint16_t size)
+{
+    return hdlc_encode(hdlc, buf, size, 0x93U, snrm_nego, snrm_size);
+}
+
+
+// Size is the max size of the buffer
+int hdlc_encode(hdlc_t *hdlc, uint8_t *buf, uint16_t size, uint8_t frame_type, const uint8_t *data, uint16_t data_size)
+{
+    uint16_t index = 0U;
+    uint16_t info_field_start;
+    int ret = -1;
+
+    (void) size;
+
+    buf[index] = 0x7EU;
+
+    // Bytes 1 and 2 contains frame length, will be encoded at the end
+    index += 3U; // Jump 7E + frame type/length
+
+    // Encode destination address
+
+    if (hdlc->sender == HDLC_SERVER)
+    {
+        // Destination is client, always 1 byte
+        hdlc_set_addr(&buf[index], 1U, hdlc->client_addr, 0U); // lower not used
+        index++;
+        // source is server
+        hdlc_set_addr(&buf[index], hdlc->addr_len, hdlc->logical_device, hdlc->phy_address);
+        index += hdlc->addr_len;
+    }
+    else
+    {
+        // Destination is server, encode address
+        hdlc_set_addr(&buf[index], hdlc->addr_len, hdlc->logical_device, hdlc->phy_address);
+        index += hdlc->addr_len;
+        // source client, always 1 byte
+        hdlc_set_addr(&buf[index], 1U, hdlc->client_addr, 0U); // lower not used
+        index++;
+    }
+
+    // Encode UA
+    buf[index] = frame_type;
+    index += 3U; // jump over frame type and HCS
+
+    // memorize info field location
+    info_field_start = index;
+
+    // Copy info field
+    memcpy(&buf[info_field_start], &data[0], data_size);
+    index += data_size;
+
+    uint16_t frame_size = index + 1U; // Total size including FCS, without both 7E
+
+    // Insert frame type, contains size
+    buf[1] = 0xA0 + ((frame_size >> 8U) & 0x07U);
+    buf[2] = (uint8_t)(frame_size & 0xFFU);
+
+    // Compute HCS
+    uint16_t hcs = pppfcs16(PPPINITFCS16, &buf[1], (info_field_start - 3U)); // minus 7E and HCS
+    hcs ^= 0xffff;
+
+    // insert HCS
+    hdlc_set_uint16_low_first(&buf[info_field_start - 2U], hcs);
+
+    // Now compute FCS
+    uint16_t fcs = pppfcs16(PPPINITFCS16, &buf[1], frame_size - 2U); // without FCS itself
+    fcs ^= 0xffff;
+
+    // Insert FCS
+    hdlc_set_uint16_low_first(&buf[index], fcs);
+
+    index += 2U; // jump over FCS
+    buf[index] = 0x7EU; // final
+    index++;
+
+    if (index <= size)
+    {
+        ret = index;
+    }
+
+    return ret;
 }
 
 
@@ -471,9 +588,12 @@ int hdlc_decode(hdlc_t *hdlc, const uint8_t *buf, uint16_t size)
                                     if (!ret)
                                     {
                                         // Info field size
-                                        hdlc->data_index = (uint16_t)(ptr - &buf[0]);
 
-                                        ret = hdlc_decode_info_field(hdlc, buf, remaining_size - 2U); // remove HCS from the remaining size
+
+                                        hdlc->data_index = (uint16_t)(ptr - &buf[0]);
+                                        hdlc->data_size = remaining_size - 2U;
+
+                                        ret = hdlc_decode_info_field(hdlc, buf, hdlc->data_size); // remove HCS from the remaining size
                                     }
                                 }
                             }
