@@ -7,7 +7,7 @@
 Device device;
 
 // Very tolerant, use default values of classes if corresponding parameter is not found
-void ParseComFile(Modem &modem, Cosem &cosem, Serial &serial, Hdlc &hdlc, const std::string &file)
+void ParseComFile(Modem &modem, Cosem &cosem, Serial &serial, hdlc_t &hdlc, const std::string &file)
 {
     JsonReader reader;
     JsonValue json;
@@ -76,7 +76,25 @@ void ParseComFile(Modem &modem, Cosem &cosem, Serial &serial, Hdlc &hdlc, const 
             JsonValue val = hdlcObj.FindValue("phy_addr");
             if (val.IsInteger())
             {
-                hdlc.phy_addr = static_cast<unsigned int>(val.GetInteger());
+                hdlc.phy_address = static_cast<unsigned int>(val.GetInteger());
+            }
+
+            val = hdlcObj.FindValue("logical_device");
+            if (val.IsInteger())
+            {
+                hdlc.logical_device = static_cast<unsigned int>(val.GetInteger());
+            }
+
+            val = hdlcObj.FindValue("address_size");
+            if (val.IsInteger())
+            {
+                hdlc.addr_len = static_cast<unsigned int>(val.GetInteger());
+            }
+
+            val = hdlcObj.FindValue("client");
+            if (val.IsInteger())
+            {
+                hdlc.client_addr = static_cast<unsigned int>(val.GetInteger());
             }
         }
     }
@@ -150,8 +168,10 @@ int main(int argc, char **argv)
         Cosem cosem;
         Modem modem;
         Serial serial;
-        Hdlc hdlc;
+        hdlc_t hdlc;
         std::vector<Object> list;
+
+        hdlc.sender = HDLC_CLIENT;
 
         std::string commFile(argv[1]); // First file is the communication parameters
         std::string objectsFile(argv[2]); // Second is the objects to retrieve
@@ -162,7 +182,7 @@ int main(int argc, char **argv)
 
         ok = ParseObjectsFile(list, objectsFile);
         std::cout << "** Using LLS: " << cosem.lls << std::endl;
-        std::cout << "** Using HDLC address: " << hdlc.phy_addr << std::endl;
+        std::cout << "** Using HDLC address: " << hdlc.phy_address << std::endl;
 
         // Before application, test connectivity
         if (client.Open(serial.port, serial.baudrate))

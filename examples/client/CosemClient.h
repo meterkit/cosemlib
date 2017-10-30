@@ -17,6 +17,7 @@
 #include "GXDLMSRegister.h"
 #pragma GCC diagnostic pop
 
+#include "hdlc.h"
 
 enum ModemState
 {
@@ -56,28 +57,14 @@ struct Serial
     unsigned int baudrate;
 };
 
-struct Hdlc
-{
-    Hdlc()
-        : phy_addr(17)
-    {
-
-    }
-    uint16_t phy_addr;
-};
 
 struct Cosem
 {
     Cosem()
-        : client(1U)
-        , server(1U)
     {
 
     }
     std::string lls;
-    uint16_t client;
-    uint16_t server;
-
     std::string start_date;
     std::string end_date;
 };
@@ -141,7 +128,7 @@ class CosemClient
 public:
     CosemClient();
 
-    void Initialize(Device device, const Modem &modem, const Cosem &cosem, const Hdlc &hdlc, const std::vector<Object> &list);
+    void Initialize(Device device, const Modem &modem, const Cosem &cosem, const hdlc_t &hdlc, const std::vector<Object> &list);
     void WaitForStop();
 
     bool Open(const std::string &comport, std::uint32_t baudrate);
@@ -187,7 +174,7 @@ private:
     Device mDevice;
     Modem mModem;
     Cosem mCosem;
-    Hdlc mHdlc;
+    hdlc_t mHdlc;
     std::vector<Object> mList;
 
 
