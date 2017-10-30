@@ -5,7 +5,7 @@
 
 // OS/System definitions
 #include "os_util.h"
-#include "client_config.h"
+#include "cosem_config_tests.h"
 
 // Ciphering library
 #include "gcm.h"

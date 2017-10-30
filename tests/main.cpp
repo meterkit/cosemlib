@@ -12,7 +12,7 @@
 // Meter environment
 #include "tcp_server.h"
 #include "app_database.h"
-#include "os.h"
+#include "os_util.h"
 #include "bitfield.h"
 #include "server_config.h"
 #include "clock.h"

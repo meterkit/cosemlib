@@ -10,7 +10,7 @@
  */
 
 #include "csm_array.h"
-#include "util.h"
+#include "os_util.h"
 #include <string.h>
 
 #define INDEX(array, i)         (i+array->offset)
@@ -174,6 +174,11 @@ uint32_t csm_array_unread(csm_array *array)
 uint32_t csm_array_free_size(csm_array *array)
 {
     return (array->size - WR_INDEX(array));
+}
+
+uint32_t csm_array_written(csm_array *array)
+{
+    return (WR_INDEX(array));
 }
 
 uint8_t *csm_array_rd_data(csm_array *array)

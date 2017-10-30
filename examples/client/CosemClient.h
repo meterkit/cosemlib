@@ -17,10 +17,12 @@
 #include "GXDLMSRegister.h"
 #pragma GCC diagnostic pop
 
+#include "hdlc.h"
 
 enum ModemState
 {
     DISCONNECTED,
+    DIAL,
     CONNECTED
 };
 
@@ -40,25 +42,37 @@ enum PrintFormat
 
 struct Modem
 {
-    std::string port;
     std::string phone;
     std::string init;
 };
 
+struct Serial
+{
+    Serial()
+        : baudrate(9600)
+    {
+
+    }
+    std::string port;
+    unsigned int baudrate;
+};
+
+
 struct Cosem
 {
     Cosem()
-        : client(1U)
-        , server(1U)
     {
 
     }
     std::string lls;
-    std::uint16_t client;
-    std::uint16_t server;
-
     std::string start_date;
     std::string end_date;
+};
+
+enum Device
+{
+    NONE = 0,
+    MODEM = 1
 };
 
 
@@ -114,7 +128,7 @@ class CosemClient
 public:
     CosemClient();
 
-    void Initialize();
+    void Initialize(Device device, const Modem &modem, const Cosem &cosem, const hdlc_t &hdlc, const std::vector<Object> &list);
     void WaitForStop();
 
     bool Open(const std::string &comport, std::uint32_t baudrate);
@@ -126,6 +140,7 @@ public:
     int ConnectHdlc();
 
     bool WaitForData(std::string &data, int timeout);
+    bool HdlcProcess(std::string &data, int timeout);
 
     void * Reader();
 
@@ -134,12 +149,12 @@ public:
         return ((CosemClient *)context)->Reader();
     }
 
-    bool PerformTask(const Modem &modem, const Cosem &cosem, const std::vector<Object> &list);
-    bool PerformCosemRead(const std::vector<Object> &list, const Cosem &cosem);
+    bool PerformTask();
+    bool PerformCosemRead();
     int ConnectAarq();
     int ReadClock();
     int ReadRegister(const Object &obj);
-    int ReadProfile(const Object &obj, const Cosem &cosem);
+    int ReadProfile(const Object &obj);
 
 private:
     ModemState mModemState;
@@ -149,13 +164,21 @@ private:
 
     static const uint32_t cBufferSize = 40U*1024U;
     char mBuffer[cBufferSize];
-    int mBufSize;
+    char mHdlcBuf[cBufferSize];
 
     std::string mData;
     pthread_t mThread;
     CGXDLMSClient mClient;
     bool mTerminate;
     std::uint32_t mReadIndex;
+    Device mDevice;
+    Modem mModem;
+    Cosem mCosem;
+    hdlc_t mHdlc;
+    std::vector<Object> mList;
+
+
+    std::string mSendCopy;
 
     pthread_mutex_t mDataMutex;
     Semaphore mSem;

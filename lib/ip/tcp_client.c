@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #ifdef USE_WINDOWS_OS
 
@@ -44,7 +45,7 @@ typedef struct
    uint8_t connected; // 0 = not connected, otherwise identifier
 } peer;
 
-static void tcp_initialize(void)
+void tcp_initialize(void)
 {
 #ifdef WIN32
    WSADATA wsa;
@@ -57,7 +58,7 @@ static void tcp_initialize(void)
 #endif
 }
 
-static void tcp_end(void)
+void tcp_end(void)
 {
 #ifdef WIN32
    WSACleanup();

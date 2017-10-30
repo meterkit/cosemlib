@@ -2,7 +2,7 @@
 #include "fs.h"
 
 // HAL includes
-#include "os.h"
+#include "os_util.h"
 
 /**
   Super simple file system for NOR serial flash memories

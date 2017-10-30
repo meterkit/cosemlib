@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "app_definitions.h"
-#include "os.h"
+#include "os_util.h"
 
 typedef struct
 {
