@@ -7,21 +7,20 @@
 #include <cstdlib>
 #include <cstring>
 
-// The following packet contains three HDLC frames.
-// We are using it to test the streaming capability of the decoder
-static const char multi_frames[] = "7EA88C0300020023421CB9E6E700C401C10001010205020209060000600100FF0A08736E303030303030020509060100628601FF1224D502020F001604020211001101090C07E10A19030D1813FF8000FF01010206020309060101020800FF060000000002020F03161E020309060101010800FF060000000002020F03161E020309060101050800FF060096CC7E7EA88C0300020023442ADC00000002020F001620020309060101060800FF060000000002020F001620020309060101070800FF060000000002020F001620020309060101080800FF060000000002020F00162001010201020509060101010801FF060000000002020F00161E0000010102020906000062853DFF0105020312000002020F00161B090C07E1EED87E7EA07A030002002356990D0A19FF0D1813FF8000FF020312000002020F00161B090C07E10A19FF0D1503FF8000FF020312000002020F00161B090C07C80106FF161E00FF8000FF020312000002020F00161B090C07C80106FF160F00FF8000FF020312000002020F00161B090C07C80106FF160000FF8000FF05B47E";
-
 
 // Quick simple tests to checks that the clock is working in nominal way
 // Not full test
 void StreamingDecoder()
 {
+    // The following packet contains three HDLC frames.
+    // We are using it to test the streaming capability of the decoder
+    static const char multi_frames[] = "7EA88C0300020023421CB9E6E700C401C10001010205020209060000600100FF0A08736E303030303030020509060100628601FF1224D502020F001604020211001101090C07E10A19030D1813FF8000FF01010206020309060101020800FF060000000002020F03161E020309060101010800FF060000000002020F03161E020309060101050800FF060096CC7E7EA88C0300020023442ADC00000002020F001620020309060101060800FF060000000002020F001620020309060101070800FF060000000002020F001620020309060101080800FF060000000002020F00162001010201020509060101010801FF060000000002020F00161E0000010102020906000062853DFF0105020312000002020F00161B090C07E1EED87E7EA07A030002002356990D0A19FF0D1813FF8000FF020312000002020F00161B090C07E10A19FF0D1503FF8000FF020312000002020F00161B090C07C80106FF161E00FF8000FF020312000002020F00161B090C07C80106FF160F00FF8000FF020312000002020F00161B090C07C80106FF160000FF8000FF05B47E";
+
     // transform the hexadecimal string into an array of integers
     int sz = sizeof(multi_frames);
 
     size_t packet_size = sz/2U;
     uint8_t *packet = (uint8_t *) malloc(packet_size);
-
 
     if (packet != NULL)
     {
@@ -51,7 +50,6 @@ void StreamingDecoder()
         }
         while (packet_size);
 
-
         free(packet);
     }
     else
@@ -61,9 +59,11 @@ void StreamingDecoder()
 
 }
 
-static const char snrm_expected[] = "7EA0210002002303939A74818012050180060180070400000001080400000007655E7E";
+
 void SnrmEncoder()
 {
+    static const char snrm_expected[] = "7EA0210002002303939A74818012050180060180070400000001080400000007655E7E";
+
     // transform the hexadecimal string into an array of integers
     int sz = sizeof(snrm_expected);
     uint8_t hdlc_buffer[256];
@@ -88,9 +88,10 @@ void SnrmEncoder()
 
         ret = hdlc_encode_snrm(&hdlc, hdlc_buffer, sizeof(hdlc_buffer));
 
-        debug_puts("HDLC data: ");
+        debug_puts("HDLC data gene: ");
         print_hex((const char*)&hdlc_buffer[0], ret);
         debug_puts("\r\n");
+        debug_puts("HDLC reference: ");
         print_hex((const char*)&snrm[0], ret);
         debug_puts("\r\n");
 
@@ -101,6 +102,56 @@ void SnrmEncoder()
         REQUIRE(compare == 0);
 
         free(snrm);
+    }
+    else
+    {
+       printf("Cannot allocate memory!\r\n");
+    }
+}
+
+
+void AckEncoder()
+{
+    static const char rr_expected[] = "7EA00A0002002507B132D27E";
+    // transform the hexadecimal string into an array of integers
+    int sz = sizeof(rr_expected);
+    uint8_t hdlc_buffer[256];
+
+    size_t rr_size = sz/2U;
+    uint8_t *rr = (uint8_t *) malloc(rr_size);
+
+    if (rr != NULL)
+    {
+        int ret;
+
+        hex2bin(rr_expected, (char *)rr, sz);
+
+        hdlc_t hdlc;
+        hdlc_init(&hdlc);
+
+        hdlc.sender = HDLC_CLIENT;
+        hdlc.client_addr = 3U;
+        hdlc.addr_len = 4U;
+        hdlc.logical_device = 1U;
+        hdlc.phy_address = 18U;
+        hdlc.rrr = 5U;
+
+        ret = hdlc_encode_rr(&hdlc, hdlc_buffer, sizeof(hdlc_buffer));
+
+        debug_puts("HDLC data gene: ");
+        print_hex((const char*)&hdlc_buffer[0], ret);
+        debug_puts("\r\n");
+        debug_puts("HDLC reference: ");
+        print_hex((const char*)&rr[0], ret);
+        debug_puts("\r\n");
+
+        REQUIRE(ret == rr_size);
+
+        int compare = memcmp(hdlc_buffer, rr, rr_size);
+
+        REQUIRE(compare == 0);
+
+        free(rr);
     }
     else
     {
@@ -121,5 +172,11 @@ TEST_CASE( "HDLC2", "[SNRM]" )
     SnrmEncoder();
 }
 
+
+TEST_CASE( "HDLC3", "[RR]" )
+{
+    puts("\r\n--------------------------  HDLC TEST 3  --------------------------\r\n");
+    AckEncoder();
+}
 
 

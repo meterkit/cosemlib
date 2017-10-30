@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 
-static inline uint16_t GET_BE16(uint8_t *buff)
+static inline uint16_t GET_BE16(const uint8_t *buff)
 {
     uint16_t val = ((uint16_t)buff[0]) << 8U;
     val += buff[1] & 0xFFU;

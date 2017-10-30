@@ -138,6 +138,10 @@ void hdlc_init(hdlc_t *hdlc)
 	hdlc->cmd_resp = 0U;
 	hdlc->data_index = 0U;
 	hdlc->data_size = 0U;
+	hdlc->max_info_field_tx = 0U;
+	hdlc->max_info_field_rx = 0U;
+	hdlc->window_rx = 0U;
+	hdlc->window_tx = 0U;
 }
 
 /**
@@ -355,18 +359,119 @@ int hdlc_decode_control_field(hdlc_t *hdlc, const uint8_t cf)
 	return ret;
 }
 
+static uint32_t hdlc_read_option(const uint8_t *buf, uint8_t size)
+{
+    uint32_t option = 0U;
+    if (size == 1U)
+    {
+        option = buf[0];
+    }
+    else if (size == 1U)
+    {
+        option = GET_BE16(&buf[0]);
+    }
+    else if (size == 1U)
+    {
+        option = GET_BE32(&buf[0]);
+    }
+    else
+    {
+        option = 0U;
+    }
+
+    return option;
+}
+
 int hdlc_decode_info_field(hdlc_t *hdlc, const uint8_t *buf, uint16_t info_field_size)
 {
 	int ret = HDLC_OK;
-	
-	(void) buf;
-	(void) info_field_size;
 
 	switch(hdlc->type)
 	{
 		case HDLC_PACKET_TYPE_SNRM:
+		case HDLC_PACKET_TYPE_UA:
 		{
-			// FIXME: decode framing options
+		    if ((buf[0] == 0x81U) &&
+		        (buf[1] == 0x80U) &&
+		        ((buf[2] + 3U) == info_field_size))
+		    {
+	            // Decode framing options
+	            uint8_t index = 3U;
+	            uint8_t number_of_tags = 0U;
+	            while (ret == HDLC_OK)
+	            {
+	                uint8_t tag = buf[index];
+	                index++;
+	                uint8_t size = buf[index];
+	                index++;
+
+	                if (tag == 0x05U)
+	                {
+	                    uint32_t opt = hdlc_read_option(&buf[index], size);
+	                    if (opt)
+	                    {
+	                        hdlc->max_info_field_tx = opt;
+	                        number_of_tags++;
+	                        index += size;
+	                    }
+	                    else
+	                    {
+	                        ret = HDLC_ERR_NEGO;
+	                    }
+	                }
+	                else if (tag == 0x06U)
+                    {
+	                    uint32_t opt = hdlc_read_option(&buf[index], size);
+                        if (opt)
+                        {
+                            hdlc->max_info_field_rx = opt;
+                            number_of_tags++;
+                            index += size;
+                        }
+                        else
+                        {
+                            ret = HDLC_ERR_NEGO;
+                        }
+                    }
+	                else if (tag == 0x07U)
+                    {
+	                    uint32_t opt = hdlc_read_option(&buf[index], size);
+                        if (opt)
+                        {
+                            hdlc->window_tx = opt;
+                            number_of_tags++;
+                            index += size;
+                        }
+                        else
+                        {
+                            ret = HDLC_ERR_NEGO;
+                        }
+                    }
+	                else if (tag == 0x08U)
+                    {
+	                    uint32_t opt = hdlc_read_option(&buf[index], size);
+                        if (opt)
+                        {
+                            hdlc->window_rx = opt;
+                            number_of_tags++;
+                            index += size;
+                        }
+                        else
+                        {
+                            ret = HDLC_ERR_NEGO;
+                        }
+                    }
+
+	                if (number_of_tags >= 4U)
+	                {
+	                    break;
+	                }
+	            }
+		    }
+		    else
+		    {
+		        ret = HDLC_ERR_NEGO;
+		    }
 			break;
 		}
 
@@ -435,6 +540,20 @@ int hdlc_encode_snrm(hdlc_t *hdlc, uint8_t *buf, uint16_t size)
     return hdlc_encode(hdlc, buf, size, 0x93U, snrm_nego, snrm_size);
 }
 
+int hdlc_encode_data(hdlc_t *hdlc, uint8_t *buf, uint16_t size, const uint8_t *data, uint16_t data_size)
+{
+    uint8_t iframe = ((hdlc->rrr << 5U) + (hdlc->sss << 1U)) & 0xEEU;
+
+    return hdlc_encode(hdlc, buf, size, iframe, data, data_size);
+}
+
+int hdlc_encode_rr(hdlc_t *hdlc, uint8_t *buf, uint16_t size)
+{
+    uint8_t iframe = ((hdlc->rrr << 5U) & 0xF0U) | 0x11U; // Final bit = 1
+
+    return hdlc_encode(hdlc, buf, size, iframe, NULL, 0U);
+}
+
 
 // Size is the max size of the buffer
 int hdlc_encode(hdlc_t *hdlc, uint8_t *buf, uint16_t size, uint8_t frame_type, const uint8_t *data, uint16_t data_size)
@@ -473,14 +592,19 @@ int hdlc_encode(hdlc_t *hdlc, uint8_t *buf, uint16_t size, uint8_t frame_type, c
 
     // Encode UA
     buf[index] = frame_type;
-    index += 3U; // jump over frame type and HCS
+    index++; // jump over frame type
 
-    // memorize info field location
-    info_field_start = index;
+    if ((data_size > 0U) &&
+        (data != NULL))
+    {
+        index += 2U; // jump over HCS
+        // memorize info field location
+        info_field_start = index;
 
-    // Copy info field
-    memcpy(&buf[info_field_start], &data[0], data_size);
-    index += data_size;
+        // Copy info field
+        memcpy(&buf[info_field_start], &data[0], data_size);
+        index += data_size;
+    }
 
     uint16_t frame_size = index + 1U; // Total size including FCS, without both 7E
 
@@ -488,12 +612,16 @@ int hdlc_encode(hdlc_t *hdlc, uint8_t *buf, uint16_t size, uint8_t frame_type, c
     buf[1] = 0xA0 + ((frame_size >> 8U) & 0x07U);
     buf[2] = (uint8_t)(frame_size & 0xFFU);
 
-    // Compute HCS
-    uint16_t hcs = pppfcs16(PPPINITFCS16, &buf[1], (info_field_start - 3U)); // minus 7E and HCS
-    hcs ^= 0xffff;
+    if ((data_size > 0U) &&
+            (data != NULL))
+    {
+        // Compute HCS
+        uint16_t hcs = pppfcs16(PPPINITFCS16, &buf[1], (info_field_start - 3U)); // minus 7E and HCS
+        hcs ^= 0xffff;
 
-    // insert HCS
-    hdlc_set_uint16_low_first(&buf[info_field_start - 2U], hcs);
+        // insert HCS
+        hdlc_set_uint16_low_first(&buf[info_field_start - 2U], hcs);
+    }
 
     // Now compute FCS
     uint16_t fcs = pppfcs16(PPPINITFCS16, &buf[1], frame_size - 2U); // without FCS itself
@@ -642,6 +770,10 @@ void print_hdlc_result(hdlc_t *hdlc, int code)
 		printf("N(Sender): %d\r\n", hdlc->sss);
 		printf("N(Receiver): %d\r\n", hdlc->rrr);
 		printf("Poll/Final bit: %d\r\n", hdlc->poll_final);
+		printf("Max info field TX: %d\r\n", hdlc->max_info_field_tx);
+		printf("Max info field RX: %d\r\n", hdlc->max_info_field_rx);
+		printf("Window size TX: %d\r\n", hdlc->window_tx);
+		printf("Window size RX: %d\r\n", hdlc->window_rx);
 	}
 	else if (code == HDLC_ERR_7E)
 	{
