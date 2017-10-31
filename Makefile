@@ -38,7 +38,7 @@ export OUTDIR
 LIB_STM32F4		:= lib/rtos 
 
 
-LIB_METER				:= lib/system lib/database lib/application lib/crypto lib/ip
+LIB_METER				:= lib/system lib/database lib/application lib/crypto lib/ip lib/util
 LIB_CLIENT				:= lib/crypto lib/serial lib/util lib/hdlc src
 LIB_BSP					:= arch/host
 LIB_TESTS				:= tests lib/util lib/hdlc

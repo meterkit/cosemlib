@@ -11,7 +11,7 @@
 #endif
 
 
-#ifdef USE_LINUX_OS
+#ifdef USE_UNIX_OS
 
 #include <sys/select.h>
 #include <arpa/inet.h>

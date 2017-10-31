@@ -4,7 +4,7 @@
 #include "csm_definitions.h"
 
 // OS/System definitions
-#include "os.h"
+#include "os_util.h"
 #include "server_config.h"
 
 // Ciphering library
@@ -31,8 +31,10 @@ static uint8_t system_title[CSM_DEF_APP_TITLE_SIZE] = { 0x4DU, 0x4DU, 0x4DU, 0x0
 // 2. Create a key-ring per association (SAP)
 
 // Master key, common for all the associations, not changeable
-//static uint8_t key_kek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
+static uint8_t key_kek[16] = { 0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU,0xFFU };
 
+static uint8_t key_guek[16] = { 0x00U,0x01U,0x02U,0x03U,0x04U,0x05U,0x06U,0x07U,0x08U,0x09U,0x0AU,0x0BU,0x0CU,0x0DU,0x0EU,0x0FU };
+static uint8_t key_gak[16] = { 0xD0U,0xD1U,0xD2U,0xD3U,0xD4U,0xD5U,0xD6U,0xD7U,0xD8U,0xD9U,0xDAU,0xDBU,0xDCU,0xDDU,0xDEU,0xDFU };
 
 // Keep a context by channel to be thread safe
 mbedtls_gcm_context chan_ctx[NUMBER_OF_CHANNELS];
@@ -51,13 +53,16 @@ typedef enum
 
 
 // FIXME: create one pair IC per SAP
-static uint32_t gIc = 0U;
+static uint32_t gIc = 0x01234567U;
 
 uint32_t csm_sys_get_ic(uint8_t sap, csm_sec_ic ic)
 {
     (void) sap;
     (void) ic;
-    return gIc++;
+
+    uint32_t value = gIc;
+    gIc++;
+    return value;
 }
 
 const uint8_t *csm_sys_get_system_title()
@@ -71,7 +76,6 @@ uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id)
     (void) key_id;
     uint8_t *key = NULL;
 
-    /*
     switch(key_id)
     {
     case CSM_SEC_KEK:
@@ -80,15 +84,15 @@ uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id)
     case CSM_SEC_GUEK:
         key = key_guek;
         break;
-    case CSM_SEC_GBEK:
-        key = key_gbek;
-        break;
+//    case CSM_SEC_GBEK:
+//        key = key_gbek;
+//        break;
     default:
     case CSM_SEC_GAK:
         key = key_gak;
         break;
     }
-    */
+
     return key;
 }
 

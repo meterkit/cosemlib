@@ -1,5 +1,5 @@
 /**
- * Cosem security layer functions to (de)cypher and authenticate packets
+ * Cosem security layer functions to (de)cipher and authenticate packets
  *
  * Copyright (c) 2016, Anthony Rabine
  * All rights reserved.

@@ -1,5 +1,5 @@
 /**
- * Cosem security layer functions to (de)cypher and authenticate packets
+ * Cosem security layer functions to (de)cipher and authenticate packets
  *
  * Copyright (c) 2016, Anthony Rabine
  * All rights reserved.
@@ -60,7 +60,7 @@ csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_request *request, cons
             }
             else
             {
-                CSM_ERR("[SEC] Bad packet size for decryption");
+                CSM_ERR("[SEC] Bad packet size for deciphering");
                 retcode = CSM_SEC_ERROR;
             }
         }
@@ -81,7 +81,7 @@ csm_sec_result csm_sec_auth_decrypt(csm_array *array, csm_request *request, cons
             retcode = CSM_SEC_ERROR;
         }
 
-        data_size = 0U; // No data to decrypt
+        data_size = 0U; // No data to decipher
     }
     else
     {
@@ -151,11 +151,10 @@ csm_sec_result csm_sec_auth_encrypt(csm_array *array, csm_request *request, cons
             }
             else
             {
-                CSM_ERR("[SEC] Bad packet size for decryption");
+                CSM_ERR("[SEC] Bad packet size for deciphering");
                 retcode = CSM_SEC_ERROR;
             }
         }
-
     }
     else if (sc.sh_bit_field.authentication)
     {
@@ -168,7 +167,7 @@ csm_sec_result csm_sec_auth_encrypt(csm_array *array, csm_request *request, cons
         }
         else
         {
-            CSM_ERR("[SEC] Bad packet size for auth");
+            CSM_ERR("[SEC] Bad packet size for authentication");
             retcode = CSM_SEC_ERROR;
         }
 

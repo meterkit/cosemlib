@@ -5,6 +5,10 @@
 #include "app_calendar.h"
 
 
+void csm_print_obis(const csm_data *data)
+{
+    CSM_TRACE("Class: %d, obis: %d.%d.%d.%d.%d.%d, id: %d\r\n", data->class_id, data->obis.A, data->obis.A, data->obis.A, data->obis.A, data->obis.A, data->obis.A, data->id);
+}
 
 uint8_t csm_is_obis_equal(const csm_obis_code *first, const csm_obis_code *second)
 {
@@ -119,7 +123,8 @@ csm_db_code csm_db_access_func(csm_array *in, csm_array *out, csm_request *reque
     }
     else
     {
-        CSM_ERR("[DB] Cosem object not found");
+        CSM_ERR("[DB] Cosem object not found: ");
+        csm_print_obis(&request->db_request.data);
         code = CSM_ERR_OBJECT_NOT_FOUND;
     }
 

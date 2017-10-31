@@ -115,11 +115,13 @@ int csm_channel_hls_pass3(csm_array *array, csm_request *request)
     uint32_t ic;
     int ret = FALSE;
 
+    csm_array_dump(array);
+
     // Save SC and IC
     csm_array_read_u8(array, &sc.sh_byte);
     csm_array_read_u32(array, &ic);
 
-    // Remaing data should be the TAG
+    // Remaining data should be the TAG
     uint32_t unread = csm_array_unread(array);
 
     if (unread == 12U)
@@ -192,7 +194,7 @@ int csm_channel_hls_pass4(csm_array *array, csm_request *request)
     sc.sh_byte = 0U;
     sc.sh_bit_field.authentication = 1U; // Turn on only authentication
 
-    uint32_t ic = 0U; // FIXME: get the IC from the vital data manager
+    uint32_t ic = 0x01234567U; // FIXME: get the IC from the vital data manager
     uint32_t offset = array->offset; // save offset
 
     if (offset >= CSM_DEF_MAX_HLS_SIZE)
