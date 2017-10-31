@@ -670,6 +670,10 @@ static csm_acse_code acse_oid_mechanism_encoder(csm_asso_state *state, csm_ber *
     return ret;
 }
 
+#ifdef GB_TEST_VECTORS
+char stoc[] = "P6wRJ21F";
+#endif
+
 static csm_acse_code acse_responder_auth_value_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
@@ -689,7 +693,12 @@ static csm_acse_code acse_responder_auth_value_encoder(csm_asso_state *state, cs
     valid = valid && csm_array_write_u8(array, size);
     for (uint8_t i = 0U; i < size; i++)
     {
+#ifdef GB_TEST_VECTORS
+        uint8_t byte = stoc[i];
+#else
         uint8_t byte = csm_sys_get_random_u8();
+#endif
+
         valid = valid && csm_array_write_u8(array, byte);
         state->handshake.stoc.value[i] = byte;
     }
