@@ -21,12 +21,15 @@ This Cosem stack has the following goals :
   * Utilities (buffer utilities)
   * BER coder/decoder
   * Basic association AARQ/AARE/RLRQ/RLRE (LLS)
-  * Secure HLS GMAC Authentication
+  * Secure HLS5 GMAC Authentication
   * Get Request normal of the Clock object
   * Set request normal
   * Action service
   * Exception response in case of problem
   * Full extensible database layer to access to Cosem objects (can be generated)
+  * Basic HDLC layer
+  * Basic Cosem client example with modem support and reading configuration parameters
+  * Serial port HAL (Win32/Linux)
 
 # Examples
 
@@ -46,8 +49,10 @@ following parameters:
 
 # How to build
 
-Just run make at the root of the repository. It will build the meter example. More target options are available such as "tests" to generate the 
-unit tests executable.
+The following make targets are available:
+
+  * make client
+  * make server 
 
 # How to view/edit the code
 
@@ -71,41 +76,31 @@ FIXME insert a diagram
 
 ## Version 1.0 TODO
 
-
-### Cosem features
-
   * Attributes 0 and 1 managed by the database
-  * Security Policy 1 (Authenticated & encrypted)
+  * LN with ciphering Security Policy 0 (Authenticated & encrypted)
+  * Get by block (Object List reading)
+  * Client implementation (+ TCP and HDLC transport layers)
+  * HLS 3 and 4
+  
+## Version 2.0
 
-### Transport layers
-
-  * Basic HDLC transport protocol
-  * Serial line example
-
-### Environment
+  * Cosem studio: client integration and Lua scripting  
+  * Cosem studio: database generator
+  * Cosem studio: simple scripting client
+  * Cosem studio: packet analysis GUI for HDLC and Cosem
+  
+## Version 3.0
 
   * File system HAL (load/save)
   * System clock management with windows/linux layer
   * Component system integration (start, stop, suspend, resume)
-
-## Version x.x
-
-  * Get by block
-  * Next occurrence algorithm
+  * DateTime Next occurrence algorithm
   * Database generation from a JSON Companion Standard (Cosem objects model)
   * Generic profile implementation
   * Generic DateTime implementation
-  * Get/Set with selective access
+  * Get with selective access
   * Set example
-  * CTT 2.7 compliant
   * Test vectors using BlueBook examples and CTT packets
-  * Cosem studio: database generator
-  * Cosem studio: simple scripting client
-  * Cosem studio: packet analysis GUI for HDLC and Cosem
-
-## Version 3.0
-
-  * Client implementation (+ TCP and HDLC transport layers)
 
 ## Version 4.0
 
