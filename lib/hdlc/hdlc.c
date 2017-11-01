@@ -138,20 +138,20 @@ void hdlc_init(hdlc_t *hdlc)
 	hdlc->cmd_resp = 0U;
 	hdlc->data_index = 0U;
 	hdlc->data_size = 0U;
-	hdlc->max_info_field_tx = 0U;
-	hdlc->max_info_field_rx = 0U;
-	hdlc->window_rx = 0U;
-	hdlc->window_tx = 0U;
+	hdlc->max_info_field_tx = 128U;
+	hdlc->max_info_field_rx = 128U;
+	hdlc->window_rx = 1U;
+	hdlc->window_tx = 1U;
 }
 
 /**
 
 The client address shall always be expressed on one byte. 
-The  server  address  –  to  enable  addressing  more  than  one  logical  device  within  a  single  physical 
-device and to support the multi-drop configuration – may be divided into two parts:  
-•  the  upper  HDLC  address  is  used  to  address  a  Logical  Device  (a  separately  addressable  entity 
+The  server  address  ï¿½  to  enable  addressing  more  than  one  logical  device  within  a  single  physical 
+device and to support the multi-drop configuration ï¿½ may be divided into two parts:  
+ï¿½  the  upper  HDLC  address  is  used  to  address  a  Logical  Device  (a  separately  addressable  entity 
 within a physical device); 
-•  the  lower  HDLC  address  is  used  to  address  a  Physical  Device  (a  physical  device  on  the  multi-
+ï¿½  the  lower  HDLC  address  is  used  to  address  a  Physical  Device  (a  physical  device  on  the  multi-
 drop).  
 The upper HDLC address shall always be present. The  lower HDLC  address may  be omitted if it is 
 not required. 
@@ -366,11 +366,11 @@ static uint32_t hdlc_read_option(const uint8_t *buf, uint8_t size)
     {
         option = buf[0];
     }
-    else if (size == 1U)
+    else if (size == 2U)
     {
         option = GET_BE16(&buf[0]);
     }
-    else if (size == 1U)
+    else if (size == 4U)
     {
         option = GET_BE32(&buf[0]);
     }
@@ -721,7 +721,7 @@ int hdlc_decode(hdlc_t *hdlc, const uint8_t *buf, uint16_t size)
                                         hdlc->data_index = (uint16_t)(ptr - &buf[0]);
                                         hdlc->data_size = remaining_size - 2U;
 
-                                        ret = hdlc_decode_info_field(hdlc, buf, hdlc->data_size); // remove HCS from the remaining size
+                                        ret = hdlc_decode_info_field(hdlc, &buf[hdlc->data_index], hdlc->data_size); // remove HCS from the remaining size
                                     }
                                 }
                             }

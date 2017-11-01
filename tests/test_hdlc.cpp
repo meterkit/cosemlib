@@ -109,6 +109,53 @@ void SnrmEncoder()
     }
 }
 
+void SnrmDecoder()
+{
+    static const char snrm_no_parameters[] = "7EA00A00020023219318717E";
+    static const char snrm_normal[] = "7EA023210002002373F6C58180140502008006020080070400000001080400000001CE6A7E";
+
+    // transform the hexadecimal string into an array of integers
+    int sz1 = sizeof(snrm_no_parameters);
+    int sz2 = sizeof(snrm_normal);
+    uint8_t hdlc_buffer[256];
+
+    size_t snrm1_size = sz1/2U;
+    size_t snrm2_size = sz2/2U;
+
+    uint8_t *snrm1 = (uint8_t *) malloc(snrm1_size);
+    uint8_t *snrm2 = (uint8_t *) malloc(snrm2_size);
+
+    if ((snrm1 != NULL) &&
+        (snrm2 != NULL))
+    {
+        int ret;
+
+        hex2bin(snrm_no_parameters, (char *)snrm1, sz1);
+        hex2bin(snrm_normal, (char *)snrm2, sz2);
+
+        hdlc_t hdlc;
+
+        hdlc_init(&hdlc);
+        ret = hdlc_decode(&hdlc, snrm1, snrm1_size);
+        print_hdlc_result(&hdlc, ret);
+
+        REQUIRE(ret == HDLC_OK);
+
+        hdlc_init(&hdlc);
+        ret = hdlc_decode(&hdlc, snrm2, snrm2_size);
+        print_hdlc_result(&hdlc, ret);
+
+        REQUIRE(ret == HDLC_OK);
+
+        free(snrm1);
+        free(snrm2);
+    }
+    else
+    {
+       printf("Cannot allocate memory!\r\n");
+    }
+}
+
 
 void AckEncoder()
 {
@@ -166,17 +213,25 @@ TEST_CASE( "HDLC1", "[Streaming]" )
     StreamingDecoder();
 }
 
-TEST_CASE( "HDLC2", "[SNRM]" )
+TEST_CASE( "HDLC2", "[SNRM encoder]" )
 {
     puts("\r\n--------------------------  HDLC TEST 2  --------------------------\r\n");
     SnrmEncoder();
 }
 
+TEST_CASE( "HDLC3", "[SNRM decoder]" )
+{
+    puts("\r\n--------------------------  HDLC TEST 3  --------------------------\r\n");
+    SnrmDecoder();
+}
 
-TEST_CASE( "HDLC3", "[RR]" )
+TEST_CASE( "HDLC4", "[RR]" )
 {
     puts("\r\n--------------------------  HDLC TEST 3  --------------------------\r\n");
     AckEncoder();
 }
+
+
+
 
 
