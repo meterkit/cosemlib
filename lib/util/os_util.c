@@ -46,6 +46,8 @@ void print_hex(const char *buf, int size)
         printf("%c", binHex[(byte >> 4) & 0x0F]);
         printf("%c", binHex[byte & 0x0F]);
     }
+
+    fflush(stdout);
 }
 
 
