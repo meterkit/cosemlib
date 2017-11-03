@@ -530,7 +530,7 @@ int hdlc_encode_snrm(hdlc_t *hdlc, uint8_t *buf, uint16_t size)
 
 int hdlc_encode_data(hdlc_t *hdlc, uint8_t *buf, uint16_t size, const uint8_t *data, uint16_t data_size)
 {
-    uint8_t iframe = ((hdlc->rrr << 5U) + (hdlc->sss << 1U)) & 0xEEU;
+    uint8_t iframe = (((hdlc->rrr << 5U) + (hdlc->sss << 1U)) | 0x10U) & 0xFEU;
 
     return hdlc_encode(hdlc, buf, size, iframe, data, data_size);
 }
