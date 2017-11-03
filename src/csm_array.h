@@ -42,6 +42,7 @@ uint8_t *csm_array_wr_data(csm_array *array);
 // Functions that advance the write pointer
 int csm_array_write_buff(csm_array *array, const uint8_t *buff, uint32_t size);
 int csm_array_write_u8(csm_array *array, uint8_t byte);
+int csm_array_write_u16(csm_array *array, uint16_t value);
 int csm_array_write_u32(csm_array *array, uint32_t value);
 int csm_array_writer_jump(csm_array *array, uint32_t nb_bytes);
 

@@ -73,6 +73,23 @@ int csm_array_write_u8(csm_array *array, uint8_t byte)
     return ret;
 }
 
+int csm_array_write_u16(csm_array *array, uint16_t value)
+{
+    int ret = FALSE;
+
+    if (csm_array_free_size(array) >= 2U)
+    {
+        uint8_t *data = csm_array_wr_data(array);
+        PUT_BE16(data, value);
+        ret = csm_array_writer_jump(array, 2U);
+    }
+    else
+    {
+        CSM_ERR("[ARRAY] Full");
+    }
+    return ret;
+}
+
 int csm_array_write_u32(csm_array *array, uint32_t value)
 {
     int ret = FALSE;
