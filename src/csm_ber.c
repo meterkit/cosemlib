@@ -258,7 +258,7 @@ int csm_ber_decode(csm_ber *ber, csm_array *array)
 int csm_ber_write_integer(csm_array *array, uint8_t value)
 {
     int ret = csm_ber_write_len(array, 3U); // 3 bytes = integer tag, integer length and result boolean
-    ret = ret && csm_array_write_u8(array, (uint8_t)BER_TYPE_INTEGER);
+    ret = ret && csm_array_write_u8(array, (uint8_t)CSM_BER_TYPE_INTEGER);
     ret = ret && csm_array_write_u8(array, (uint8_t)1U); // size of the integer, here 1 byte
     ret = ret && csm_array_write_u8(array, value);
 

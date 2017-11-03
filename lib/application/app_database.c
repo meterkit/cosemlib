@@ -33,19 +33,19 @@ static int csm_db_check_attribute(csm_db_request *db_request, const db_object_de
     uint8_t access_rights = 0U;
     uint8_t size = 0U;
 
-    if (db_request->service == SRV_GET)
+    if (db_request->service == SVC_GET)
     {
         access_rights |= DB_ACCESS_GET;
         attr = object->attr_list;
         size = object->nb_attr;
     }
-    if (db_request->service == SRV_SET)
+    if (db_request->service == SVC_SET)
     {
         access_rights |= DB_ACCESS_SET;
         attr = object->attr_list;
         size = object->nb_attr;
     }
-    if (db_request->service == SRV_ACTION)
+    if (db_request->service == SVC_ACTION)
     {
         access_rights |= DB_ACCESS_GETSET;
         attr = object->meth_list;

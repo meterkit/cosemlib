@@ -95,10 +95,11 @@ typedef struct
     uint16_t dsap; //< Server
 } csm_llc;
 
-enum csm_service { SRV_GET, SRV_SET, SRV_ACTION };
+enum csm_service { SVC_GET, SVC_SET, SVC_ACTION };
 
 typedef struct
 {
+    uint32_t block_number;
     enum csm_service service;
     csm_selective_access access;
     csm_data data;
@@ -120,6 +121,8 @@ typedef struct
     uint8_t type; // Type of the response (normal, next ...)
     uint8_t invoke_id;
     uint8_t result; // 0 = Data, 1 = Data-Access-Result
+    uint8_t last_block;
+    uint32_t block_number;
 
 } csm_response;
 

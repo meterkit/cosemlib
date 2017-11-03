@@ -14,7 +14,7 @@ csm_db_code db_cosem_image_transfer_func(csm_array *in, csm_array *out, csm_requ
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
     (void) in;
 
-    if (request->db_request.service == SRV_GET)
+    if (request->db_request.service == SVC_GET)
     {
         switch(request->db_request.data.id)
         {
@@ -31,7 +31,7 @@ csm_db_code db_cosem_image_transfer_func(csm_array *in, csm_array *out, csm_requ
 
 
     }
-    else if (request->type == SRV_SET)
+    else if (request->db_request.service == SVC_SET)
     {
         // Not implemented
     }

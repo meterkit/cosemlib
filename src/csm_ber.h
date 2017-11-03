@@ -61,13 +61,13 @@ BMPString 	P/C 	30 	1E
 */
 enum
 {
-    BER_TYPE_EOC                = 0U,
-    BER_TYPE_BOOLEAN            = 1U,
-    BER_TYPE_INTEGER            = 2U,
-    BER_TYPE_BIT_STRING         = 3U,
-    BER_TYPE_OCTET_STRING       = 4U,
-    BER_TYPE_NULL               = 5U,
-    BER_TYPE_OBJECT_IDENTIFIER  = 6U,
+    CSM_BER_TYPE_EOC                = 0U,
+    CSM_BER_TYPE_BOOLEAN            = 1U,
+    CSM_BER_TYPE_INTEGER            = 2U,
+    CSM_BER_TYPE_BIT_STRING         = 3U,
+    CSM_BER_TYPE_OCTET_STRING       = 4U,
+    CSM_BER_TYPE_NULL               = 5U,
+    CSM_BER_TYPE_OBJECT_IDENTIFIER  = 6U,
 };
 
 /*

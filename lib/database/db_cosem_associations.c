@@ -6,11 +6,11 @@ csm_db_code db_cosem_associations_func(csm_array *in, csm_array *out, csm_reques
 {
     csm_db_code code = CSM_ERR_OBJECT_ERROR;
 
-    if (request->db_request.service == SRV_GET)
+    if (request->db_request.service == SVC_GET)
     {
 
     }
-    else if (request->db_request.service == SRV_SET)
+    else if (request->db_request.service == SVC_SET)
     {
         // Not implemented
     }

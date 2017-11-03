@@ -32,7 +32,7 @@ ExceptionResponse ::= SEQUENCE
 */
 
 // FIXME: add parameters to specialize the exception response
-int srv_exception_response_encoder(csm_array *array)
+int svc_exception_response_encoder(csm_array *array)
 {
     int valid = csm_array_write_u8(array, AXDR_EXCEPTION_RESPONSE);
     valid = valid && csm_array_write_u8(array, 1U);
@@ -89,7 +89,7 @@ enum data_access_result
     SRV_RESULT_OTHER_REASON         = 250U
 };
 
-int srv_data_access_result_encoder(csm_array *array, csm_db_code code)
+int svc_data_access_result_encoder(csm_array *array, csm_db_code code)
 {
     uint8_t result;
     // Transform the code into a DLMS/Cosem valid response
@@ -106,7 +106,7 @@ int srv_data_access_result_encoder(csm_array *array, csm_db_code code)
 }
 
 
-int srv_decode_request(csm_request *request, csm_array *array)
+int svc_decode_request(csm_request *request, csm_array *array)
 {
     int valid = csm_array_read_u8(array, &request->type);
     valid = valid && csm_array_read_u8(array, &request->sender_invoke_id); // save the invoke ID to reuse the same
@@ -207,34 +207,25 @@ DataBlock-G ::= SEQUENCE     -- G == DataBlock for the GET-response
 
 */
 
-enum srv_response
-{
-    SRV_GET_RESPONSE_NORMAL         = 1U,
-    SRV_GET_RESPONSE_WITH_DATABLOCK = 2U,
-    SRV_GET_RESPONSE_WITH_LIST      = 3U,
-    SRV_SET_RESPONSE_NORMAL         = 1U,
-    SRV_ACTION_RESPONSE_NORMAL      = 1U
-};
 
-
-static csm_db_code srv_get_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code svc_get_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
 {
     csm_db_code code = CSM_ERR_BAD_ENCODING;
     (void) state;
 
-    CSM_LOG("[SRV] Decoding GET.request");
+    CSM_LOG("[SVC] Decoding GET.request");
 
-    if (srv_decode_request(request, array))
+    if (svc_decode_request(request, array))
     {
-        request->db_request.service = SRV_GET;
+        request->db_request.service = SVC_GET;
         if (database != NULL)
         {
             // Prepare the response
             array->wr_index = 0U;
-            CSM_LOG("[SRV] Encoding GET.response");
+            CSM_LOG("[SVC] Encoding GET.response");
 
             int valid = csm_array_write_u8(array, AXDR_GET_RESPONSE);
-            valid = valid && csm_array_write_u8(array, SRV_GET_RESPONSE_NORMAL);
+            valid = valid && csm_array_write_u8(array, SVC_GET_RESPONSE_NORMAL);
             valid = valid && csm_array_write_u8(array, request->sender_invoke_id);
             valid = valid && csm_array_write_u8(array, 0U); // data result
 
@@ -247,7 +238,7 @@ static csm_db_code srv_get_request_decoder(csm_asso_state *state, csm_request *r
         }
         else
         {
-            CSM_ERR("[SRV] Database pointer not set");
+            CSM_ERR("[SVC] Database pointer not set");
             code = CSM_ERR_OBJECT_ERROR;
         }
     }
@@ -255,13 +246,13 @@ static csm_db_code srv_get_request_decoder(csm_asso_state *state, csm_request *r
     if (code != CSM_OK)
     {
         array->wr_index = 0U;
-        if (srv_exception_response_encoder(array))
+        if (svc_exception_response_encoder(array))
         {
             code = CSM_OK;
         }
         else
         {
-            CSM_ERR("[SRV] Internal problem, cannot encore exception response");
+            CSM_ERR("[SVC] Internal problem, cannot encore exception response");
         }
     }
 
@@ -435,16 +426,16 @@ Action-Response-Next-Pblock ::= SEQUENCE
 
 static const uint32_t gResponseNormalHeaderSize = 6U; // Offset where data can be returned for an Action
 
-static csm_db_code srv_set_or_action(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code svc_set_or_action(csm_asso_state *state, csm_request *request, csm_array *array)
 {
     csm_db_code code = CSM_ERR_BAD_ENCODING;
     (void) state;
 
-    if (srv_decode_request(request, array))
+    if (svc_decode_request(request, array))
     {
         if (database != NULL)
         {
-            CSM_LOG("[SRV] Encoding SET/ACTION.response");
+            CSM_LOG("[SVC] Encoding SET/ACTION.response");
 
             // The output data will point to a different area into our working buffer
             // This will help us to encode the data
@@ -462,13 +453,13 @@ static csm_db_code srv_set_or_action(csm_asso_state *state, csm_request *request
             output.offset -= gResponseNormalHeaderSize;
             output.wr_index = 0U;
 
-            uint8_t service_resp = (request->db_request.service == SRV_SET) ? AXDR_SET_RESPONSE : AXDR_ACTION_RESPONSE;
+            uint8_t service_resp = (request->db_request.service == SVC_SET) ? AXDR_SET_RESPONSE : AXDR_ACTION_RESPONSE;
             int valid = csm_array_write_u8(&output, service_resp);
             valid = valid && csm_array_write_u8(&output, SRV_SET_RESPONSE_NORMAL); // FIXME: use proper service tag
             valid = valid && csm_array_write_u8(&output, request->sender_invoke_id);
-            valid = srv_data_access_result_encoder(&output, code);
+            valid = svc_data_access_result_encoder(&output, code);
 
-            if (request->db_request.service == SRV_ACTION)
+            if (request->db_request.service == SVC_ACTION)
             {
                 // Encode additional data if any
                 if (reply_size > 0U)
@@ -497,7 +488,7 @@ static csm_db_code srv_set_or_action(csm_asso_state *state, csm_request *request
         }
         else
         {
-            CSM_ERR("[SRV][SET] Database pointer not set");
+            CSM_ERR("[SVC][SET] Database pointer not set");
             code = CSM_ERR_OBJECT_ERROR;
         }
     }
@@ -505,28 +496,28 @@ static csm_db_code srv_set_or_action(csm_asso_state *state, csm_request *request
     if (code != CSM_OK)
     {
         array->wr_index = 0U;
-        if (srv_exception_response_encoder(array))
+        if (svc_exception_response_encoder(array))
         {
             code = CSM_OK;
         }
         else
         {
-            CSM_ERR("[SRV][SET] Internal problem, cannot encore exception response");
+            CSM_ERR("[SVC][SET] Internal problem, cannot encore exception response");
         }
     }
     else
     {
-        CSM_ERR("[SRV][SET] Encoding error");
+        CSM_ERR("[SVC][SET] Encoding error");
     }
 
     return code;
 }
 
-static csm_db_code srv_set_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code svc_set_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
 {
-    request->db_request.service = SRV_SET;
-    CSM_LOG("[SRV] Decoding SET.request");
-    return srv_set_or_action(state, request, array);
+    request->db_request.service = SVC_SET;
+    CSM_LOG("[SVC] Decoding SET.request");
+    return svc_set_or_action(state, request, array);
 }
 
 
@@ -603,33 +594,33 @@ Action-Response-Next-Pblock ::= SEQUENCE
 }
 
  */
-static csm_db_code srv_action_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code svc_action_request_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
 {
-    request->db_request.service = SRV_ACTION;
-    CSM_LOG("[SRV] Decoding ACTION.request");
-    return srv_set_or_action(state, request, array);
+    request->db_request.service = SVC_ACTION;
+    CSM_LOG("[SVC] Decoding ACTION.request");
+    return svc_set_or_action(state, request, array);
 }
 
 
-typedef csm_db_code (*srv_decoder_func)(csm_asso_state *state, csm_request *request, csm_array *array);
-typedef csm_db_code (*srv_encoder_func)(csm_asso_state *state, csm_request *request, csm_array *array);
+typedef csm_db_code (*svc_decoder_func)(csm_asso_state *state, csm_request *request, csm_array *array);
+typedef csm_db_code (*svc_encoder_func)(csm_asso_state *state, csm_request *request, csm_array *array);
 
 typedef struct
 {
     uint8_t tag;
-    srv_decoder_func decoder;   //!< Used by the server implementation
-    srv_encoder_func encoder;   //!< Used by the client implementation
+    svc_decoder_func decoder;   //!< Used by the server implementation
+    svc_encoder_func encoder;   //!< Used by the client implementation
 
 } csm_service_handler;
 
 static const csm_service_handler services[] =
 {
-    { AXDR_GET_REQUEST, srv_get_request_decoder, NULL },
-    { AXDR_SET_REQUEST, srv_set_request_decoder, NULL },
-    { AXDR_ACTION_REQUEST, srv_action_request_decoder, NULL },
+    { AXDR_GET_REQUEST, svc_get_request_decoder, NULL },
+    { AXDR_SET_REQUEST, svc_set_request_decoder, NULL },
+    { AXDR_ACTION_REQUEST, svc_action_request_decoder, NULL },
 };
 
-#define NUMBER_OF_SERVICES (sizeof(services) / sizeof(csm_service_handler))
+#define NUMBER_OF_SERVICES (sizeof(services) / sizeof(services[0]))
 
 void csm_services_init(const csm_db_access_handler db_access)
 {
@@ -639,12 +630,12 @@ void csm_services_init(const csm_db_access_handler db_access)
 int csm_services_hls_execute(csm_asso_state *state, csm_request *request, csm_array *array)
 {
     // FIXME: restrict only to the current association object and reply_to_hls_authentication method
-    CSM_LOG("[SRV] Received HLS Pass 3");
+    CSM_LOG("[SVC] Received HLS Pass 3 -- FIXME accept only current association object");
 
-    return csm_services_execute(state, request, array);
+    return csm_server_services_execute(state, request, array);
 }
 
-int csm_services_execute(csm_asso_state *state, csm_request *request, csm_array *array)
+int csm_server_services_execute(csm_asso_state *state, csm_request *request, csm_array *array)
 {
     int number_of_bytes = 0;
     // FIXME: test the array size: minimum/maximum data size allowed
@@ -658,14 +649,14 @@ int csm_services_execute(csm_asso_state *state, csm_request *request, csm_array 
                 const csm_service_handler *srv = &services[i];
                 if ((srv->tag == tag) && (srv->decoder != NULL))
                 {
-                    CSM_LOG("[SRV] Found service");
+                    CSM_LOG("[SVC] Found service");
                     if (srv->decoder(state, request, array) == CSM_OK)
                     {
                         number_of_bytes = array->wr_index;
                     }
                     else
                     {
-                        CSM_ERR("[SRV] Encoding error!");
+                        CSM_ERR("[SVC] Encoding error!");
                     }
                     break;
                 }

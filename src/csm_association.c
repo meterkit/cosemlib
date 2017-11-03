@@ -293,7 +293,7 @@ static csm_acse_code acse_user_info_decoder(csm_asso_state *state, csm_ber *ber,
     CSM_LOG("[ACSE] Found user info tag");
     if (csm_ber_decode(ber, array))
     {
-        if (ber->tag.id == BER_TYPE_OCTET_STRING)
+        if (ber->tag.id == CSM_BER_TYPE_OCTET_STRING)
         {
             // Now decode the A-XDR encoded packet
             uint8_t byte;
@@ -381,7 +381,7 @@ static csm_acse_code acse_client_system_title_decoder(csm_asso_state *state, csm
         // Can be a challenge or a LLS
         if (ber->length.length == CSM_DEF_APP_TITLE_SIZE)
         {
-            if (ber->tag.id == BER_TYPE_OCTET_STRING)
+            if (ber->tag.id == CSM_BER_TYPE_OCTET_STRING)
             {
                 // Store the AP-Title in the association context
                 if (csm_array_read_buff(array, state->client_app_title, CSM_DEF_APP_TITLE_SIZE))
@@ -451,19 +451,19 @@ static const csm_asso_codec aarq_codec_chain[] =
 {
     {CSM_ASSO_PROTO_VER,            ACSE_NONE, acse_proto_version_decoder, NULL},
     {CSM_ASSO_APP_CONTEXT_NAME,     ACSE_ANY, acse_app_context_decoder, NULL},
-    {BER_TYPE_OBJECT_IDENTIFIER,    ACSE_ANY, acse_oid_decoder, NULL},
+    {CSM_BER_TYPE_OBJECT_IDENTIFIER,    ACSE_ANY, acse_oid_decoder, NULL},
     {CSM_ASSO_CALLED_AP_TITLE,      ACSE_NONE, acse_skip_decoder, NULL},
     {CSM_ASSO_CALLED_AE_QUALIFIER,  ACSE_NONE, acse_skip_decoder, NULL},
     {CSM_ASSO_CALLED_AP_INVOC_ID,   ACSE_NONE, acse_skip_decoder, NULL},
-    {BER_TYPE_INTEGER,              ACSE_NONE, acse_skip_decoder, NULL},
+    {CSM_BER_TYPE_INTEGER,              ACSE_NONE, acse_skip_decoder, NULL},
     {CSM_ASSO_CALLED_AE_INVOC_ID,   ACSE_NONE, acse_skip_decoder, NULL},
-    {BER_TYPE_INTEGER,              ACSE_NONE, acse_skip_decoder, NULL},
+    {CSM_BER_TYPE_INTEGER,              ACSE_NONE, acse_skip_decoder, NULL},
     {CSM_ASSO_CALLING_AP_TITLE,     ACSE_OPT, acse_client_system_title_decoder, NULL},
     {CSM_ASSO_CALLING_AE_QUALIFIER, ACSE_NONE, acse_skip_decoder, NULL},
     {CSM_ASSO_CALLING_AP_INVOC_ID,  ACSE_NONE, acse_skip_decoder, NULL},
-    {BER_TYPE_INTEGER,              ACSE_NONE, acse_skip_decoder, NULL},
+    {CSM_BER_TYPE_INTEGER,              ACSE_NONE, acse_skip_decoder, NULL},
     {CSM_ASSO_CALLING_AE_INVOC_ID,  ACSE_NONE, acse_skip_decoder, NULL},
-    {BER_TYPE_INTEGER,              ACSE_NONE, acse_skip_decoder, NULL},
+    {CSM_BER_TYPE_INTEGER,              ACSE_NONE, acse_skip_decoder, NULL},
     {CSM_ASSO_SENDER_ACSE_REQU,     ACSE_OPT, acse_req_decoder, NULL},
     {CSM_ASSO_REQ_MECHANISM_NAME,   ACSE_OPT, acse_oid_decoder, NULL},
     {CSM_ASSO_CALLING_AUTH_VALUE,   ACSE_OPT, acse_auth_value_decoder, NULL},
@@ -625,7 +625,7 @@ static csm_acse_code acse_resp_system_title_encoder(csm_asso_state *state, csm_b
     CSM_LOG("[ACSE] Encoding server AP-Title ...");
 
     int valid = csm_ber_write_len(array, CSM_DEF_APP_TITLE_SIZE + 2U);
-    valid = valid && csm_array_write_u8(array, BER_TYPE_OCTET_STRING);
+    valid = valid && csm_array_write_u8(array, CSM_BER_TYPE_OCTET_STRING);
     valid = valid && csm_array_write_u8(array, CSM_DEF_APP_TITLE_SIZE);
     valid = valid && csm_array_write_buff(array, csm_sys_get_system_title(), CSM_DEF_APP_TITLE_SIZE);
 
@@ -736,7 +736,7 @@ static csm_acse_code acse_user_info_encoder(csm_asso_state *state, csm_ber *ber,
     uint32_t saved_index = array->wr_index; // save the location of the UserInfo structure size
 
     int valid = csm_array_write_u8(array, 0U); // size of the structure, will be updated at the end
-    valid = valid && csm_array_write_u8(array, BER_TYPE_OCTET_STRING);
+    valid = valid && csm_array_write_u8(array, CSM_BER_TYPE_OCTET_STRING);
     valid = valid && csm_array_write_u8(array, 0U); // size of the octet-string, will be updated at the end
 
     // Now encode the A-XDR encoded packet
@@ -823,7 +823,7 @@ static const csm_asso_codec aare_codec_chain[] =
 {
     {CSM_ASSO_PROTO_VER,            ACSE_NONE, NULL, acse_proto_version_encoder},
     {CSM_ASSO_APP_CONTEXT_NAME,     ACSE_ANY, NULL, acse_app_context_encoder},
-    {BER_TYPE_OBJECT_IDENTIFIER,    ACSE_ANY, NULL, acse_oid_context_encoder},
+    {CSM_BER_TYPE_OBJECT_IDENTIFIER,    ACSE_ANY, NULL, acse_oid_context_encoder},
     {CSM_ASSO_RESULT_FIELD,         ACSE_ANY, NULL, acse_result_encoder},
     {CSM_ASSO_RESULT_SRC_DIAG,      ACSE_ANY, NULL, acse_result_src_diag_encoder},
 

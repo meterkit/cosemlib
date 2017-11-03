@@ -91,7 +91,7 @@ int csm_channel_execute(uint8_t channel, csm_array *packet)
             default:
                 if (asso_list[i].state_cf == CF_ASSOCIATED)
                 {
-                    ret = csm_services_execute(&asso_list[i], &channel_list[channel].request, packet);
+                    ret = csm_server_services_execute(&asso_list[i], &channel_list[channel].request, packet);
                 }
                 else if (asso_list[i].state_cf == CF_ASSOCIATION_PENDING)
                 {
