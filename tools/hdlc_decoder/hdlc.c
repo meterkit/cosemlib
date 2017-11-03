@@ -71,7 +71,7 @@ int main(int argc, char** argv)
                 hdlc_init(&hdlc);
 
                 ret = hdlc_decode(&hdlc, packet, packet_size);
-                print_hdlc_result(&hdlc, ret);
+                hdlc_print_result(&hdlc, ret);
 
                 free(packet);
             }
