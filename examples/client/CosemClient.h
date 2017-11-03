@@ -3,7 +3,6 @@
 
 #include <unistd.h>
 #include <cstdint>
-#include <pthread.h>
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
@@ -140,7 +139,7 @@ public:
     int ConnectHdlc();
 
     bool WaitForData(std::string &data, int timeout);
-    bool HdlcProcess(std::string &data, int timeout);
+    bool HdlcProcess(hdlc_t &hdlc, std::string &data, int timeout);
 
     void * Reader();
 
@@ -179,8 +178,8 @@ private:
 
 
     std::string mSendCopy;
-
-    pthread_mutex_t mDataMutex;
+    std::condition_variable mCv;
+    std::mutex mMutex;
     Semaphore mSem;
 
 };

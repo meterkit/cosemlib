@@ -49,7 +49,7 @@ Semaphore::Semaphore(size_t count)
 
 void Semaphore::notify()
 {
-    std::lock_guard<std::mutex> lock{mMutex};
+    std::lock_guard<std::mutex> lock(mMutex);
     ++mCount;
     mCv.notify_one();
 }
@@ -76,14 +76,27 @@ void Semaphore::notify()
 
 int Semaphore::wait_for(std::chrono::milliseconds timeout)
 {
-    std::unique_lock<std::mutex> lock{mMutex};
+    std::unique_lock<std::mutex> lock(mMutex);
     int retCode = -1;
 
-    if (mCv.wait_for(lock, timeout) != std::cv_status::timeout)
+    while (!mCount)
+    {
+        if (mCv.wait_for(lock, timeout) != std::cv_status::timeout)
+        {
+            retCode = 0;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (mCount)
     {
         retCode = 0;
         --mCount;
     }
+
     return retCode;
 }
 
@@ -111,7 +124,7 @@ CosemClient::CosemClient()
     , mReadIndex(0U)
     , mDevice(NONE)
 {
-    mDataMutex = PTHREAD_MUTEX_INITIALIZER;
+
 }
 
 
@@ -164,10 +177,10 @@ bool CosemClient::WaitForData(std::string &data, int timeout)
     } while (ret != -1);
 
 
-    pthread_mutex_lock( &mDataMutex );
+    mMutex.lock();
     data = mData;
     mData.clear();
-    pthread_mutex_unlock( &mDataMutex );
+    mMutex.unlock();
 
     // Echo cancellation
     if (data.compare(0, mSendCopy.size(), mSendCopy) == 0)
@@ -185,11 +198,9 @@ bool CosemClient::WaitForData(std::string &data, int timeout)
 }
 
 
-bool CosemClient::HdlcProcess(std::string &data, int timeout)
+bool CosemClient::HdlcProcess(hdlc_t &hdlc, std::string &data, int timeout)
 {
-    hdlc_t hdlc;
     bool retCode = false;
-    std::string recvData;
     csm_array array;
     uint32_t number_of_frames = 0U;
 
@@ -198,63 +209,99 @@ bool CosemClient::HdlcProcess(std::string &data, int timeout)
     bool loop = true;
     do
     {
-        int ret = mSem.wait_for(std::chrono::seconds(timeout));
-
-        if (ret != -1)
+        bool notified = true;
+      //  int ret = mSem.wait_for(std::chrono::seconds(timeout));
+        std::unique_lock<std::mutex> lock(mMutex);
+        while (!mData.size())
         {
-            pthread_mutex_lock( &mDataMutex );
-            recvData = mData;
-            mData.clear();
-            pthread_mutex_unlock( &mDataMutex );
-
-            // Echo cancellation
-            if (recvData.compare(0, mSendCopy.size(), mSendCopy) == 0)
+            if (mCv.wait_for(lock, std::chrono::seconds(timeout)) == std::cv_status::timeout)
             {
-                // remove echo from the string
-                recvData = recvData.substr(mSendCopy.size());
+                notified = false;
+                break;
             }
+        }
 
+        if (notified)
+        {
             // We have something, add buffer
-            csm_array_write_buff(&array, (const uint8_t*)recvData.c_str(), recvData.size());
-
-            hdlc_init(&hdlc);
-            uint8_t *ptr = csm_array_rd_data(&array);
-            uint32_t size = csm_array_unread(&array);
-            if (hdlc_decode(&hdlc, ptr, size) == HDLC_OK)
+            if (!csm_array_write_buff(&array, (const uint8_t*)mData.c_str(), mData.size()))
             {
-                number_of_frames++;
-                mHdlc.rrr = number_of_frames;
-                // God packet! Copy to cosem data
-                data.append((const char*)&ptr[hdlc.data_index], hdlc.data_size);
+                loop = false;
+                retCode = false;
+            }
+            mData.clear();
 
-                // Continue with next one
-                csm_array_reader_jump(&array, hdlc.data_size);
+            if (loop)
+            {
+                uint8_t *ptr = csm_array_rd_data(&array);
+                uint32_t size = csm_array_unread(&array);
 
-                // Test if it is a last HDLC packet
-                if ((hdlc.segmentation == 0U) &&
-                    (hdlc.poll_final == 1U))
+
+//                printf("Ptr: 0x%08X, Unread: %d\r\n", (unsigned long)ptr, size);
+//
+//                puts("Sent frame: ");
+//                print_hex(mSendCopy.c_str(), mSendCopy.size());
+//                puts("\r\n");
+
+                // the frame seems correct, check echo
+                if (memcmp(mSendCopy.c_str(), ptr, mSendCopy.size()) == 0)
                 {
-                    retCode = true; // good Cosem packet
-                    loop = false; // quit
+                    // remove echo from the string
+                    csm_array_reader_jump(&array, size);
+                    ptr = csm_array_rd_data(&array);
+                    size = csm_array_unread(&array);
+                    puts("Echo canceled!\r\n");
                 }
-                else if (hdlc.segmentation == 1U)
+
+//                puts("Decoding: ");
+//                print_hex((const char *)ptr, size);
+//                puts("\r\n");
+
+                hdlc.sender = HDLC_SERVER;
+                int ret = hdlc_decode(&hdlc, ptr, size);
+                if (ret == HDLC_OK)
                 {
-                    // There are remaining frames to be received.
-                    // At this time, it depends of the window size
-                    if (mHdlc.window_tx == number_of_frames)
+                    puts("Good packet\r\n");
+                    number_of_frames++;
+
+                    // God packet! Copy to cosem data
+                    data.append((const char*)&ptr[hdlc.data_index], hdlc.data_size);
+
+                    // Continue with next one
+                    csm_array_reader_jump(&array, hdlc.frame_size);
+
+                    // Test if it is a last HDLC packet
+                    if ((hdlc.segmentation == 0U) &&
+                        (hdlc.poll_final == 1U))
                     {
-                        // Send RR
-                        hdlc_encode_rr(&mHdlc, (uint8_t*)&mBuffer[0], cBufferSize);
-                        if (Send(std::string(&mBuffer[0], size), PRINT_HEX))
+                        puts("Final packet\r\n");
+                        retCode = true; // good Cosem packet
+                        loop = false; // quit
+                    }
+                    else if (hdlc.segmentation == 1U)
+                    {
+                        puts("Segmentation packet: ");
+                        hdlc_print_result(&hdlc, HDLC_OK);
+                        // There are remaining frames to be received.
+                        // At this time, it depends of the window size negociated
+                        if (mHdlc.window_tx == number_of_frames)
                         {
-                            number_of_frames = 0U;
+                            // Send RR
+                            hdlc.sender = HDLC_CLIENT;
+                            hdlc.rrr = hdlc.sss + 1;
+                            size = hdlc_encode_rr(&hdlc, (uint8_t*)&mBuffer[0], cBufferSize);
+                            if (Send(std::string(&mBuffer[0], size), PRINT_HEX))
+                            {
+                                number_of_frames = 0U;
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
-                // Maybe a partial packet, re-try later
+                else
+                {
+                    // Maybe a partial packet, re-try later
+                //    printf("Not a good packet: %d\r\n", ret);
+                }
             }
         }
         else
@@ -263,7 +310,6 @@ bool CosemClient::HdlcProcess(std::string &data, int timeout)
             retCode = false;
             loop = false;
         }
-
     }
     while (loop);
 
@@ -288,12 +334,14 @@ void * CosemClient::Reader()
             puts("\r\n");
 
             // Add data
-            pthread_mutex_lock( &mDataMutex );
+            mMutex.lock();
             mData += data;
-            pthread_mutex_unlock( &mDataMutex );
+            mMutex.unlock();
+
+            mCv.notify_one();
 
             // Signal new data available
-            mSem.notify();
+        //    mSem.notify();
         }
         else if (ret == 0)
         {
@@ -358,22 +406,22 @@ int CosemClient::ConnectHdlc()
     if (Send(std::string(&mBuffer[0], size), PRINT_HEX))
     {
         std::string data;
-
-        if (HdlcProcess(data, 4))
+        hdlc_t hdlc;
+        hdlc_init(&hdlc); // default values, in case of server does not have any parameters
+        if (HdlcProcess(hdlc, data, 4))
         {
             ret = data.size();
             Printer(data.c_str(), data.size(), PRINT_HEX);
 
             // Decode UA
-            hdlc_t reply;
-            ret = hdlc_decode(&reply, (const uint8_t *)data.c_str(), data.size());
+            ret = hdlc_decode_info_field(&hdlc, (const uint8_t *)data.c_str(), data.size());
             if (ret == HDLC_OK)
             {
-                print_hdlc_result(&reply, ret);
-                mHdlc.max_info_field_rx = reply.max_info_field_rx;
-                mHdlc.max_info_field_tx = reply.max_info_field_tx;
-                mHdlc.window_rx = reply.window_rx;
-                mHdlc.window_tx = reply.window_tx;
+                hdlc_print_result(&hdlc, ret);
+                mHdlc.max_info_field_rx = hdlc.max_info_field_rx;
+                mHdlc.max_info_field_tx = hdlc.max_info_field_tx;
+                mHdlc.window_rx = hdlc.window_rx;
+                mHdlc.window_tx = hdlc.window_tx;
 
                 ret = 1U;
             }
@@ -399,8 +447,9 @@ int CosemClient::ConnectAarq()
         if (Send(request, PRINT_HEX))
         {
             std::string data;
-
-            if (HdlcProcess(data, 5))
+            hdlc_t hdlc;
+            hdlc_init(&hdlc);
+            if (HdlcProcess(hdlc, data, 5))
             {
                 ret = data.size();
                 Printer(data.c_str(), data.size(), PRINT_HEX);
@@ -556,11 +605,13 @@ int CosemClient::ReadProfile(const Object &obj)
         {
             std::string data;
 
-            if (HdlcProcess(data, 5))
+            hdlc_t hdlc;
+
+            if (HdlcProcess(hdlc, data, 5))
             {
                 ret = data.size();
                 Printer(data.c_str(), data.size(), PRINT_HEX);
-
+/*
                 gxPacket.Set(data.data(), data.size());
                 CGXReplyData reply;
                 if (mClient.GetData(gxPacket, reply) == DLMS_ERROR_CODE_OK)
@@ -578,7 +629,7 @@ int CosemClient::ReadProfile(const Object &obj)
                         request.assign((const char *)gxPacket.GetData(), gxPacket.GetSize());
                         if (Send(request, PRINT_HEX))
                         {
-                            if (HdlcProcess(data, 5))
+                            if (HdlcProcess(mHdlc, data, 5))
                             {
                                 ret = data.size();
                                 Printer(data.c_str(), data.size(), PRINT_HEX);
@@ -608,6 +659,7 @@ int CosemClient::ReadProfile(const Object &obj)
                         ret = 0;
                     }
                 }
+                */
             }
         }
     }
@@ -669,7 +721,7 @@ bool  CosemClient::PerformCosemRead()
     switch(mCosemState)
     {
         case HDLC:
-            printf("** Sending HDLC...\r\n");
+            printf("** Sending HDLC SNRM...\r\n");
             if (ConnectHdlc() > 0)
             {
                printf("** HDLC success!\r\n");
