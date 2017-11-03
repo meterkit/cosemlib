@@ -92,7 +92,7 @@ int serial_setup(int fd, unsigned long speed)
 	t_opt.c_iflag &= ~(ICRNL | INLCR);
 	t_opt.c_oflag &= ~(OCRNL | ONLCR);
 	t_opt.c_oflag &= ~OPOST;
-	t_opt.c_cc[VMIN] = 1; // blocking read until N chars received
+	t_opt.c_cc[VMIN] = 0; // blocking read until N chars received
 	t_opt.c_cc[VTIME] = 10;
 
 #if IS_DARWIN
