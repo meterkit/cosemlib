@@ -37,7 +37,7 @@ void StreamingDecoder()
         {
             ret = hdlc_decode(&hdlc, packet_ptr, packet_size);
 
-            print_hdlc_result(&hdlc, ret);
+            hdlc_print_result(&hdlc, ret);
 
             REQUIRE(HDLC_OK == ret);
 
@@ -136,14 +136,16 @@ void SnrmDecoder()
         hdlc_t hdlc;
 
         hdlc_init(&hdlc);
+        hdlc.sender = HDLC_CLIENT;
+
         ret = hdlc_decode(&hdlc, snrm1, snrm1_size);
-        print_hdlc_result(&hdlc, ret);
+        hdlc_print_result(&hdlc, ret);
 
         REQUIRE(ret == HDLC_OK);
 
         hdlc_init(&hdlc);
         ret = hdlc_decode(&hdlc, snrm2, snrm2_size);
-        print_hdlc_result(&hdlc, ret);
+        hdlc_print_result(&hdlc, ret);
 
         REQUIRE(ret == HDLC_OK);
 
@@ -206,6 +208,42 @@ void AckEncoder()
     }
 }
 
+void InformationDecoder()
+{
+    static const char info[] = "7EA03A070002002530D388E6E7006129A109060760857405080101A203020100A305A103020100BE10040E0800065F1F040000181D0200000780F57E";
+
+    // transform the hexadecimal string into an array of integers
+    int sz1 = sizeof(info);
+    uint8_t hdlc_buffer[256];
+
+    size_t info_size = sz1/2U;
+
+    uint8_t *info_frame = (uint8_t *) malloc(info_size);
+
+    if (info_frame != NULL)
+    {
+        int ret;
+
+        hex2bin(info, (char *)info_frame, sz1);
+
+        hdlc_t hdlc;
+
+        hdlc_init(&hdlc);
+        ret = hdlc_decode(&hdlc, info_frame, info_size);
+        hdlc_print_result(&hdlc, ret);
+
+        REQUIRE(ret == HDLC_OK);
+
+
+        free(info_frame);
+    }
+    else
+    {
+       printf("Cannot allocate memory!\r\n");
+    }
+}
+
+
 
 TEST_CASE( "HDLC1", "[Streaming]" )
 {
@@ -227,11 +265,15 @@ TEST_CASE( "HDLC3", "[SNRM decoder]" )
 
 TEST_CASE( "HDLC4", "[RR]" )
 {
-    puts("\r\n--------------------------  HDLC TEST 3  --------------------------\r\n");
+    puts("\r\n--------------------------  HDLC TEST 4 --------------------------\r\n");
     AckEncoder();
 }
 
-
+TEST_CASE( "HDLC5", "[INFO]" )
+{
+    puts("\r\n--------------------------  HDLC TEST 5  --------------------------\r\n");
+    InformationDecoder();
+}
 
 
 
