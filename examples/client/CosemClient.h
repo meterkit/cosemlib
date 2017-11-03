@@ -162,8 +162,14 @@ private:
     int mSerialHandle;
 
     static const uint32_t cBufferSize = 40U*1024U;
-    char mBuffer[cBufferSize];
+    char mSendBuffer[cBufferSize];
+    char mRcvBuffer[cBufferSize];
     char mHdlcBuf[cBufferSize];
+
+    uint8_t mScratch[cBufferSize];
+
+    static const uint32_t cAppBufferSize = 200U*1024U;
+    uint8_t mAppBuffer[cAppBufferSize];
 
     std::string mData;
     pthread_t mThread;
@@ -175,7 +181,6 @@ private:
     Cosem mCosem;
     hdlc_t mHdlc;
     std::vector<Object> mList;
-
 
     std::string mSendCopy;
     std::condition_variable mCv;

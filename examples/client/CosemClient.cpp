@@ -8,6 +8,7 @@
 
 #include "hdlc.h"
 #include "csm_array.h"
+#include "csm_services.h"
 
 int StringToBin(const std::string &in, char *out)
 {
@@ -289,8 +290,8 @@ bool CosemClient::HdlcProcess(hdlc_t &hdlc, std::string &data, int timeout)
                             // Send RR
                             hdlc.sender = HDLC_CLIENT;
                             hdlc.rrr = hdlc.sss + 1;
-                            size = hdlc_encode_rr(&hdlc, (uint8_t*)&mBuffer[0], cBufferSize);
-                            if (Send(std::string(&mBuffer[0], size), PRINT_HEX))
+                            size = hdlc_encode_rr(&hdlc, (uint8_t*)&mSendBuffer[0], cBufferSize);
+                            if (Send(std::string(&mSendBuffer[0], size), PRINT_HEX))
                             {
                                 number_of_frames = 0U;
                             }
@@ -322,12 +323,12 @@ void * CosemClient::Reader()
 
     while (!mTerminate)
     {
-        int ret = serial_read(mSerialHandle, &mBuffer[0], cBufferSize, 10);
+        int ret = serial_read(mSerialHandle, &mRcvBuffer[0], cBufferSize, 10);
 
         if (ret > 0)
         {
             printf("<==== Got data: %d bytes: ", ret);
-            std::string data(&mBuffer[0], ret);
+            std::string data(&mRcvBuffer[0], ret);
 
             Printer(data.c_str(), data.size(), PRINT_HEX);
 
@@ -401,9 +402,9 @@ int CosemClient::ConnectHdlc()
 {
     int ret = -1;
 
-    int size = hdlc_encode_snrm(&mHdlc, (uint8_t *)&mBuffer[0], cBufferSize);
+    int size = hdlc_encode_snrm(&mHdlc, (uint8_t *)&mSendBuffer[0], cBufferSize);
 
-    if (Send(std::string(&mBuffer[0], size), PRINT_HEX))
+    if (Send(std::string(&mSendBuffer[0], size), PRINT_HEX))
     {
         std::string data;
         hdlc_t hdlc;
@@ -592,6 +593,9 @@ int CosemClient::ReadProfile(const Object &obj)
     std::stringstream ss2(mCosem.end_date);
     ss2 >> std::get_time(&tm_end, "%Y-%m-%d.%H:%M:%S");
 
+    csm_array array;
+    csm_array_init(&array, &mAppBuffer[0], cAppBufferSize, 0, 0);
+
     //Read data from the meter.
     ret = mClient.ReadRowsByRange(&profile, &tm_start, &tm_end, data);
 
@@ -607,60 +611,112 @@ int CosemClient::ReadProfile(const Object &obj)
 
             hdlc_t hdlc;
 
-            if (HdlcProcess(hdlc, data, 5))
+            csm_response response;
+            csm_request request;
+            bool loop = true;
+            mHdlc.sss = 2U;  // initial request frame index
+
+            do
             {
-                ret = data.size();
-                Printer(data.c_str(), data.size(), PRINT_HEX);
-/*
-                gxPacket.Set(data.data(), data.size());
-                CGXReplyData reply;
-                if (mClient.GetData(gxPacket, reply) == DLMS_ERROR_CODE_OK)
+                data.clear();
+                hdlc_init(&hdlc);
+
+                if (HdlcProcess(hdlc, data, 5))
                 {
-                    bool noError = true;
-                    while (reply.IsMoreData() && noError)
+                    Printer(data.c_str(), data.size(), PRINT_HEX);
+                    csm_array partial;
+                    csm_array_init(&partial, &mScratch[0], cBufferSize, 0, 0);
+
+                    csm_array_write_buff(&partial, (const uint8_t *)data.c_str(), data.size());
+
+                    uint8_t llc1, llc2, llc3;
+                    int valid = csm_array_read_u8(&partial, &llc1);
+                    valid = valid && csm_array_read_u8(&partial, &llc2);
+                    valid = valid && csm_array_read_u8(&partial, &llc3);
+
+                    if (valid && (llc1 == 0xE6U) &&
+                        (llc2 == 0xE7U) &&
+                        (llc3 == 0x00U))
                     {
-                        gxPacket.Clear();
-                        if ((ret = mClient.ReceiverReady(reply.GetMoreData(), gxPacket)) != 0)
+                        // Good Cosem server packet
+                        if (csm_client_decode(&response, &partial) == CSM_ACCESS_RESULT_SUCCESS)
                         {
-                            noError = false;
-                        }
+                            // Copy data into app data
+                            csm_array_write_buff(&array, csm_array_rd_data(&partial), csm_array_unread(&partial));
 
-                        printf("** Get next block...\r\n");
-                        request.assign((const char *)gxPacket.GetData(), gxPacket.GetSize());
-                        if (Send(request, PRINT_HEX))
-                        {
-                            if (HdlcProcess(mHdlc, data, 5))
+                            if (response.type == SVC_GET_RESPONSE_NORMAL)
                             {
-                                ret = data.size();
-                                Printer(data.c_str(), data.size(), PRINT_HEX);
-
-                                gxPacket.Set(data.data(), data.size());
-                                if (mClient.GetData(gxPacket, reply) != DLMS_ERROR_CODE_OK)
+                                // We have the data
+                                loop = false;
+                            }
+                            else if (response.type == SVC_GET_RESPONSE_WITH_DATABLOCK)
+                            {
+                                // Check if last block
+                                if (csm_client_has_more_data(&response))
                                 {
-                                    noError = false;
+                                    // Send next block
+                                    request.type = SVC_GET_REQUEST_NEXT;
+                                    request.db_request.block_number = response.block_number;
+                                    request.sender_invoke_id = response.invoke_id;
+
+                                    csm_array_init(&partial, &mScratch[0], cBufferSize, 0, 0);
+
+                                    csm_array_write_u8(&partial, 0xE6U);
+                                    csm_array_write_u8(&partial, 0xE6U);
+                                    csm_array_write_u8(&partial, 0x00U);
+
+                                    csm_client_encode(&request, &partial);
+
+
+                                    hdlc_print_result(&hdlc, HDLC_OK);
+
+                                    // Encode HDLC
+                                    hdlc.sender = HDLC_CLIENT;
+                                    hdlc.rrr = hdlc.sss + 1; // ack last hdlc frame
+                                    hdlc.sss = mHdlc.sss;  // our internal frame counter
+                                    mHdlc.sss++;
+                                    int send_size = hdlc_encode_data(&hdlc, (uint8_t *)&mSendBuffer[0], cBufferSize, &mScratch[0], csm_array_written(&partial));
+
+                                    std::string request((char *)&mSendBuffer[0], send_size);
+
+                                    printf("** Sending ReadProfile next...\r\n");
+                                    if (!Send(request, PRINT_HEX))
+                                    {
+                                        puts("Cannot send next data\r\n");
+                                        loop = false;
+                                    }
+                                }
+                                else
+                                {
+                                    puts("No more data\r\n");
+                                    loop = false;
                                 }
                             }
                             else
                             {
-                                noError = false;
+                                puts("Service not supported\r\n");
+                                loop = false;
                             }
                         }
-                    }
-
-                    // We have received all the packets
-                    if (mClient.UpdateValue(profile, 2, reply.GetValue()) !=0 )
-                    {
-                        printf("** Read profile failure \r\n");
-                        ret = -1;
+                        else
+                        {
+                            puts("Cannot decode Cosem response\r\n");
+                            loop = false;
+                        }
                     }
                     else
                     {
-                        printf("** Read profile success\r\n");
-                        ret = 0;
+                        puts("Not a compliant HDLC LLC\r\n");
+                        loop = false;
                     }
                 }
-                */
+                else
+                {
+                    puts("Cannot get HDLC data\r\n");
+                    loop = false;
+                }
             }
+            while(loop);
         }
     }
 
