@@ -36,12 +36,6 @@ static inline uint16_t GET_BE16(const uint8_t *buff)
     return val;
 }
 
-static inline void SET_BE16(uint8_t *buff, uint16_t size)
-{
-    buff[0] = (size >> 8U) & 0xFFU;
-    buff[1] = size & 0xFFU;
-}
-
 static inline uint8_t is_bit_set(uint8_t value, uint8_t bit)
 {
     return ((value & BIT(bit)) == 0U) ? 0U : 1U;
@@ -50,6 +44,12 @@ static inline uint8_t is_bit_set(uint8_t value, uint8_t bit)
 static inline uint32_t GET_BE32(const uint8_t *a)
 {
     return ((uint32_t) a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3];
+}
+
+static inline void PUT_BE16(uint8_t *buff, uint16_t size)
+{
+    buff[0] = (size >> 8U) & 0xFFU;
+    buff[1] = size & 0xFFU;
 }
 
 static inline void PUT_BE32(uint8_t *a, uint32_t val)
