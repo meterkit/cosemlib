@@ -14,7 +14,6 @@ void ParseComFile(Modem &modem, Cosem &cosem, Serial &serial, hdlc_t &hdlc, cons
 
     if (reader.ParseFile(json, file))
     {
-
         JsonValue dev = json.FindValue("device");
         if (dev.IsString())
         {
@@ -100,7 +99,7 @@ void ParseComFile(Modem &modem, Cosem &cosem, Serial &serial, hdlc_t &hdlc, cons
     }
     else
     {
-        std::cout << "** Error opening file: \r\n" << file;
+        std::cout << "** Error opening file: " << file << std::endl;
     }
 
 }
@@ -148,6 +147,10 @@ bool ParseObjectsFile(std::vector<Object> &list, const std::string &file)
             }
             ok = true;
         }
+    }
+    else
+    {
+        std::cout << "** Error opening file: " << file << std::endl;
     }
 
     return ok;
