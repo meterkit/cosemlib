@@ -128,7 +128,7 @@ void hdlc_init(hdlc_t *hdlc)
 	hdlc->logical_device = 0U;
 	hdlc->phy_address = 0U;
 	hdlc->client_addr = 0U;
-	hdlc->addr_len = 0;
+	hdlc->addr_len = 4U;
 	hdlc->segmentation = 0U;
 	hdlc->frame_size = 0U;
 	hdlc->rrr = 0U;
@@ -138,6 +138,7 @@ void hdlc_init(hdlc_t *hdlc)
 	hdlc->cmd_resp = 0U;
 	hdlc->data_index = 0U;
 	hdlc->data_size = 0U;
+	hdlc->sender = HDLC_SERVER;
 	hdlc->max_info_field_tx = 128U;
 	hdlc->max_info_field_rx = 128U;
 	hdlc->window_rx = 1U;
@@ -386,101 +387,100 @@ int hdlc_decode_info_field(hdlc_t *hdlc, const uint8_t *buf, uint16_t info_field
 {
 	int ret = HDLC_OK;
 
-	switch(hdlc->type)
+	if (info_field_size > 0U)
 	{
-		case HDLC_PACKET_TYPE_SNRM:
-		case HDLC_PACKET_TYPE_UA:
-		{
-		    if ((buf[0] == 0x81U) &&
-		        (buf[1] == 0x80U) &&
-		        ((buf[2] + 3U) == info_field_size))
-		    {
-	            // Decode framing options
-	            uint8_t index = 3U;
-	            uint8_t number_of_tags = 0U;
-	            while (ret == HDLC_OK)
-	            {
-	                uint8_t tag = buf[index];
-	                index++;
-	                uint8_t size = buf[index];
-	                index++;
-
-	                if (tag == 0x05U)
-	                {
-	                    uint32_t opt = hdlc_read_option(&buf[index], size);
-	                    if (opt)
-	                    {
-	                        hdlc->max_info_field_tx = opt;
-	                        number_of_tags++;
-	                        index += size;
-	                    }
-	                    else
-	                    {
-	                        ret = HDLC_ERR_NEGO;
-	                    }
-	                }
-	                else if (tag == 0x06U)
+        switch(hdlc->type)
+        {
+            case HDLC_PACKET_TYPE_SNRM:
+            case HDLC_PACKET_TYPE_UA:
+            {
+                if ((buf[0] == 0x81U) &&
+                    (buf[1] == 0x80U) &&
+                    ((buf[2] + 3U) == info_field_size))
+                {
+                    // Decode framing options
+                    uint8_t index = 3U;
+                    uint8_t number_of_tags = 0U;
+                    while (ret == HDLC_OK)
                     {
-	                    uint32_t opt = hdlc_read_option(&buf[index], size);
-                        if (opt)
+                        uint8_t tag = buf[index];
+                        index++;
+                        uint8_t size = buf[index];
+                        index++;
+
+                        if (tag == 0x05U)
                         {
-                            hdlc->max_info_field_rx = opt;
-                            number_of_tags++;
-                            index += size;
+                            uint32_t opt = hdlc_read_option(&buf[index], size);
+                            if (opt)
+                            {
+                                hdlc->max_info_field_tx = opt;
+                                number_of_tags++;
+                                index += size;
+                            }
+                            else
+                            {
+                                ret = HDLC_ERR_NEGO;
+                            }
                         }
-                        else
+                        else if (tag == 0x06U)
                         {
-                            ret = HDLC_ERR_NEGO;
+                            uint32_t opt = hdlc_read_option(&buf[index], size);
+                            if (opt)
+                            {
+                                hdlc->max_info_field_rx = opt;
+                                number_of_tags++;
+                                index += size;
+                            }
+                            else
+                            {
+                                ret = HDLC_ERR_NEGO;
+                            }
+                        }
+                        else if (tag == 0x07U)
+                        {
+                            uint32_t opt = hdlc_read_option(&buf[index], size);
+                            if (opt)
+                            {
+                                hdlc->window_tx = opt;
+                                number_of_tags++;
+                                index += size;
+                            }
+                            else
+                            {
+                                ret = HDLC_ERR_NEGO;
+                            }
+                        }
+                        else if (tag == 0x08U)
+                        {
+                            uint32_t opt = hdlc_read_option(&buf[index], size);
+                            if (opt)
+                            {
+                                hdlc->window_rx = opt;
+                                number_of_tags++;
+                                index += size;
+                            }
+                            else
+                            {
+                                ret = HDLC_ERR_NEGO;
+                            }
+                        }
+
+                        if (number_of_tags >= 4U)
+                        {
+                            break;
                         }
                     }
-	                else if (tag == 0x07U)
-                    {
-	                    uint32_t opt = hdlc_read_option(&buf[index], size);
-                        if (opt)
-                        {
-                            hdlc->window_tx = opt;
-                            number_of_tags++;
-                            index += size;
-                        }
-                        else
-                        {
-                            ret = HDLC_ERR_NEGO;
-                        }
-                    }
-	                else if (tag == 0x08U)
-                    {
-	                    uint32_t opt = hdlc_read_option(&buf[index], size);
-                        if (opt)
-                        {
-                            hdlc->window_rx = opt;
-                            number_of_tags++;
-                            index += size;
-                        }
-                        else
-                        {
-                            ret = HDLC_ERR_NEGO;
-                        }
-                    }
+                }
+                else
+                {
+                    ret = HDLC_ERR_NEGO;
+                }
+                break;
+            }
 
-	                if (number_of_tags >= 4U)
-	                {
-	                    break;
-	                }
-	            }
-		    }
-		    else
-		    {
-		        ret = HDLC_ERR_NEGO;
-		    }
-			break;
-		}
-
-		case HDLC_PACKET_TYPE_I:
-		{
-		    break;
-		}
-		default :
-			break;
+            default :
+                break;
+        }
 	}
 		
 	return ret;
@@ -519,21 +519,9 @@ int hdlc_check_hcs(const uint8_t* buf, uint16_t size)
 }
 
 
-// SNRM examples
-//    7EA021000200230393 9A74 818012050180060180070400000001080400000007655E7E
-//    7EA021000200250793 23C5 818012050180060180070400000001080400000007655E7E
-
-    // UA:
-
-//  7EA01D070002002573D75C 81800E0502008006020080070101080101 25C77E
-
 static const uint8_t snrm_nego[] = { 0x81U, 0x80U, 0x12U, 0x05U, 0x01U, 0x80U, 0x06U, 0x01U, 0x80U, 0x07U, 0x04U, 0x00U, 0x00U, 0x00U, 0x01U,
                                      0x08U, 0x04U, 0x00U, 0x00U, 0x00U, 0x07 };
 static const uint16_t snrm_size = sizeof(snrm_nego);
-
-static const uint8_t ua_nego[] = { 0x81U, 0x80U, 0x0EU, 0x05U, 0x02U, 0x00U, 0x80U, 0x06U, 0x02U, 0x00U, 0x80U, 0x07U, 0x01U, 0x01U, 0x08U, 0x01U, 0x01 };
-static const uint16_t ua_size = sizeof(ua_nego);
-
 
 int hdlc_encode_snrm(hdlc_t *hdlc, uint8_t *buf, uint16_t size)
 {
@@ -669,30 +657,63 @@ int hdlc_decode(hdlc_t *hdlc, const uint8_t *buf, uint16_t size)
                 // Sanity check:
                 if (ret == HDLC_OK)
                 {
+                    uint16_t dummy; // stub temporary variable
+
                     // FIXME: Sanity check: test a minimal size
                     // 7E + frame format + dest + src +         + FCS + 7E
                     //  1        2           1      1              2     1
 
                     const uint8_t* ptr = &buf[3];
-                    // Destination address decoder (here, the server)
-                    uint8_t dst_size = hdlc_decode_addr_size(ptr, hdlc->frame_size);
-                    ret = hdlc_get_addr(ptr, dst_size, &hdlc->logical_device, &hdlc->phy_address);
+
+                    // Destination address decoder
+                    uint8_t addr_size = hdlc_decode_addr_size(ptr, hdlc->frame_size);
+
+                    if (hdlc->sender == HDLC_CLIENT)
+                    {
+                        ret = hdlc_get_addr(ptr, addr_size, &hdlc->logical_device, &hdlc->phy_address);
+                        hdlc->addr_len = addr_size; // update server address size
+                    }
+                    else
+                    {
+                        // client address is always transmitted on 1 byte
+                        if (addr_size == 1)
+                        {
+                            ret = hdlc_get_addr(ptr, addr_size, &hdlc->client_addr, &dummy);
+                        }
+                        else
+                        {
+                            ret = HDLC_ERR_ADDR;
+                        }
+                    }
 
                     if (!ret)
                     {
                         // advance to source address
-                        ptr += dst_size;
-                        uint8_t src_size = hdlc_decode_addr_size(ptr, hdlc->frame_size);
+                        ptr += addr_size;
+                        addr_size = hdlc_decode_addr_size(ptr, hdlc->frame_size);
 
-                        // FIXME: test source size if we decode a client frame (always 1 byte)
-
-                        uint16_t dummy;
-                        ret = hdlc_get_addr(ptr, src_size, &hdlc->client_addr, &dummy);
+                        if (hdlc->sender == HDLC_CLIENT)
+                        {
+                            // client address is always transmitted on 1 byte
+                            if (addr_size == 1U)
+                            {
+                                ret = hdlc_get_addr(ptr, addr_size, &hdlc->client_addr, &dummy);
+                            }
+                            else
+                            {
+                                ret = HDLC_ERR_ADDR;
+                            }
+                        }
+                        else
+                        {
+                            ret = hdlc_get_addr(ptr, addr_size, &hdlc->logical_device, &hdlc->phy_address);
+                            hdlc->addr_len = addr_size; // update server address size
+                        }
 
                         if (!ret)
                         {
                             // Advance to next frame part
-                            ptr += src_size;
+                            ptr += addr_size;
                             // now decode the control field
                             ret = hdlc_decode_control_field(hdlc, *ptr);
 
@@ -716,12 +737,8 @@ int hdlc_decode(hdlc_t *hdlc, const uint8_t *buf, uint16_t size)
                                     if (!ret)
                                     {
                                         // Info field size
-
-
                                         hdlc->data_index = (uint16_t)(ptr - &buf[0]);
                                         hdlc->data_size = remaining_size - 2U;
-
-                                        ret = hdlc_decode_info_field(hdlc, &buf[hdlc->data_index], hdlc->data_size); // remove HCS from the remaining size
                                     }
                                 }
                             }
@@ -752,7 +769,7 @@ int hdlc_decode(hdlc_t *hdlc, const uint8_t *buf, uint16_t size)
 	return ret;
 }
 
-void print_hdlc_result(hdlc_t *hdlc, int code)
+void hdlc_print_result(hdlc_t *hdlc, int code)
 {
 	if (code == HDLC_OK)
 	{

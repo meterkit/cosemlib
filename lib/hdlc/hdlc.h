@@ -60,12 +60,13 @@ typedef struct
 } hdlc_t;
 
 void hdlc_init(hdlc_t *hdlc);
+int hdlc_decode_info_field(hdlc_t *hdlc, const uint8_t *buf, uint16_t info_field_size);
 int hdlc_encode_snrm(hdlc_t *hdlc, uint8_t *buf, uint16_t size);
 int hdlc_encode_rr(hdlc_t *hdlc, uint8_t *buf, uint16_t size);
 int hdlc_encode_data(hdlc_t *hdlc, uint8_t *buf, uint16_t size, const uint8_t *data, uint16_t data_size);
 int hdlc_encode(hdlc_t *hdlc, uint8_t *buf, uint16_t size, uint8_t frame_type, const uint8_t *data, uint16_t data_size);
 int hdlc_decode(hdlc_t *hdlc, const uint8_t *buf, uint16_t size);
-void print_hdlc_result(hdlc_t *hdlc, int code);
+void hdlc_print_result(hdlc_t *hdlc, int code);
 
 //void hdlc_init(hdlc_channel *chan);
 //int hdlc_handle(hdlc_channel *chan, uint8_t *data, uint16_t size);
