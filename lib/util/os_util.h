@@ -28,6 +28,10 @@ extern "C" {
 #define BIT(x) (1U << (x))
 #endif
 
+static inline uint8_t is_bit_set(uint8_t value, uint8_t bit)
+{
+    return ((value & BIT(bit)) == 0U) ? 0U : 1U;
+}
 
 static inline uint16_t GET_BE16(const uint8_t *buff)
 {
@@ -36,14 +40,15 @@ static inline uint16_t GET_BE16(const uint8_t *buff)
     return val;
 }
 
-static inline uint8_t is_bit_set(uint8_t value, uint8_t bit)
-{
-    return ((value & BIT(bit)) == 0U) ? 0U : 1U;
-}
-
 static inline uint32_t GET_BE32(const uint8_t *a)
 {
     return ((uint32_t) a[0] << 24) | (a[1] << 16) | (a[2] << 8) | a[3];
+}
+
+static inline uint64_t GET_BE64(const uint8_t *a)
+{
+    return (uint64_t)(((uint64_t)a[0] << 56) | ((uint64_t)a[1] << 48) | ((uint64_t)a[2] << 40) | ((uint64_t)a[3] << 32) |
+            (uint64_t)a[4] << 24) | ((uint64_t)a[5] << 16) | ((uint64_t)a[6] << 8) | a[7];
 }
 
 static inline void PUT_BE16(uint8_t *buff, uint16_t size)
@@ -99,7 +104,7 @@ int memcmp_const(const void *a, const void *b, size_t len);
 
 // size is the size of the input string, must be even
 void hex2bin(const char *in, char* out, int size);
-
+void byte_to_hex(const char byte, char *out);
 void print_hex(const char *buf, int size);
 
 

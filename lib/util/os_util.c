@@ -34,17 +34,27 @@ int memcmp_const(const void *a, const void *b, size_t len)
 	return res;
 }
 
-
-void print_hex(const char *buf, int size)
+void byte_to_hex(const char byte, char *out)
 {
     int i = 0U;
     static const char binHex[] = "0123456789ABCDEF";
 
+    out[2*i] = binHex[(byte >> 4) & 0x0F];
+    out[2*i + 1] = binHex[byte & 0x0F];
+}
+
+
+void print_hex(const char *buf, int size)
+{
+    int i = 0U;
+    char out[2];
+
     for (i = 0U; i < size; i++)
     {
-        uint8_t byte = buf[i];
-        printf("%c", binHex[(byte >> 4) & 0x0F]);
-        printf("%c", binHex[byte & 0x0F]);
+        byte_to_hex(buf[i], &out[0]);
+
+        printf("%c", out[0]);
+        printf("%c", out[1]);
     }
 
     fflush(stdout);
