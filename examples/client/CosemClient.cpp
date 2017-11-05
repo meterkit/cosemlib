@@ -690,6 +690,8 @@ int CosemClient::ReadProfile(const Object &obj)
                                 {
                                     puts("No more data\r\n");
                                     loop = false;
+
+                                  //  print_hex((const char *)&mAppBuffer[0], csm_array_written(&array));
                                 }
                             }
                             else
