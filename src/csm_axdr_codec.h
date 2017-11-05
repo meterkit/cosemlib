@@ -12,6 +12,10 @@
 #ifndef AXDR_CODEC_H
 #define AXDR_CODEC_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "csm_array.h"
 #include "csm_definitions.h"
 
@@ -32,7 +36,7 @@ bcd                                [13]  IMPLICIT   Integer8,
 integer                            [15]  IMPLICIT   Integer8,
 long                               [16]  IMPLICIT   Integer16,
 unsigned                           [17]  IMPLICIT   Unsigned8,
-long-unsigned        [18]  IMPLICIT   Unsigned16,
+long-unsigned                       [18]  IMPLICIT   Unsigned16,
 compact-array                      [19]  IMPLICIT   SEQUENCE
 {
 contents-description                [0]              TypeDescription,
@@ -56,15 +60,42 @@ enum axdr_tag
     AXDR_TAG_ARRAY          = 1U,
     AXDR_TAG_STRUCTURE      = 2U,
     AXDR_TAG_BOOLEAN        = 3U,
-    AXDR_TAG_OCTETSTRING    = 9U
+    AXDR_TAG_BITSTRING      = 4U,
+    AXDR_TAG_INTEGER32      = 5U,
+    AXDR_TAG_UNSIGNED32     = 6U,
+    AXDR_TAG_OCTETSTRING    = 9U,
+    AXDR_TAG_VISIBLESTRING  = 10U,
+    AXDR_TAG_UTF8_STRING    = 12U,
+    AXDR_TAG_BCD            = 13U,
+    AXDR_TAG_INTEGER8       = 15U,
+    AXDR_TAG_INTEGER16      = 16U,
+    AXDR_TAG_UNSIGNED8      = 17U,
+    AXDR_TAG_UNSIGNED16     = 18U,
+    AXDR_TAG_INTEGER64      = 20U,
+    AXDR_TAG_UNSIGNED64     = 21U,
+    AXDR_TAG_ENUM           = 22U,
+    AXDR_TAG_UNKNOWN        = 255U
+
 };
+
+// Compute how many bytes are needed to store a bit field
+#define BITFIELD_BYTES(bits)    (((bits - 1U) >> 3U) + 1U)
+
+typedef void (*axdr_data_cb)(uint8_t type, uint32_t size, uint8_t *data);
 
 // Decoders
 int csm_axdr_rd_null(csm_array *array);
 int csm_axdr_rd_octetstring(csm_array *array);
 
+int csm_axdr_decode_tags(csm_array *array, axdr_data_cb callback);
+int csm_axdr_decode_block(csm_array *array, uint32_t *size);
+
 // Encoders
 int csm_axdr_wr_octetstring(csm_array *array, const uint8_t *buffer, uint32_t size);
 int csm_axdr_wr_boolean(csm_array *array, uint8_t value);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // AXDR_CODEC_H

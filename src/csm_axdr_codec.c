@@ -28,6 +28,22 @@ int csm_axdr_rd_null(csm_array *array)
     return ret;
 }
 
+int csm_axdr_size(csm_array *array, uint32_t *size)
+{
+    int ret = FALSE;
+
+    ber_length len;
+    csm_ber_read_len(array, &len);
+
+    // Check if size is somewhat possible
+    if (len.length <= csm_array_unread(array))
+    {
+        *size = len.length;
+        ret = TRUE;
+    }
+    return ret;
+}
+
 int csm_axdr_rd_octetstring(csm_array *array)
 {
     int ret = FALSE;
@@ -36,13 +52,117 @@ int csm_axdr_rd_octetstring(csm_array *array)
     {
         if (byte == AXDR_TAG_OCTETSTRING)
         {
+            uint32_t size;
+            ret = csm_axdr_size(array, &size);
+        }
+    }
+    return ret;
+}
+
+typedef enum
+{
+    AXDR_SIZE_NONE = 0,
+    AXDR_SIZE_1 = 1,
+    AXDR_SIZE_2 = 2,
+    AXDR_SIZE_4 = 4,
+    AXDR_SIZE_8 = 8,
+    AXDR_SIZE_CODED,
+} axdr_size_t;
+
+typedef struct
+{
+    uint8_t tag;
+    uint8_t is_struct;
+    axdr_size_t size;
+} tag_t;
+
+static const tag_t tags[] = {
+        { AXDR_TAG_NULL,            0, AXDR_SIZE_NONE},
+        { AXDR_TAG_ARRAY,           1, AXDR_SIZE_CODED},
+        { AXDR_TAG_STRUCTURE,       1, AXDR_SIZE_CODED},
+        { AXDR_TAG_BOOLEAN,         0, AXDR_SIZE_1},
+        { AXDR_TAG_BITSTRING,       0, AXDR_SIZE_CODED},
+        { AXDR_TAG_INTEGER32,       0, AXDR_SIZE_4},
+        { AXDR_TAG_UNSIGNED32,      0, AXDR_SIZE_4},
+        { AXDR_TAG_OCTETSTRING,     0, AXDR_SIZE_CODED},
+        { AXDR_TAG_VISIBLESTRING,   0, AXDR_SIZE_CODED},
+        { AXDR_TAG_UTF8_STRING,     0, AXDR_SIZE_CODED},
+        { AXDR_TAG_BCD,             0, AXDR_SIZE_1},
+        { AXDR_TAG_INTEGER8,        0, AXDR_SIZE_1},
+        { AXDR_TAG_INTEGER16,       0, AXDR_SIZE_2},
+        { AXDR_TAG_UNSIGNED8,       0, AXDR_SIZE_1} ,
+        { AXDR_TAG_UNSIGNED16,      0, AXDR_SIZE_2},
+        { AXDR_TAG_INTEGER64,       0, AXDR_SIZE_8},
+        { AXDR_TAG_UNSIGNED64,      0, AXDR_SIZE_8},
+        { AXDR_TAG_ENUM,            0, AXDR_SIZE_1}
+};
+
+static const uint32_t tags_size = sizeof(tags) / sizeof(tags[0]);
+
+
+int csm_axdr_decode_tags(csm_array *array, axdr_data_cb callback)
+{
+    int ret = FALSE;
+    uint8_t tag = 0xFFU;
+
+    int error = 0;
+
+    while (csm_array_read_u8(array, &tag) && !error)
+    {
+        error = 1;
+        for (uint32_t i = 0; i < tags_size; i++)
+        {
+            error = 0;
+
+            if (tags[i].tag == tag)
+            {
+                uint32_t size = tags[i].size;
+
+                if (tags[i].size == AXDR_SIZE_CODED)
+                {
+                    if (!csm_axdr_size(array, &size))
+                    {
+                        error = 1;
+                    }
+                }
+
+                callback(tag, size, csm_array_rd_data(array));
+
+                // jump over the data, if any
+                if ((!tags[i].is_struct) && size)
+                {
+                    // Special case: transform the size in bytes
+                    if (tag == AXDR_TAG_BITSTRING)
+                    {
+                        size = BITFIELD_BYTES(size);
+                    }
+                    csm_array_reader_jump(array, size);
+                }
+                break; // enough
+            }
+        }
+
+
+    }
+    return ret;
+}
+
+int csm_axdr_decode_block(csm_array *array, uint32_t *size)
+{
+    int ret = FALSE;
+    uint8_t byte = 0xFFU;
+    if (csm_array_read_u8(array, &byte))
+    {
+        if (byte == 0x00U)
+        {
+            // begin of the block
             ber_length len;
             csm_ber_read_len(array, &len);
 
             // Check if size is somewhat possible
             if (len.length <= csm_array_unread(array))
             {
-                ret = TRUE;
+                *size = len.length;
             }
         }
     }
