@@ -52,8 +52,8 @@ int cal_is_day_profile_valid(const cal_day_profile_t *dp)
         // Test the chronological order of the switching actions and the script id range validity
         for (uint8_t timeIndex = 0U; timeIndex < size; timeIndex++)
         {
-            uint8_t hours = dp->switching_actions[timeIndex].start_hour;
-            uint8_t minutes = dp->switching_actions[timeIndex].start_min;
+        //    uint8_t hours = dp->switching_actions[timeIndex].start_hour;
+        //    uint8_t minutes = dp->switching_actions[timeIndex].start_min;
 
             /*
             // We do not check the script ID, we don't care of the value (meter specific)
