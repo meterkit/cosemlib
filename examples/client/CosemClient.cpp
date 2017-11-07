@@ -2,6 +2,8 @@
 #include <Util.h>
 #include <iostream>
 #include <iomanip>
+#include <ctime>
+
 #include "CosemClient.h"
 #include "serial.h"
 #include "os_util.h"
@@ -579,6 +581,8 @@ int CosemClient::ReadProfile(const Object &obj)
 {
     int ret;
     std::vector<CGXByteBuffer> data;
+    bool allowSelectiveAccess = false;
+
 
     CGXDLMSProfileGeneric profile(obj.ln);
 
@@ -587,17 +591,66 @@ int CosemClient::ReadProfile(const Object &obj)
 
     std::tm tm_start = {};
     std::tm tm_end = {};
-    std::stringstream ss(mCosem.start_date);
-    ss >> std::get_time(&tm_start, "%Y-%m-%d.%H:%M:%S");
 
-    std::stringstream ss2(mCosem.end_date);
-    ss2 >> std::get_time(&tm_end, "%Y-%m-%d.%H:%M:%S");
+    // Allow selective access only on profile get buffer attribute
+    if ((obj.attribute_id == 2) && (obj.class_id == 7U))
+    {
+        allowSelectiveAccess = true;
+    }
+
+    if (allowSelectiveAccess)
+    {
+        if (mCosem.start_date.size() > 0)
+        {
+            // Try to decode start date
+            std::stringstream ss(mCosem.start_date);
+            ss >> std::get_time(&tm_start, "%Y-%m-%d.%H:%M:%S");
+
+            if (ss.fail())
+            {
+                std::cout << "** Parse start date failed\r\n";
+                allowSelectiveAccess = false;
+            }
+        }
+        else
+        {
+            // No start date, disable selective access
+            allowSelectiveAccess = false;
+        }
+
+        if (mCosem.start_date.size() > 0)
+        {
+            std::stringstream ss2(mCosem.end_date);
+            ss2 >> std::get_time(&tm_end, "%Y-%m-%d.%H:%M:%S");
+            if (ss2.fail())
+            {
+                std::cout << "** Parse end date failed\r\n";
+                allowSelectiveAccess = false;
+            }
+        }
+        else
+        {
+            // No end date, so take today as the end-date
+
+            time_t t = time(0);   // get time now
+            tm_end = *localtime( & t );
+            std::cout << "** No end date defined, take today as end-date: " << std::ctime(&t) << std::endl;
+        }
+    }
+
 
     csm_array array;
     csm_array_init(&array, &mAppBuffer[0], cAppBufferSize, 0, 0);
 
-    //Read data from the meter.
-    ret = mClient.ReadRowsByRange(&profile, &tm_start, &tm_end, data);
+    if (allowSelectiveAccess)
+    {
+        //Read data from the meter.
+        ret = mClient.ReadRowsByRange(&profile, &tm_start, &tm_end, data);
+    }
+    else
+    {
+        ret = mClient.Read(&profile, (int)obj.attribute_id, data);
+    }
 
     if ((ret == 0) && (data.size() > 0))
     {
