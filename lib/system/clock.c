@@ -1,10 +1,16 @@
 #include "clock.h"
+#include "csm_array.h"
 
+#define CLOCK_DEFAULT_YEAR  2000U
+#define CLOCK_DEFAULT_MONTH 1U
+#define CLOCK_DEFAULT_DAY   1U
+#define CLOCK_DEFAULT_HOUR  0U
+#define CLOCK_DEFAULT_MINUTE 0U
+#define CLOCK_DEFAULT_SECOND 0U
 
 
 static const uint32_t days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-static uint32_t clock_datetime = 0U; //< This is the system time
 
 /*
 static uint16_t clock_deviation = 0U;
@@ -126,31 +132,31 @@ uint32_t clk_last_dow(uint32_t yr, uint32_t mo, uint32_t dow)
 // timer is the number of seconds from epoch (unix time)
 void clk_to_datetime(const uint32_t timer, struct tm *tms)
 {
-  uint32_t yr, mo, da;
-  uint32_t secs, days;
+    uint32_t yr, mo, da;
+    uint32_t secs, days;
 
-  days = timer / (60L*60*24);
-  secs = timer % (60L*60*24);
-  scalar_to_ymd(days + ymd_to_scalar(1970, 1, 1), &yr, &mo, &da);
+    days = timer / (60L*60*24);
+    secs = timer % (60L*60*24);
+    scalar_to_ymd(days + ymd_to_scalar(1970, 1, 1), &yr, &mo, &da);
 
-  tms->tm_year = yr - 1900;
-  tms->tm_mon = mo - 1;
-  tms->tm_mday = da;
-  tms->tm_yday = (int)(ymd_to_scalar(tms->tm_year + 1900, mo, da)
+    tms->tm_year = yr - 1900;
+    tms->tm_mon = mo - 1;
+    tms->tm_mday = da;
+    tms->tm_yday = (int)(ymd_to_scalar(tms->tm_year + 1900, mo, da)
               - ymd_to_scalar(tms->tm_year + 1900, 1, 1));
-  tms->tm_wday = clk_dow(tms->tm_year + 1900, mo, da);
-  tms->tm_isdst = -1;
-  tms->tm_sec = (int)(secs % 60);
-  secs /= 60;
-  tms->tm_min = (int)(secs % 60);
-  secs /= 60;
-  tms->tm_hour = (int)secs;
+    tms->tm_wday = clk_dow(tms->tm_year + 1900, mo, da);
+    tms->tm_isdst = -1;
+    tms->tm_sec = (int)(secs % 60);
+    secs /= 60;
+    tms->tm_min = (int)(secs % 60);
+    secs /= 60;
+    tms->tm_hour = (int)secs;
 }
 
 
-int clk_is_valid_month(uint32_t mo)
+uint32_t clk_is_valid_month(uint32_t mo)
 {
-    int ret = 0;
+    uint32_t ret = 0;
 
     if ((mo >=1) && (mo <= 12))
     {
@@ -164,9 +170,9 @@ int clk_is_valid_month(uint32_t mo)
 **  Determine if a given date is valid
 */
 
-int clk_is_valid_date(uint32_t yr, uint32_t mo, uint32_t day)
+uint32_t clk_is_valid_date(uint32_t yr, uint32_t mo, uint32_t day)
 {
-    int ret = 0;
+    uint32_t ret = 0;
 
     if (clk_is_valid_month(mo))
     {
@@ -178,30 +184,64 @@ int clk_is_valid_date(uint32_t yr, uint32_t mo, uint32_t day)
     return ret;
 }
 
+uint8_t clk_is_valid_time(uint8_t h, uint8_t m, uint8_t s)
+{
+    uint8_t ret = 1U;
+
+    if (h > 23U)
+    {
+        ret = 0U;
+    }
+    if (m > 59U)
+    {
+        ret = 0U;
+    }
+    if (s > 59U)
+    {
+        ret = 0U;
+    }
+    return ret;
+}
+
+uint8_t clk_is_valid_deviation(int16_t d)
+{
+    uint8_t ret = 1U;
+
+    if (d < -720)
+    {
+        ret = 0U;
+    }
+    if (d > 720)
+    {
+        ret = 0U;
+    }
+    return ret;
+}
+
 
 /*
 **  Return the day of the year (1 - 365/6)
 */
 
-int clk_daynum(int year, int month, int day)
+uint32_t clk_daynum(uint32_t year, uint32_t month, uint32_t day)
 {
     uint32_t jan1date = ymd_to_scalar(year, 1, 1);
-    return (int)(ymd_to_scalar(year, month, day) - jan1date + 1L);
+    return ymd_to_scalar(year, month, day) - jan1date + 1L;
 }
 
 /*
 **  Return the week of the year (1 - 52, 0 - 52 if ISO)
 */
 
-int clk_weeknum(int year, int month, int day)
+uint32_t clk_weeknum(uint32_t year, uint32_t month, uint32_t day)
 {
-      int wn, j1n, dn = clk_daynum(year, month, day);
-      uint32_t jan1date = ymd_to_scalar(year, 1, 1);
+    uint32_t wn, j1n, dn = clk_daynum(year, month, day);
+    uint32_t jan1date = ymd_to_scalar(year, 1, 1);
 
-      dn += (j1n = (int)((jan1date - (uint32_t)1) % 7L)) - 1;
-      wn = dn / 7;
-      wn += (j1n < 4);
-      return wn;
+    dn += (j1n = (uint32_t)((jan1date - (uint32_t)1) % 7L)) - 1;
+    wn = dn / 7;
+    wn += (j1n < 4);
+    return wn;
 }
 
 /*
@@ -224,12 +264,6 @@ uint32_t moonphase(uint32_t yr, uint32_t mo, uint32_t dy)
       return (uint32_t)date;
 }
 
-
-
-void clk_top_second()
-{
-    clock_datetime++;
-}
 
 
 
@@ -267,9 +301,9 @@ void clk_top_second()
 
 int add_time(uint32_t basehrs, uint32_t basemins, uint32_t basesecs,
              int spanhrs, int spanmins, int spansecs,
-             uint32_t *hrs, uint32_t *mins, uint32_t *secs, int *days)
+             uint32_t *hrs, uint32_t *mins, uint32_t *secs, uint32_t *days)
 {
-      int h, m, s;
+    int h, m, s;
       div_t r;
 
       if (basehrs > 24 || basemins > 59 || basesecs > 59)
@@ -341,34 +375,157 @@ enum DOW_T  DST_stop_dy = SUNDAY;         /* Day of week, or DOW_IGNORE */
 
 int clk_is_dst(uint32_t  yr,
             uint32_t  mo,
-            uint32_t  dy,
-            uint32_t     *Start,
-            uint32_t     *Stop)
+            uint32_t  dy)
 {
       uint32_t date;
+      uint32_t Start;
+      uint32_t Stop;
 
       if (!clk_is_valid_date(yr, mo, dy))
             return -1;
       else  date = ymd_to_scalar(yr, mo, dy);
 
-      *Start = ymd_to_scalar(yr, DST_start_mo, DST_start_dt);
-      *Stop  = ymd_to_scalar(yr, DST_stop_mo, DST_stop_dt);
+      Start = ymd_to_scalar(yr, DST_start_mo, DST_start_dt);
+      Stop  = ymd_to_scalar(yr, DST_stop_mo, DST_stop_dt);
 
       if (DST_start_dy != DOW_IGNORE)
       {
-            while (DST_start_dy != (enum DOW_T)(*Start % 7U))
+            while (DST_start_dy != (enum DOW_T)(Start % 7U))
             {
-                  ++*Start;
+                  ++Start;
             }
       }
 
       if (DST_stop_dy != DOW_IGNORE)
       {
-            while (DST_stop_dy != (enum DOW_T)(*Stop % 7U))
+            while (DST_stop_dy != (enum DOW_T)(Stop % 7U))
             {
-                  --*Stop;
+                  --Stop;
             }
       }
 
-      return (date >= *Start && date < *Stop);
+      return ((date >= Start) && (date < Stop));
 }
+
+void clk_cosem_update_status(clk_datetime_t *clk)
+{
+    clk->status = 0U;
+    uint8_t invalid_bit = 0U;
+    uint8_t dst_bit = 0U;
+
+    int isDst = clk_is_dst(clk->date.year, clk->date.month, clk->date.day);
+
+    if (!clk_is_valid_date(clk->date.year, clk->date.month, clk->date.day) ||
+        !clk_is_valid_time(clk->time.hour, clk->time.minute, clk->time.second) ||
+        !clk_is_valid_deviation(clk->deviation) ||
+        (isDst < 0))
+    {
+        invalid_bit = 1;
+    }
+    else
+    {
+        if (isDst)
+        {
+            dst_bit = 1U;
+        }
+    }
+
+    clk->status = (dst_bit << 7U) | invalid_bit;
+}
+
+void clk_cosem_init(clk_datetime_t *clk)
+{
+    // Default date-time parameters
+    clk->date.year = CLOCK_DEFAULT_YEAR;
+    clk->date.month = CLOCK_DEFAULT_MONTH;
+    clk->date.day = CLOCK_DEFAULT_DAY;
+    clk->date.dow = clk_dow(CLOCK_DEFAULT_YEAR, CLOCK_DEFAULT_MONTH, CLOCK_DEFAULT_DAY);
+    clk->time.hour = CLOCK_DEFAULT_HOUR;
+    clk->time.minute = CLOCK_DEFAULT_MINUTE;
+    clk->time.second = CLOCK_DEFAULT_SECOND;
+    clk->time.hundredths = 0U;
+    clk->deviation = -60;
+
+    clk_cosem_update_status(clk);
+}
+
+int clk_datetime_to_cosem(const clk_datetime_t *clk, csm_array *array)
+{
+    int valid = clk_date_to_cosem(&clk->date, array);
+    valid = valid && clk_time_to_cosem(&clk->time, array);
+
+    valid = valid && csm_array_write_u8(array, (uint8_t)(clk->deviation >> 8U) & 0xFFU);
+    valid = valid && csm_array_write_u8(array, (uint8_t)(clk->deviation & 0xFFU));
+    valid = valid && csm_array_write_u8(array, clk->status);
+
+    return valid;
+}
+
+int clk_date_to_cosem(const clk_date_t *date, csm_array *array)
+{
+    int valid = csm_array_write_u16(array, (uint8_t)(date->year >> 8U) & 0xFFU);
+    valid = valid && csm_array_write_u8(array, (uint8_t)(date->year & 0xFFU));
+    valid = valid && csm_array_write_u8(array, date->month);
+    valid = valid && csm_array_write_u8(array, date->day);
+    valid = valid && csm_array_write_u8(array, date->dow);
+
+    return valid;
+}
+
+int clk_time_to_cosem(const clk_time_t *time, csm_array *array)
+{
+    int valid = csm_array_write_u8(array, time->hour);
+    valid = valid && csm_array_write_u8(array, time->minute);
+    valid = valid && csm_array_write_u8(array, time->second);
+    valid = valid && csm_array_write_u8(array, time->hundredths);
+
+    return valid;
+}
+
+int clk_datetime_from_cosem(clk_datetime_t *clk, csm_array *array)
+{
+    int valid = FALSE;
+
+    (void) clk;
+    (void) array;
+
+    return valid;
+}
+
+int clk_datete_from_cosem(clk_date_t *date, csm_array *array)
+{
+    int valid = FALSE;
+
+    (void) date;
+    (void) array;
+
+    return valid;
+}
+
+int clk_time_from_cosem(clk_time_t *time, csm_array *array)
+{
+    int valid = FALSE;
+
+    (void) time;
+    (void) array;
+
+    return valid;
+}
+
+void clk_print_datetime(const clk_datetime_t *clk)
+{
+    (void) clk;
+}
+
+void clk_print_date(const clk_date_t *date)
+{
+    (void) date;
+}
+
+void clk_print_time(const clk_time_t *time)
+{
+    (void) time;
+}
+
+
+

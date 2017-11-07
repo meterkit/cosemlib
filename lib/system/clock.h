@@ -6,6 +6,10 @@
 #include <time.h>
 
 
+// Cosem stuff
+#include "csm_axdr_codec.h"
+#include "csm_array.h"
+
 
 enum DOW_T {DOW_IGNORE = -1,
        MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY};
@@ -39,6 +43,7 @@ tm_sec is generally 0-59. The extra range is to accommodate for leap seconds in 
 
 typedef struct
 {
+    uint8_t hundredths;
     uint8_t second; // 0-59
     uint8_t minute; // 0-59
     uint8_t hour;   // 0-23
@@ -49,7 +54,7 @@ typedef struct
     uint8_t day;    // 1-31
     uint8_t dow;    // Day of week [0..6]
     uint8_t month;  // 1-12
-    uint8_t year;   // 0-99 (representing 2000-2099)
+    uint16_t year;   // 0-99 (representing 2000-2099)
 } clk_date_t;
 
 typedef struct
@@ -61,23 +66,40 @@ typedef struct
 } clk_datetime_t;
 
 
-int clk_is_valid_month(uint32_t mo);
-int clk_is_valid_date(uint32_t yr, uint32_t mo, uint32_t day);
+
+// -------------------------------------- RAW UTILITY FUNCTIONS --------------------------------------
+
+uint32_t clk_is_valid_month(uint32_t mo);
+uint32_t clk_is_valid_date(uint32_t yr, uint32_t mo, uint32_t day);
 
 // Return the day of the last dow of a given month/year
 // Eg: last sunday of march 2017 is day 26
 uint32_t clk_last_dow(uint32_t yr, uint32_t mo, uint32_t dow);
 uint32_t clk_dow(uint32_t yr, uint32_t mo, uint32_t day);
-int clk_daynum(int year, int month, int day);
-int clk_weeknum(int year, int month, int day);
+uint32_t clk_daynum(uint32_t year, uint32_t month, uint32_t day);
+uint32_t clk_weeknum(uint32_t year, uint32_t month, uint32_t day);
 
 uint32_t clk_to_epoch(struct tm *timeptr);
 void clk_to_datetime(const uint32_t timer, struct tm *tms);
-int clk_is_dst(uint32_t yr, uint32_t mo, uint32_t dy, uint32_t *Start, uint32_t *Stop);
+int clk_is_dst(uint32_t yr, uint32_t mo, uint32_t dy);
 
 
-// incremented by the system (top second comming from any BSP RTC device)
-void clk_top_second();
+// -------------------------------------- COSEM DATE TIME --------------------------------------
+
+void clk_cosem_init(clk_datetime_t *clk);
+
+// return TRUE or FALSE
+int clk_datetime_to_cosem(const clk_datetime_t *clk, csm_array *array);
+int clk_date_to_cosem(const clk_date_t *date, csm_array *array);
+int clk_time_to_cosem(const clk_time_t *time, csm_array *array);
+int clk_datetime_from_cosem(clk_datetime_t *clk, csm_array *array);
+int clk_date_from_cosem(clk_date_t *date, csm_array *array);
+int clk_time_from_cosem(clk_time_t *time, csm_array *array);
+void clk_print_datetime(const clk_datetime_t *clk);
+void clk_print_date(const clk_date_t *date);
+void clk_print_time(const clk_time_t *time);
+
+
 
 #if 0
 // Calculate day of week in proleptic Gregorian calendar. Sunday == 0.
