@@ -139,7 +139,7 @@ bool ParseObjectsFile(std::vector<Object> &list, const std::string &file)
                 val = obj.FindValue("attribute_id");
                 if (val.IsInteger())
                 {
-                    object.attribute_id = static_cast<std::int16_t>(val.GetInteger());
+                    object.attribute_id = static_cast<std::int8_t>(val.GetInteger());
                 }
 
                 object.Print();
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 
     puts("** DLMS/Cosem Client started\r\n");
 
-    if (argc >= 5)
+    if (argc >= 3)
     {
         Cosem cosem;
         Modem modem;
@@ -178,8 +178,17 @@ int main(int argc, char **argv)
 
         std::string commFile(argv[1]); // First file is the communication parameters
         std::string objectsFile(argv[2]); // Second is the objects to retrieve
-        cosem.start_date = std::string(argv[3]); // startDate for the profiles
-        cosem.end_date = std::string(argv[4]); // endDate for the profiles
+
+
+        if (argc >= 4)
+        {
+            cosem.start_date = std::string(argv[3]); // startDate for the profiles
+        }
+
+        if (argc >= 5)
+        {
+            cosem.end_date = std::string(argv[4]); // endDate for the profiles
+        }
 
         ParseComFile(modem, cosem, serial, hdlc, commFile);
 
