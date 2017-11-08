@@ -45,6 +45,7 @@ LIB_TESTS				:= tests lib/util lib/hdlc
 LIB_EXAMPLE_SERVER		:= examples/server
 LIB_EXAMPLE_CLIENT		:= examples/client
 LIB_GURUX				:= lib/gurux
+LIB_CLIENT_UTILS		:= lib/client
 LIB_ICL					:= lib/icl
 
 export LIB_STM32F4
@@ -72,7 +73,7 @@ ifeq ($(MAKECMDGOALS), client)
 
 DEFINES += -DDEBUG=0
 
-APP_MODULES 	:= $(LIB_CLIENT) $(LIB_EXAMPLE_CLIENT) $(LIB_GURUX) $(LIB_ICL)
+APP_MODULES 	:= $(LIB_CLIENT) $(LIB_EXAMPLE_CLIENT) $(LIB_GURUX) $(LIB_ICL) $(LIB_CLIENT_UTILS)
 APP_LIBPATH 	:= 
 APP_LIBS 		:= 
 
@@ -85,7 +86,7 @@ ifeq ($(MAKECMDGOALS), tstu)
 
 DEFINES += -DDEBUG=1
 
-APP_MODULES 	:= src $(LIB_METER) $(LIB_BSP) $(LIB_TESTS) $(LIB_ICL)
+APP_MODULES 	:= src $(LIB_METER) $(LIB_BSP) $(LIB_TESTS) $(LIB_ICL) $(LIB_CLIENT_UTILS)
 APP_LIBPATH 	:= 
 APP_LIBS 		:= 
 
