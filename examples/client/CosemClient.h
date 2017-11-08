@@ -151,9 +151,7 @@ public:
     bool PerformTask();
     bool PerformCosemRead();
     int ConnectAarq();
-    int ReadClock();
-    int ReadRegister(const Object &obj);
-    int ReadProfile(const Object &obj);
+    int ReadObject(const Object &obj);
 
 private:
     ModemState mModemState;
