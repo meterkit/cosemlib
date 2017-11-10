@@ -179,9 +179,40 @@ int csm_axdr_wr_octetstring(csm_array *array, const uint8_t *buffer, uint32_t si
     return valid;
 }
 
+int csm_axdr_wr_i8(csm_array *array, int8_t value)
+{
+    int valid = csm_array_write_u8(array, AXDR_TAG_INTEGER8);
+    valid = valid && csm_array_write_u8(array, value);
+    return valid;
+}
+
+int csm_axdr_wr_u16(csm_array *array, uint16_t value)
+{
+    int valid = csm_array_write_u8(array, AXDR_TAG_UNSIGNED16);
+    valid = valid && csm_array_write_u16(array, value);
+    return valid;
+}
+
 int csm_axdr_wr_boolean(csm_array *array, uint8_t value)
 {
     int valid = csm_array_write_u8(array, AXDR_TAG_OCTETSTRING);
     valid = valid && csm_array_write_u8(array, value);
     return valid;
 }
+
+int csm_axdr_wr_capture_object(csm_array *array, csm_object_t *data)
+{
+    int valid = csm_array_write_u8(array, AXDR_TAG_STRUCTURE);
+    valid = valid && csm_ber_write_len(array, 4U);
+
+    // 1.
+    valid = valid && csm_axdr_wr_u16(array, data->class_id);
+    // 2.
+    valid = valid && csm_axdr_wr_octetstring(array, (const uint8_t *)&data->obis.A, 6U);
+    // 3.
+    valid = valid && csm_axdr_wr_i8(array, data->id);
+    // 4.
+    valid = valid && csm_axdr_wr_u16(array, data->data_index);
+    return valid;
+}
+
