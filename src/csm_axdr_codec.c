@@ -141,9 +141,13 @@ int csm_axdr_decode_tags(csm_array *array, axdr_data_cb callback)
                 break; // enough
             }
         }
-
-
     }
+
+    if (!error)
+    {
+        ret = TRUE;
+    }
+
     return ret;
 }
 
@@ -163,6 +167,7 @@ int csm_axdr_decode_block(csm_array *array, uint32_t *size)
             if (len.length <= csm_array_unread(array))
             {
                 *size = len.length;
+                ret = TRUE;
             }
         }
     }

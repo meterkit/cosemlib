@@ -495,8 +495,8 @@ int hdlc_check_fcs(const uint8_t* buf, uint16_t size)
 	uint16_t expected = buf[size-2];
 	expected = (expected << 8) + buf[size-3];
 	
-	debug_print("FCS calculated: 0x%.4X\r\n", fcs);
-	debug_print("FCS expected: 0x%.4X\r\n", expected);
+//	debug_print("FCS calculated: 0x%.4X\r\n", fcs);
+//	debug_print("FCS expected: 0x%.4X\r\n", expected);
 	
 	return (expected == fcs) ? HDLC_OK : HDLC_ERR_FCS;
 }
@@ -512,8 +512,8 @@ int hdlc_check_hcs(const uint8_t* buf, uint16_t size)
 	uint16_t expected = buf[size-1];
 	expected = (expected << 8) + buf[size-2];
 	
-	debug_print("HCS calculated: 0x%.4X\r\n", hcs);
-	debug_print("HCS expected: 0x%.4X\r\n", expected);
+//	debug_print("HCS calculated: 0x%.4X\r\n", hcs);
+//	debug_print("HCS expected: 0x%.4X\r\n", expected);
 	
 	return (expected == hcs) ? HDLC_OK : HDLC_ERR_HCS;
 }

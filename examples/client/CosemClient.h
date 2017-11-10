@@ -87,13 +87,13 @@ struct Object
 
     void Print()
     {
-        std::cout << "Object " << name << ": " << ln << " Class ID: " << class_id << " Attribute: " << attribute_id << std::endl;
+        std::cout << "Object " << name << ": " << ln << " Class ID: " << class_id << " Attribute: " << (int)attribute_id << std::endl;
     }
 
     std::string name;
     std::string ln;
     std::uint16_t class_id;
-    std::int16_t attribute_id;
+    std::int8_t attribute_id;
 };
 
 
@@ -152,9 +152,7 @@ public:
     bool PerformTask();
     bool PerformCosemRead();
     int ConnectAarq();
-    int ReadClock();
-    int ReadRegister(const Object &obj);
-    int ReadProfile(const Object &obj);
+    int ReadObject(const Object &obj);
 
     std::string ResultToString(csm_data_access_result result);
 
