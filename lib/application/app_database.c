@@ -5,7 +5,7 @@
 #include "app_calendar.h"
 
 
-void csm_print_obis(const csm_data *data)
+void csm_print_obis(const csm_object_t *data)
 {
     CSM_TRACE("Class: %d, obis: %d.%d.%d.%d.%d.%d, id: %d\r\n", data->class_id, data->obis.A, data->obis.A, data->obis.A, data->obis.A, data->obis.A, data->obis.A, data->id);
 }

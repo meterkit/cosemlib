@@ -79,13 +79,14 @@ typedef struct
     csm_obis_code   obis;
     uint8_t         version;
     int8_t          id;    //!< According to Blue Book 4.1.2 (Referencing method), negative values are private (app specific)
-} csm_data;
+    uint16_t        data_index;
+} csm_object_t;
 
 typedef struct
 {
     uint8_t use_sel_access; // 0 = FALSE, 1, TRUE
     uint8_t access_selector;
-    csm_array *access_params;
+    csm_array access_params;
 
 } csm_selective_access;
 
@@ -102,7 +103,7 @@ typedef struct
     uint32_t block_number;
     enum csm_service service;
     csm_selective_access access;
-    csm_data data;
+    csm_object_t data;
     uint8_t db_type; //!< Database specific, base type of the data
 } csm_db_request;
 
@@ -116,11 +117,34 @@ typedef struct
 
 } csm_request;
 
+
+typedef enum
+{
+    CSM_ACCESS_RESULT_SUCCESS = 0,
+    CSM_ACCESS_RESULT_HARDWARE_FAULT = 1,
+    CSM_ACCESS_RESULT_TEMPORARY_FAILURE = 2,
+    CSM_ACCESS_RESULT_READ_WRITE_DENIED = 3,
+    CSM_ACCESS_RESULT_OBJECT_UNDEFINED = 4,
+    CSM_ACCESS_RESULT_OBJECT_CLASS_INCONSISTENT = 9,
+    CSM_ACCESS_RESULT_OBJECT_UNAVAILABLE = 11,
+    CSM_ACCESS_RESULT_TYPE_UNMATCHED = 12,
+    CSM_ACCESS_RESULT_SCOPE_OF_ACCESS_VIOLATED = 13,
+    CSM_ACCESS_RESULT_DATA_BLOCK_UNAVAILABLE = 14,
+    CSM_ACCESS_RESULT_LONG_GET_ABORTED = 15,
+    CSM_ACCESS_RESULT_NO_LONG_GET_IN_PROGRESS = 16,
+    CSM_ACCESS_RESULT_LONG_SET_ABORTED = 17,
+    CSM_ACCESS_RESULT_NO_LONG_SET_IN_PROGRESS = 18,
+    CSM_ACCESS_RESULT_DATA_BLOCK_NUMBER_INVALID = 19,
+    CSM_ACCESS_RESULT_OTHER_REASON = 250,
+} csm_data_access_result;
+
+
 typedef struct
 {
     uint8_t type; // Type of the response (normal, next ...)
     uint8_t invoke_id;
     uint8_t result; // 0 = Data, 1 = Data-Access-Result
+    csm_data_access_result access_result;
     uint8_t last_block;
     uint32_t block_number;
 

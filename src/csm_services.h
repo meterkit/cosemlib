@@ -46,34 +46,6 @@ enum svc_request
 };
 
 
-/*
-    Data-Access-Result ::= ENUMERATED
-    {
-    success                            (0),
-    hardware-fault                     (1),
-    temporary-failure                  (2),
-    read-write-denied                  (3),
-    object-undefined                   (4),
-    object-class-inconsistent          (9),
-    object-unavailable                 (11),
-    type-unmatched                     (12),
-    scope-of-access-violated           (13),
-    data-block-unavailable             (14),
-    long-get-aborted                   (15),
-    no-long-get-in-progress            (16),
-    long-set-aborted                   (17),
-    no-long-set-in-progress            (18),
-    data-block-number-invalid          (19),
-    other-reason                       (250)
-    }
-    */
-typedef enum
-{
-    CSM_ACCESS_RESULT_SUCCESS = 0,
-    CSM_ACCESS_RESULT_HARDWARE_FAULT = 1,
-    CSM_ACCESS_RESULT_TEMPORARY_FAILURE = 2,
-    CSM_ACCESS_RESULT_READ_WRITE_DENIED = 3,
-} csm_data_access_result;
 
 typedef csm_db_code (*csm_db_access_handler)(csm_array *in, csm_array *out, csm_request *request);
 
@@ -84,8 +56,9 @@ typedef csm_db_code (*csm_db_access_handler)(csm_array *in, csm_array *out, csm_
 
 void csm_client_init(csm_request *request, csm_response *response);
 int csm_client_has_more_data(csm_response *response);
-csm_data_access_result csm_client_decode(csm_response *response, csm_array *array);
+int csm_client_decode(csm_response *response, csm_array *array);
 int csm_client_encode(csm_request *request, csm_array *array);
+int svc_get_request_encoder(csm_request *request, csm_array *array);
 
 // ----------------------------------- SERVER SERVICES -----------------------------------
 
