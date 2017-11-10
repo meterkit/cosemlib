@@ -574,6 +574,65 @@ int CosemClient::ReadRegister(const Object &obj)
     return ret;
 }
 
+std::string CosemClient::ResultToString(csm_data_access_result result)
+{
+    std::stringstream ss;
+    switch (result)
+    {
+        case CSM_ACCESS_RESULT_SUCCESS:
+            ss << "success!";
+            break;
+        case CSM_ACCESS_RESULT_HARDWARE_FAULT:
+            ss << "Hardware fault";
+            break;
+        case CSM_ACCESS_RESULT_TEMPORARY_FAILURE:
+            ss << "temporary failure";
+            break;
+        case CSM_ACCESS_RESULT_READ_WRITE_DENIED:
+            ss << "read write denied";
+            break;
+        case CSM_ACCESS_RESULT_OBJECT_UNDEFINED:
+            ss << "object undefined";
+            break;
+        case CSM_ACCESS_RESULT_OBJECT_CLASS_INCONSISTENT:
+            ss << "object class inconsistent";
+            break;
+        case CSM_ACCESS_RESULT_OBJECT_UNAVAILABLE:
+            ss << "object unavailable";
+            break;
+        case CSM_ACCESS_RESULT_TYPE_UNMATCHED:
+            ss << "type unmatched";
+            break;
+        case CSM_ACCESS_RESULT_SCOPE_OF_ACCESS_VIOLATED:
+            ss << "scope of access violated";
+            break;
+        case CSM_ACCESS_RESULT_DATA_BLOCK_UNAVAILABLE:
+            ss << "data block unavailable";
+            break;
+        case CSM_ACCESS_RESULT_LONG_GET_ABORTED:
+            ss << "long get aborted";
+            break;
+        case CSM_ACCESS_RESULT_NO_LONG_GET_IN_PROGRESS:
+            ss << "no long get in progress";
+            break;
+        case CSM_ACCESS_RESULT_LONG_SET_ABORTED:
+            ss << "long set aborted";
+            break;
+        case CSM_ACCESS_RESULT_NO_LONG_SET_IN_PROGRESS:
+            ss << "no long set in progress";
+            break;
+        case CSM_ACCESS_RESULT_DATA_BLOCK_NUMBER_INVALID:
+            ss << "data block number invalid";
+            break;
+        case CSM_ACCESS_RESULT_OTHER_REASON:
+            ss << "other reason";
+            break;
+        default:
+            break;
+    }
+    return ss.str();
+}
+
 
 int CosemClient::ReadProfile(const Object &obj)
 {
@@ -639,64 +698,72 @@ int CosemClient::ReadProfile(const Object &obj)
                         (llc3 == 0x00U))
                     {
                         // Good Cosem server packet
-                        if (csm_client_decode(&response, &partial) == CSM_ACCESS_RESULT_SUCCESS)
+                        if (csm_client_decode(&response, &partial))
                         {
-                            // Copy data into app data
-                            csm_array_write_buff(&array, csm_array_rd_data(&partial), csm_array_unread(&partial));
+                            if (response.access_result == CSM_ACCESS_RESULT_SUCCESS)
+                            {
+                                // Copy data into app data
+                                csm_array_write_buff(&array, csm_array_rd_data(&partial), csm_array_unread(&partial));
 
-                            if (response.type == SVC_GET_RESPONSE_NORMAL)
-                            {
-                                // We have the data
-                                loop = false;
-                            }
-                            else if (response.type == SVC_GET_RESPONSE_WITH_DATABLOCK)
-                            {
-                                // Check if last block
-                                if (csm_client_has_more_data(&response))
+                                if (response.type == SVC_GET_RESPONSE_NORMAL)
                                 {
-                                    // Send next block
-                                    request.type = SVC_GET_REQUEST_NEXT;
-                                    request.db_request.block_number = response.block_number;
-                                    request.sender_invoke_id = response.invoke_id;
-
-                                    csm_array_init(&partial, &mScratch[0], cBufferSize, 0, 0);
-
-                                    csm_array_write_u8(&partial, 0xE6U);
-                                    csm_array_write_u8(&partial, 0xE6U);
-                                    csm_array_write_u8(&partial, 0x00U);
-
-                                    csm_client_encode(&request, &partial);
-
-
-                                    hdlc_print_result(&hdlc, HDLC_OK);
-
-                                    // Encode HDLC
-                                    hdlc.sender = HDLC_CLIENT;
-                                    hdlc.rrr = hdlc.sss + 1; // ack last hdlc frame
-                                    hdlc.sss = mHdlc.sss;  // our internal frame counter
-                                    mHdlc.sss++;
-                                    int send_size = hdlc_encode_data(&hdlc, (uint8_t *)&mSendBuffer[0], cBufferSize, &mScratch[0], csm_array_written(&partial));
-
-                                    std::string request((char *)&mSendBuffer[0], send_size);
-
-                                    printf("** Sending ReadProfile next...\r\n");
-                                    if (!Send(request, PRINT_HEX))
+                                    // We have the data
+                                    loop = false;
+                                }
+                                else if (response.type == SVC_GET_RESPONSE_WITH_DATABLOCK)
+                                {
+                                    // Check if last block
+                                    if (csm_client_has_more_data(&response))
                                     {
-                                        puts("Cannot send next data\r\n");
+                                        // Send next block
+                                        request.type = SVC_GET_REQUEST_NEXT;
+                                        request.db_request.block_number = response.block_number;
+                                        request.sender_invoke_id = response.invoke_id;
+
+                                        csm_array_init(&partial, &mScratch[0], cBufferSize, 0, 0);
+
+                                        csm_array_write_u8(&partial, 0xE6U);
+                                        csm_array_write_u8(&partial, 0xE6U);
+                                        csm_array_write_u8(&partial, 0x00U);
+
+                                        csm_client_encode(&request, &partial);
+
+
+                                        hdlc_print_result(&hdlc, HDLC_OK);
+
+                                        // Encode HDLC
+                                        hdlc.sender = HDLC_CLIENT;
+                                        hdlc.rrr = hdlc.sss + 1; // ack last hdlc frame
+                                        hdlc.sss = mHdlc.sss;  // our internal frame counter
+                                        mHdlc.sss++;
+                                        int send_size = hdlc_encode_data(&hdlc, (uint8_t *)&mSendBuffer[0], cBufferSize, &mScratch[0], csm_array_written(&partial));
+
+                                        std::string request((char *)&mSendBuffer[0], send_size);
+
+                                        printf("** Sending ReadProfile next...\r\n");
+                                        if (!Send(request, PRINT_HEX))
+                                        {
+                                            puts("Cannot send next data\r\n");
+                                            loop = false;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        puts("No more data\r\n");
                                         loop = false;
+
+                                      //  print_hex((const char *)&mAppBuffer[0], csm_array_written(&array));
                                     }
                                 }
                                 else
                                 {
-                                    puts("No more data\r\n");
+                                    puts("Service not supported\r\n");
                                     loop = false;
-
-                                  //  print_hex((const char *)&mAppBuffer[0], csm_array_written(&array));
                                 }
                             }
                             else
                             {
-                                puts("Service not supported\r\n");
+                                std::cout << "** Data access result: " << ResultToString(response.access_result) << std::endl;
                                 loop = false;
                             }
                         }

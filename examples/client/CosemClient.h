@@ -16,6 +16,7 @@
 #include "GXDLMSRegister.h"
 #pragma GCC diagnostic pop
 
+#include "csm_services.h"
 #include "hdlc.h"
 
 enum ModemState
@@ -154,6 +155,8 @@ public:
     int ReadClock();
     int ReadRegister(const Object &obj);
     int ReadProfile(const Object &obj);
+
+    std::string ResultToString(csm_data_access_result result);
 
 private:
     ModemState mModemState;
