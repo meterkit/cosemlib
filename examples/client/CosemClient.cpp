@@ -2,13 +2,17 @@
 #include <Util.h>
 #include <iostream>
 #include <iomanip>
+#include <ctime>
+
 #include "CosemClient.h"
 #include "serial.h"
 #include "os_util.h"
+#include "AxdrPrinter.h"
 
 #include "hdlc.h"
 #include "csm_array.h"
 #include "csm_services.h"
+#include "csm_axdr_codec.h"
 
 int StringToBin(const std::string &in, char *out)
 {
@@ -203,7 +207,6 @@ bool CosemClient::HdlcProcess(hdlc_t &hdlc, std::string &data, int timeout)
 {
     bool retCode = false;
     csm_array array;
-    uint32_t number_of_frames = 0U;
 
     csm_array_init(&array, (uint8_t*)&mHdlcBuf[0], cBufferSize, 0U, 0U);
 
@@ -259,50 +262,59 @@ bool CosemClient::HdlcProcess(hdlc_t &hdlc, std::string &data, int timeout)
 //                puts("\r\n");
 
                 hdlc.sender = HDLC_SERVER;
-                int ret = hdlc_decode(&hdlc, ptr, size);
-                if (ret == HDLC_OK)
+
+                do
                 {
-                    puts("Good packet\r\n");
-                    number_of_frames++;
-
-                    // God packet! Copy to cosem data
-                    data.append((const char*)&ptr[hdlc.data_index], hdlc.data_size);
-
-                    // Continue with next one
-                    csm_array_reader_jump(&array, hdlc.frame_size);
-
-                    // Test if it is a last HDLC packet
-                    if ((hdlc.segmentation == 0U) &&
-                        (hdlc.poll_final == 1U))
+                    int ret = hdlc_decode(&hdlc, ptr, size);
+                    if (ret == HDLC_OK)
                     {
-                        puts("Final packet\r\n");
-                        retCode = true; // good Cosem packet
-                        loop = false; // quit
-                    }
-                    else if (hdlc.segmentation == 1U)
-                    {
-                        puts("Segmentation packet: ");
-                        hdlc_print_result(&hdlc, HDLC_OK);
-                        // There are remaining frames to be received.
-                        // At this time, it depends of the window size negociated
-                        if (mHdlc.window_tx == number_of_frames)
+                        puts("Good packet\r\n");
+
+                        // God packet! Copy to cosem data
+                        data.append((const char*)&ptr[hdlc.data_index], hdlc.data_size);
+
+                        // Continue with next one
+                        csm_array_reader_jump(&array, hdlc.frame_size);
+
+
+                        // Test if it is a last HDLC packet
+                        if ((hdlc.segmentation == 0U) &&
+                            (hdlc.poll_final == 1U))
                         {
-                            // Send RR
-                            hdlc.sender = HDLC_CLIENT;
-                            hdlc.rrr = hdlc.sss + 1;
-                            size = hdlc_encode_rr(&hdlc, (uint8_t*)&mSendBuffer[0], cBufferSize);
-                            if (Send(std::string(&mSendBuffer[0], size), PRINT_HEX))
+                            puts("Final packet\r\n");
+                            retCode = true; // good Cosem packet
+                            loop = false; // quit
+                        }
+                        else if (hdlc.segmentation == 1U)
+                        {
+                            puts("Segmentation packet: ");
+                            hdlc_print_result(&hdlc, HDLC_OK);
+                            // There are remaining frames to be received.
+                            // At this time, it depends of the window size negociated
+                            if (hdlc.poll_final == 1U)
                             {
-                                number_of_frames = 0U;
+                                // Send RR
+                                hdlc.sender = HDLC_CLIENT;
+                                hdlc.rrr = hdlc.sss + 1;
+                                size = hdlc_encode_rr(&hdlc, (uint8_t*)&mSendBuffer[0], cBufferSize);
+                                if (Send(std::string(&mSendBuffer[0], size), PRINT_HEX) < 0)
+                                {
+                                    retCode = false;
+                                    loop = false; // quit
+                                }
                             }
                         }
+
+                        // go to next frame, if any
+                        ptr = csm_array_rd_data(&array);
+                        size = csm_array_unread(&array);
                     }
-                }
-                else
-                {
-                    // Maybe a partial packet, re-try later
-                //    printf("Not a good packet: %d\r\n", ret);
-                }
+                    else
+                    {
+                        // Maybe a partial packet, re-try later
+                        size = 0U;
+                    }
+                } while (size);
             }
         }
         else
@@ -461,119 +473,6 @@ int CosemClient::ConnectAarq()
     return ret;
 }
 
-
-int CosemClient::ReadClock()
-{
-    int attributeIndex = 2;
-    int ret;
-    std::vector<CGXByteBuffer> data;
-    CGXDLMSClock clock;
-
-    //Read data from the meter.
-    ret = mClient.Read(&clock, attributeIndex, data);
-
-    if ((ret == 0) && (data.size() > 0))
-    {
-        CGXByteBuffer gxPacket = data.at(0);
-        std::string request((const char *)gxPacket.GetData(), gxPacket.GetSize());
-
-        printf("** Sending ReadClock request...\r\n");
-        if (Send(request, PRINT_HEX))
-        {
-            std::string data;
-            if (WaitForData(data, 5))
-            {
-                ret = data.size();
-
-                Printer(data.c_str(), data.size(), PRINT_HEX);
-
-                CGXByteBuffer buffer;
-                buffer.Set(data.data(), data.size());
-
-                // Lecture de l'heure:
-                             // 7ea021030002002352f04fe6e700 c401c1 00 09 0c07e0010906152638ff80000095237e
-
-                // Bad: 7EA0140300020023521969E6E700 C401C10103 73827E
-                // FIXME: parser les erreurs
-
-                printf("** Read clock success!\r\n");
-                CGXReplyData reply;
-                mClient.GetData(buffer, reply);
-                CGXDLMSVariant replyData = reply.GetValue();
-                if (mClient.UpdateValue(clock, 2, replyData) == 0)
-                {
-                    std::string time = clock.GetTime().ToString();
-                    std::cout << "\r\n|DATA|Clock|" <<  time << "|" << std::endl;
-                }
-            }
-            else
-            {
-                ret = -1;
-            }
-        }
-        else
-        {
-            ret = -1;
-        }
-    }
-
-    if (ret < 0)
-    {
-       printf("** Cannot read clock from meter.\r\n");
-    }
-
-    return ret;
-}
-
-int CosemClient::ReadRegister(const Object &obj)
-{
-    int attributeIndex = 2;
-    int ret;
-    std::vector<CGXByteBuffer> data;
-
-    CGXDLMSRegister reg(obj.ln, 0, DLMS_UNIT_ACTIVE_ENERGY, CGXDLMSVariant(0UL)); // ImportActiveEnergyAggregate
-
-    //Read data from the meter.
-    ret = mClient.Read(&reg, attributeIndex, data);
-
-    if ((ret == 0) && (data.size() > 0))
-    {
-        CGXByteBuffer gxPacket = data.at(0);
-        std::string request((const char *)gxPacket.GetData(), gxPacket.GetSize());
-
-        printf("** Sending ReadRegister request...\r\n");
-        if (Send(request, PRINT_HEX))
-        {
-            std::string data;
-            if (WaitForData(data, 5))
-            {
-                ret = data.size();
-                Printer(data.c_str(), data.size(), PRINT_HEX);
-
-                CGXByteBuffer buffer;
-                buffer.Set(data.data(), data.size());
-
-                // Lecture de l'heure:
-                             // 7ea021030002002352f04fe6e700 c401c1 00 09 0c07e0010906152638ff80000095237e
-
-                // Bad: 7EA0140300020023521969E6E700 C401C10103 73827E
-
-                // FIXME: parser les erreurs
-                printf("** Read register success!\r\n");
-                CGXReplyData reply;
-                mClient.GetData(buffer, reply);
-                CGXDLMSVariant replyData = reply.GetValue();
-                if (mClient.UpdateValue(reg, 2, replyData) == 0)
-                {
-                    std::cout << "\r\n|DATA|" << obj.name << "|" <<  reg.GetValue().ToInteger() << "|" << std::endl;
-                }
-            }
-        }
-    }
-
-    return ret;
-}
-
 std::string CosemClient::ResultToString(csm_data_access_result result)
 {
     std::stringstream ss;
@@ -633,11 +532,20 @@ std::string CosemClient::ResultToString(csm_data_access_result result)
     return ss.str();
 }
 
+AxdrPrinter gPrinter;
 
-int CosemClient::ReadProfile(const Object &obj)
+extern "C" void AxdrData(uint8_t type, uint32_t size, uint8_t *data)
+{
+    gPrinter.Append(type, size, data);
+}
+
+
+int CosemClient::ReadObject(const Object &obj)
 {
     int ret;
     std::vector<CGXByteBuffer> data;
+    bool allowSelectiveAccess = false;
+
 
     CGXDLMSProfileGeneric profile(obj.ln);
 
@@ -646,17 +554,66 @@ int CosemClient::ReadProfile(const Object &obj)
 
     std::tm tm_start = {};
     std::tm tm_end = {};
-    std::stringstream ss(mCosem.start_date);
-    ss >> std::get_time(&tm_start, "%Y-%m-%d.%H:%M:%S");
 
-    std::stringstream ss2(mCosem.end_date);
-    ss2 >> std::get_time(&tm_end, "%Y-%m-%d.%H:%M:%S");
+    // Allow selective access only on profile get buffer attribute
+    if ((obj.attribute_id == 2) && (obj.class_id == 7U))
+    {
+        allowSelectiveAccess = true;
+    }
+
+    if (allowSelectiveAccess)
+    {
+        if (mCosem.start_date.size() > 0)
+        {
+            // Try to decode start date
+            std::stringstream ss(mCosem.start_date);
+            ss >> std::get_time(&tm_start, "%Y-%m-%d.%H:%M:%S");
+
+            if (ss.fail())
+            {
+                std::cout << "** Parse start date failed\r\n";
+                allowSelectiveAccess = false;
+            }
+        }
+        else
+        {
+            // No start date, disable selective access
+            allowSelectiveAccess = false;
+        }
+
+        if (mCosem.start_date.size() > 0)
+        {
+            std::stringstream ss2(mCosem.end_date);
+            ss2 >> std::get_time(&tm_end, "%Y-%m-%d.%H:%M:%S");
+            if (ss2.fail())
+            {
+                std::cout << "** Parse end date failed\r\n";
+                allowSelectiveAccess = false;
+            }
+        }
+        else
+        {
+            // No end date, so take today as the end-date
+
+            time_t t = time(0);   // get time now
+            tm_end = *localtime( & t );
+            std::cout << "** No end date defined, take today as end-date: " << std::ctime(&t) << std::endl;
+        }
+    }
+
 
     csm_array array;
     csm_array_init(&array, &mAppBuffer[0], cAppBufferSize, 0, 0);
 
-    //Read data from the meter.
-    ret = mClient.ReadRowsByRange(&profile, &tm_start, &tm_end, data);
+    if (allowSelectiveAccess)
+    {
+        //Read data from the meter.
+        ret = mClient.ReadRowsByRange(&profile, &tm_start, &tm_end, data);
+    }
+    else
+    {
+        ret = mClient.Read(&profile, (int)obj.attribute_id, data);
+    }
 
     if ((ret == 0) && (data.size() > 0))
     {
@@ -726,8 +683,7 @@ int CosemClient::ReadProfile(const Object &obj)
                                         csm_array_write_u8(&partial, 0xE6U);
                                         csm_array_write_u8(&partial, 0x00U);
 
-                                        csm_client_encode(&request, &partial);
-
+                                        svc_get_request_encoder(&request, &partial);
 
                                         hdlc_print_result(&hdlc, HDLC_OK);
 
@@ -735,7 +691,15 @@ int CosemClient::ReadProfile(const Object &obj)
                                         hdlc.sender = HDLC_CLIENT;
                                         hdlc.rrr = hdlc.sss + 1; // ack last hdlc frame
                                         hdlc.sss = mHdlc.sss;  // our internal frame counter
-                                        mHdlc.sss++;
+
+                                        if (mHdlc.sss == 7U)
+                                        {
+                                            mHdlc.sss = 0U;
+                                        }
+                                        else
+                                        {
+                                            mHdlc.sss++;
+                                        }
                                         int send_size = hdlc_encode_data(&hdlc, (uint8_t *)&mSendBuffer[0], cBufferSize, &mScratch[0], csm_array_written(&partial));
 
                                         std::string request((char *)&mSendBuffer[0], send_size);
@@ -751,6 +715,15 @@ int CosemClient::ReadProfile(const Object &obj)
                                     {
                                         puts("No more data\r\n");
                                         loop = false;
+
+                                        uint32_t size = 0U;
+                                        if (csm_axdr_decode_block(&array, &size))
+                                        {
+                                            std::cout << "** Block of data of size: " << size << std::endl;
+
+                                            csm_axdr_decode_tags(&array, AxdrData);
+                                            std::cout << gPrinter.Get() << std::endl;
+                                        }
 
                                       //  print_hex((const char *)&mAppBuffer[0], csm_array_written(&array));
                                     }
@@ -879,25 +852,8 @@ bool  CosemClient::PerformCosemRead()
             {
                 Object obj = mList[mReadIndex];
 
-                if (obj.class_id == 8)
-                {
-                    (void) ReadClock();
-                    ret = true;
-                }
-                else if (obj.class_id == 3)
-                {
-                    (void) ReadRegister(obj);
-                    ret = true;
-                }
-                else if (obj.class_id == 7)
-                {
-                    (void) ReadProfile(obj);
-                    ret = true;
-                }
-                else
-                {
-                    std::cout << "** Unknown class ID.\r\n";
-                }
+                (void) ReadObject(obj);
+                ret = true;
 
                 mReadIndex++;
             }

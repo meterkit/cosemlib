@@ -57,7 +57,6 @@ typedef csm_db_code (*csm_db_access_handler)(csm_array *in, csm_array *out, csm_
 void csm_client_init(csm_request *request, csm_response *response);
 int csm_client_has_more_data(csm_response *response);
 int csm_client_decode(csm_response *response, csm_array *array);
-int csm_client_encode(csm_request *request, csm_array *array);
 int svc_get_request_encoder(csm_request *request, csm_array *array);
 
 // ----------------------------------- SERVER SERVICES -----------------------------------
