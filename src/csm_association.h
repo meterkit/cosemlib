@@ -12,6 +12,12 @@
 #ifndef CSM_ASSOCIATION_H
 #define CSM_ASSOCIATION_H
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include <stdint.h>
 #include "csm_config.h"
 #include "csm_ber.h"
@@ -175,5 +181,9 @@ typedef struct
 void csm_asso_init(csm_asso_state *state);
 int csm_asso_execute(csm_asso_state *state, csm_array *packet);
 int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CSM_ASSOCIATION_H

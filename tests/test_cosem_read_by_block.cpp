@@ -24,9 +24,9 @@ const char profile_example[] = "008201F401020208090C07E0091C031111210000B4000408
 
 int profile_size = sizeof(profile_example);
 
-AxdrPrinter gPrinter;
+static AxdrPrinter gPrinter;
 
-extern "C" void AxdrData(uint8_t type, uint32_t size, uint8_t *data)
+static void AxdrData(uint8_t type, uint32_t size, uint8_t *data)
 {
     gPrinter.Append(type, size, data);
 }

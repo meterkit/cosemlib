@@ -637,13 +637,13 @@ static csm_acse_code acse_resp_system_title_encoder(csm_asso_state *state, csm_b
     return ret;
 }
 
-static csm_acse_code acse_responder_requirements_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+static csm_acse_code acse_requirements_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
     (void) ber;
     (void) state;
 
-    CSM_LOG("[ACSE] Encoding Responder ACSE requirements tag ...");
+    CSM_LOG("[ACSE] Encoding ACSE requirements tag ...");
 
     int valid = csm_ber_write_len(array, 2U);
     valid = valid && csm_array_write_u8(array, 7U); // unused bits in the bit-string
@@ -683,6 +683,11 @@ static csm_acse_code acse_auth_value_encoder(csm_array *array, uint8_t *value, u
     // Serialize the server authentication value to the output buffer and in our scratch buffer
     valid = valid && csm_array_write_u8(array, size);
     valid = valid && csm_array_write_buff(array, value, size);
+
+    if (valid)
+    {
+        ret = CSM_ACSE_OK;
+    }
     return ret;
 }
 
@@ -728,15 +733,32 @@ static csm_acse_code acse_aarq_auth_value_encoder(csm_asso_state *state, csm_ber
 
     CSM_LOG("[ACSE] Encoding Requester authentication value ...");
 
-    uint8_t max_size = 8U;
-    if (csm_sys_get_lls_password(state->config->llc.dsap, &state->handshake.ctos.value[0], max_size))
+    // FIXME: In case of HLS, generate a challenge
+
+    if (state->auth_level == CSM_AUTH_LOW_LEVEL)
     {
-        if (acse_auth_value_encoder(array, &state->handshake.ctos.value[0], max_size))
+        uint8_t max_size = 8U;
+        if (csm_sys_get_lls_password(state->config->llc.dsap, &state->handshake.ctos.value[0], max_size))
         {
-            ret = CSM_ACSE_OK;
+            if (acse_auth_value_encoder(array, &state->handshake.ctos.value[0], max_size))
+            {
+                ret = CSM_ACSE_OK;
+            }
         }
     }
     return ret;
+}
+
+static int asce_conformance_block_encoder(csm_array *array, uint32_t value)
+{
+    uint8_t byte = (value >> 16U) & 0xFFU;
+    int valid = csm_array_write_u8(array, byte);
+    byte = (value >> 8U) & 0xFFU;
+    valid = valid && csm_array_write_u8(array, byte);
+    byte = value & 0xFFU;
+    valid = valid && csm_array_write_u8(array, byte);
+
+    return valid;
 }
 
 
@@ -770,8 +792,19 @@ static csm_acse_code acse_user_info_encoder(csm_asso_state *state, csm_ber *ber,
 
     // Now encode the A-XDR encoded packet
     valid = valid && csm_array_write_u8(array, initiate_tag);
-    valid = valid && csm_array_write_u8(array, 0U); // null, no QoS
-    valid = valid && csm_array_write_u8(array, 6U);// negotiated-dlms-version-number
+
+    if (initiate_tag == AXDR_INITIATE_RESPONSE)
+    {
+        valid = valid && csm_array_write_u8(array, 0U); // null, no QoS
+        valid = valid && csm_array_write_u8(array, 6U);// negotiated-dlms-version-number
+    }
+    else
+    {
+        valid = valid && csm_array_write_u8(array, 0U); // null, no Dedicated key (FIXME: add dedicated key support)
+        valid = valid && csm_array_write_u8(array, 0U); // response-allowed (false)
+        valid = valid && csm_array_write_u8(array, 0U); // proposed-quality-of-service (false)
+        valid = valid && csm_array_write_u8(array, 6U);// proposed-dlms-version-number
+    }
 
     // Conformance block   FIXME: to be clean, rely on a real BER encoder for the long TAG
     valid = valid && csm_array_write_u8(array, 0x5FU);
@@ -779,29 +812,34 @@ static csm_acse_code acse_user_info_encoder(csm_asso_state *state, csm_ber *ber,
     valid = valid && csm_array_write_u8(array, 4U); // Size of the conformance block data
     valid = valid && csm_array_write_u8(array, 0U); // unused bits in the bit-string
 
-    // Serialize the conformance block (3 bytes)
-    uint8_t byte = (state->config->conformance >> 16U) & 0xFFU;
-    valid = valid && csm_array_write_u8(array, byte);
-    byte = (state->config->conformance >> 8U) & 0xFFU;
-    valid = valid && csm_array_write_u8(array, byte);
-    byte = state->config->conformance & 0xFFU;
-    valid = valid && csm_array_write_u8(array, byte);
-
-    // server-max-receive-pdu-size
-    byte = (CSM_DEF_PDU_SIZE >> 8U) & 0xFFU;
-    valid = valid && csm_array_write_u8(array, byte);
-    byte = CSM_DEF_PDU_SIZE & 0xFFU;
-    valid = valid && csm_array_write_u8(array, byte);
-
-    if ((state->ref == LN_REF) || (state->ref == LN_REF_WITH_CYPHERING))
+    if (initiate_tag == AXDR_INITIATE_RESPONSE)
     {
-        valid = valid && csm_array_write_u8(array, 0U);
-        valid = valid && csm_array_write_u8(array, 7U);
+        // Serialize the conformance block (3 bytes)
+        valid = valid && asce_conformance_block_encoder(array, state->config->conformance);
+
+        // server-max-receive-pdu-size
+        uint8_t byte = (CSM_DEF_PDU_SIZE >> 8U) & 0xFFU;
+        valid = valid && csm_array_write_u8(array, byte);
+        byte = CSM_DEF_PDU_SIZE & 0xFFU;
+        valid = valid && csm_array_write_u8(array, byte);
+
+        if ((state->ref == LN_REF) || (state->ref == LN_REF_WITH_CYPHERING))
+        {
+            valid = valid && csm_array_write_u8(array, 0U);
+            valid = valid && csm_array_write_u8(array, 7U);
+        }
+        else
+        {
+            valid = valid && csm_array_write_u8(array, 0xFAU);
+            valid = valid && csm_array_write_u8(array, 0U);
+        }
     }
     else
     {
-        valid = valid && csm_array_write_u8(array, 0xFAU);
-        valid = valid && csm_array_write_u8(array, 0U);
+        // proposed conformance block
+        valid = valid && asce_conformance_block_encoder(array, 0xFFFFFFFFU);
+        // client-max-receive-pdu-size
+        valid = valid && csm_array_write_u16(array, 0xFFFFU);
     }
 
     // Update the size of the initiate response elements
@@ -868,9 +906,9 @@ static const csm_asso_codec aare_encoder_chain[] =
     {CSM_ASSO_RESULT_FIELD,         ACSE_ANY, NULL, acse_result_encoder},
     {CSM_ASSO_RESULT_SRC_DIAG,      ACSE_ANY, NULL, acse_result_src_diag_encoder},
 
-    // Additional fields specific when cyphered authentication is required
+    // Additional fields specific when ciphered authentication is required
     {CSM_ASSO_RESP_AP_TITLE,        ACSE_SEC, NULL, acse_resp_system_title_encoder},
-    {CSM_ASSO_RESPONDER_ACSE_REQ,   ACSE_SEC, NULL, acse_responder_requirements_encoder},
+    {CSM_ASSO_RESPONDER_ACSE_REQ,   ACSE_SEC, NULL, acse_requirements_encoder},
     {CSM_ASSO_RESP_MECHANISM_NAME,  ACSE_SEC, NULL, acse_oid_mechanism_encoder},
     {CSM_ASSO_RESP_AUTH_VALUE,      ACSE_SEC, NULL, acse_responder_auth_value_encoder},
 
@@ -887,8 +925,9 @@ static const csm_asso_codec aarq_encoder_chain[] =
     {CSM_ASSO_PROTO_VER,                ACSE_NONE, NULL, acse_proto_version_encoder},
     {CSM_ASSO_APP_CONTEXT_NAME,         ACSE_ANY, NULL, acse_app_context_encoder},
     {CSM_BER_TYPE_OBJECT_IDENTIFIER,    ACSE_ANY, NULL, acse_oid_context_encoder},
-
-    {CSM_ASSO_CALLING_AUTH_VALUE,          ACSE_SEC, NULL, acse_aarq_auth_value_encoder},
+    {CSM_ASSO_SENDER_ACSE_REQU,         ACSE_SEC, NULL, acse_requirements_encoder},
+    {CSM_ASSO_REQ_MECHANISM_NAME,       ACSE_SEC, NULL, acse_oid_mechanism_encoder},
+    {CSM_ASSO_CALLING_AUTH_VALUE,       ACSE_SEC, NULL, acse_aarq_auth_value_encoder},
 
     // Final field
     {CSM_ASSO_USER_INFORMATION,         ACSE_ANY, NULL, acse_initiate_request_encoder},
@@ -1057,7 +1096,7 @@ int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag)
                 if ((codec[i].insert_func != NULL) && (codec[i].context != ACSE_NONE))
                 {
                     // Don't encode some fields when no security is required
-                    if ((state->auth_level != CSM_AUTH_HIGH_LEVEL_GMAC) && (codec[i].context == ACSE_SEC))
+                    if ((state->auth_level == CSM_AUTH_LOWEST_LEVEL) && (codec[i].context == ACSE_SEC))
                     {
                         continue;
                     }
