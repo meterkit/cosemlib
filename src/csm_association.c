@@ -9,6 +9,7 @@
  *
  */
 
+#include "csm_array.h"
 #include "csm_association.h"
 #include "string.h"
 #include "csm_axdr_codec.h"
@@ -447,7 +448,7 @@ user-information                   [30] EXPLICIT      Association-information OP
 -- encoding the resulting OCTET STRING in BER.
 
 */
-static const csm_asso_codec aarq_codec_chain[] =
+static const csm_asso_codec aarq_decoder_chain[] =
 {
     {CSM_ASSO_PROTO_VER,            ACSE_NONE, acse_proto_version_decoder, NULL},
     {CSM_ASSO_APP_CONTEXT_NAME,     ACSE_ANY, acse_app_context_decoder, NULL},
@@ -473,7 +474,7 @@ static const csm_asso_codec aarq_codec_chain[] =
 
 
 
-#define CSM_ACSE_AARQ_CHAIN_SIZE   (sizeof(aarq_codec_chain)/sizeof(csm_asso_codec))
+#define CSM_ACSE_AARQ_CHAIN_SIZE   (sizeof(aarq_decoder_chain)/sizeof(aarq_decoder_chain[0]))
 
 
 // -------------------------------   ENCODERS ------------------------------------------
@@ -670,6 +671,21 @@ static csm_acse_code acse_oid_mechanism_encoder(csm_asso_state *state, csm_ber *
     return ret;
 }
 
+
+
+static csm_acse_code acse_auth_value_encoder(csm_array *array, uint8_t *value, uint8_t size)
+{
+    csm_acse_code ret = CSM_ACSE_ERR;
+
+    int valid = csm_ber_write_len(array, size + 2U);
+    valid = valid && csm_array_write_u8(array, TAG_CONTEXT_SPECIFIC); // GraphicsString
+
+    // Serialize the server authentication value to the output buffer and in our scratch buffer
+    valid = valid && csm_array_write_u8(array, size);
+    valid = valid && csm_array_write_buff(array, value, size);
+    return ret;
+}
+
 #ifdef GB_TEST_VECTORS
 char stoc[] = "P6wRJ21F";
 #endif
@@ -686,11 +702,7 @@ static csm_acse_code acse_responder_auth_value_encoder(csm_asso_state *state, cs
     uint8_t size = state->handshake.ctos.size;
     state->handshake.stoc.size = size;
 
-    int valid = csm_ber_write_len(array, size + 2U);
-    valid = valid && csm_array_write_u8(array, TAG_CONTEXT_SPECIFIC); // GraphicsString
-
     // Serialize the server authentication value to the output buffer and in our scratch buffer
-    valid = valid && csm_array_write_u8(array, size);
     for (uint8_t i = 0U; i < size; i++)
     {
 #ifdef GB_TEST_VECTORS
@@ -698,12 +710,10 @@ static csm_acse_code acse_responder_auth_value_encoder(csm_asso_state *state, cs
 #else
         uint8_t byte = csm_sys_get_random_u8();
 #endif
-
-        valid = valid && csm_array_write_u8(array, byte);
         state->handshake.stoc.value[i] = byte;
     }
 
-    if (valid)
+    if (acse_auth_value_encoder(array, &state->handshake.stoc.value[0], size))
     {
         ret = CSM_ACSE_OK;
     }
@@ -711,7 +721,26 @@ static csm_acse_code acse_responder_auth_value_encoder(csm_asso_state *state, cs
     return ret;
 }
 
-static csm_acse_code acse_user_info_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+static csm_acse_code acse_aarq_auth_value_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    csm_acse_code ret = CSM_ACSE_ERR;
+    (void) ber;
+
+    CSM_LOG("[ACSE] Encoding Requester authentication value ...");
+
+    uint8_t max_size = 8U;
+    if (csm_sys_get_lls_password(state->config->llc.dsap, &state->handshake.ctos.value[0], max_size))
+    {
+        if (acse_auth_value_encoder(array, &state->handshake.ctos.value[0], max_size))
+        {
+            ret = CSM_ACSE_OK;
+        }
+    }
+    return ret;
+}
+
+
+static csm_acse_code acse_user_info_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array, uint8_t initiate_tag)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
     (void) ber;
@@ -740,7 +769,7 @@ static csm_acse_code acse_user_info_encoder(csm_asso_state *state, csm_ber *ber,
     valid = valid && csm_array_write_u8(array, 0U); // size of the octet-string, will be updated at the end
 
     // Now encode the A-XDR encoded packet
-    valid = valid && csm_array_write_u8(array, AXDR_INITIATE_RESPONSE);
+    valid = valid && csm_array_write_u8(array, initiate_tag);
     valid = valid && csm_array_write_u8(array, 0U); // null, no QoS
     valid = valid && csm_array_write_u8(array, 6U);// negotiated-dlms-version-number
 
@@ -789,6 +818,18 @@ static csm_acse_code acse_user_info_encoder(csm_asso_state *state, csm_ber *ber,
     return ret;
 }
 
+static csm_acse_code acse_initiate_response_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    return acse_user_info_encoder(state, ber, array, AXDR_INITIATE_RESPONSE);
+}
+
+static csm_acse_code acse_initiate_request_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    return acse_user_info_encoder(state, ber, array, AXDR_INITIATE_REQUEST);
+}
+
+
+
 /**
 
 AARE-apdu ::= [APPLICATION 1] IMPLICIT SEQUENCE
@@ -819,7 +860,7 @@ user-information                     [30] EXPLICIT   Association-information OPT
   */
 
 // FIXME: export context field in the configuration file
-static const csm_asso_codec aare_codec_chain[] =
+static const csm_asso_codec aare_encoder_chain[] =
 {
     {CSM_ASSO_PROTO_VER,            ACSE_NONE, NULL, acse_proto_version_encoder},
     {CSM_ASSO_APP_CONTEXT_NAME,     ACSE_ANY, NULL, acse_app_context_encoder},
@@ -834,11 +875,28 @@ static const csm_asso_codec aare_codec_chain[] =
     {CSM_ASSO_RESP_AUTH_VALUE,      ACSE_SEC, NULL, acse_responder_auth_value_encoder},
 
     // Final field
-    {CSM_ASSO_USER_INFORMATION,     ACSE_ANY, NULL, acse_user_info_encoder},
+    {CSM_ASSO_USER_INFORMATION,     ACSE_ANY, NULL, acse_initiate_response_encoder},
 
 };
 
-#define CSM_ACSE_AARE_CHAIN_SIZE   (sizeof(aare_codec_chain)/sizeof(csm_asso_codec))
+#define CSM_ACSE_AARE_CHAIN_SIZE   (sizeof(aare_encoder_chain)/sizeof(aare_encoder_chain[0]))
+
+
+static const csm_asso_codec aarq_encoder_chain[] =
+{
+    {CSM_ASSO_PROTO_VER,                ACSE_NONE, NULL, acse_proto_version_encoder},
+    {CSM_ASSO_APP_CONTEXT_NAME,         ACSE_ANY, NULL, acse_app_context_encoder},
+    {CSM_BER_TYPE_OBJECT_IDENTIFIER,    ACSE_ANY, NULL, acse_oid_context_encoder},
+
+    {CSM_ASSO_CALLING_AUTH_VALUE,          ACSE_SEC, NULL, acse_aarq_auth_value_encoder},
+
+    // Final field
+    {CSM_ASSO_USER_INFORMATION,         ACSE_ANY, NULL, acse_initiate_request_encoder},
+
+};
+
+#define CSM_ACSE_AARQ_ENCODER_CHAIN_SIZE   (sizeof(aarq_encoder_chain)/sizeof(aarq_encoder_chain[0]))
+
 
 /*
 RLRQ-apdu ::= [APPLICATION 2] IMPLICIT SEQUENCE
@@ -885,11 +943,15 @@ int csm_asso_is_granted(csm_asso_state *state)
         }
         else if (state->auth_level == CSM_AUTH_LOW_LEVEL)
         {
-            if (csm_sys_test_lls_password(state->config->llc.dsap, &state->handshake.ctos.value[0], state->handshake.ctos.size))
+            // Use unused StoC buffer to store our temporary password
+            if (csm_sys_get_lls_password(state->config->llc.dsap, &state->handshake.stoc.value[0], 8U))
             {
-                state->state_cf = CF_ASSOCIATED;
-                state->handshake.result = CSM_ASSO_ERR_NULL;
-                ret = TRUE;
+                if (memcmp(&state->handshake.stoc.value[0], &state->handshake.ctos.value[0], state->handshake.ctos.size) == 0)
+                {
+                    state->state_cf = CF_ASSOCIATED;
+                    state->handshake.result = CSM_ASSO_ERR_NULL;
+                    ret = TRUE;
+                }
             }
             else
             {
@@ -934,7 +996,7 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array)
         {
             if (ret)
             {
-                const csm_asso_codec *codec = &aarq_codec_chain[decoder_index];
+                const csm_asso_codec *codec = &aarq_decoder_chain[decoder_index];
                 decoder_index++;
                 if (ber.tag.tag == codec->tag)
                 {
@@ -968,21 +1030,28 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array)
     return ret;
 }
 
-int csm_asso_encoder(csm_asso_state *state, csm_array *array)
+int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag)
 {
     array->wr_index = 0U; // Reinit write pointer
     int ret = FALSE;
     csm_ber ber;
 
-    if (csm_array_write_u8(array, CSM_ASSO_AARE))
+    if (csm_array_write_u8(array, tag))
     {
         // Write dummy size, it will be updated later
         // Since the AARE is never bigger than 127, the length encoding can one-byte size
         if (csm_array_write_u8(array, 0U))
         {
-            const csm_asso_codec *codec = &aare_codec_chain[0];
+            const csm_asso_codec *codec = &aare_encoder_chain[0];
+            uint32_t size = CSM_ACSE_AARE_CHAIN_SIZE;
+
+            if (tag == CSM_ASSO_AARQ)
+            {
+                codec = &aarq_encoder_chain[0];
+                size = CSM_ACSE_AARQ_ENCODER_CHAIN_SIZE;
+            }
             uint32_t i = 0U;
-            for (i = 0U; i < CSM_ACSE_AARE_CHAIN_SIZE; i++)
+            for (i = 0U; i < size; i++)
             {
                 // Don't encode optional data
                 if ((codec[i].insert_func != NULL) && (codec[i].context != ACSE_NONE))
@@ -1007,7 +1076,7 @@ int csm_asso_encoder(csm_asso_state *state, csm_array *array)
                 }
             }
 
-            if (i >= CSM_ACSE_AARE_CHAIN_SIZE)
+            if (i >= size)
             {
                 ret = TRUE;
                 // Update the size
@@ -1041,7 +1110,7 @@ int csm_asso_execute(csm_asso_state *asso, csm_array *packet)
             }
 
             // Send AARE, success or failure
-            if (csm_asso_encoder(asso, packet))
+            if (csm_asso_encoder(asso, packet, CSM_ASSO_AARE))
             {
                 bytes_to_reply = packet->wr_index;
                 CSM_LOG("[ACSE] AARE length: %d", bytes_to_reply);

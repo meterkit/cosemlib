@@ -165,7 +165,7 @@ typedef struct
     enum csm_auth_level auth_level;
     uint8_t client_app_title[CSM_DEF_APP_TITLE_SIZE];
 
-    // Valid for the ACSE session establishment, for security reasons it should be erased afterall
+    // Valid for the ACSE session establishment, for security reasons it should be erased after all
     csm_asso_handshake handshake;
 
     // Pointer to the configuration structure in ROM
@@ -174,6 +174,6 @@ typedef struct
 
 void csm_asso_init(csm_asso_state *state);
 int csm_asso_execute(csm_asso_state *state, csm_array *packet);
-
+int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag);
 
 #endif // CSM_ASSOCIATION_H

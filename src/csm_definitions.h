@@ -171,8 +171,7 @@ void csm_sys_set_system_title(const uint8_t *buf);
 // This function returns a pointer to the system title buffer string in memory
 const uint8_t *csm_sys_get_system_title();
 
-// Test the LLS password with the one given in reference
-int csm_sys_test_lls_password(uint8_t sap, uint8_t *buf, uint32_t size);
+int csm_sys_get_lls_password(uint8_t sap, uint8_t *array, uint8_t max_size);
 
 // Generate a random number [0..255]
 uint8_t csm_sys_get_random_u8();
