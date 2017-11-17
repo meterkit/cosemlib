@@ -738,7 +738,7 @@ static csm_acse_code acse_aarq_auth_value_encoder(csm_asso_state *state, csm_ber
     if (state->auth_level == CSM_AUTH_LOW_LEVEL)
     {
         uint8_t max_size = 8U;
-        if (csm_sys_get_lls_password(state->config->llc.dsap, &state->handshake.ctos.value[0], max_size))
+        if (csm_sys_get_lls_password(0U, &state->handshake.ctos.value[0], max_size))
         {
             if (acse_auth_value_encoder(array, &state->handshake.ctos.value[0], max_size))
             {

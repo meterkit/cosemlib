@@ -30,6 +30,19 @@ extern "C" {
 #define HDLC_ERR_I_FORMAT    -8     // Frame type I bad format
 #define HDLC_ERR_NEGO   -9
 
+
+// Packet types
+#define HDLC_PACKET_TYPE_BAD    (0)
+#define HDLC_PACKET_TYPE_I      (1)
+#define HDLC_PACKET_TYPE_RR     (2)
+#define HDLC_PACKET_TYPE_RNR    (3)
+#define HDLC_PACKET_TYPE_SNRM   (4)
+#define HDLC_PACKET_TYPE_DISC   (5)
+#define HDLC_PACKET_TYPE_UA     (6)
+#define HDLC_PACKET_TYPE_DM     (7)
+#define HDLC_PACKET_TYPE_FRMR   (8)
+#define HDLC_PACKET_TYPE_UI     (9)
+
 typedef enum
 {
     HDLC_CLIENT = 0,

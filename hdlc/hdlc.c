@@ -241,19 +241,6 @@ int hdlc_set_addr(uint8_t *buf, uint8_t addr_size, uint16_t upper, uint16_t lowe
     return ret;
 }
 
-
-// Packet types
-#define HDLC_PACKET_TYPE_BAD	(0)
-#define HDLC_PACKET_TYPE_I		(1)
-#define HDLC_PACKET_TYPE_RR		(2)
-#define HDLC_PACKET_TYPE_RNR	(3)
-#define HDLC_PACKET_TYPE_SNRM	(4)
-#define HDLC_PACKET_TYPE_DISC	(5)
-#define HDLC_PACKET_TYPE_UA		(6)
-#define HDLC_PACKET_TYPE_DM		(7)
-#define HDLC_PACKET_TYPE_FRMR	(8)
-#define HDLC_PACKET_TYPE_UI		(9)
-
 #define HDLC_CF_POLL	0
 #define HDLC_CF_FINAL	1
 
@@ -525,20 +512,21 @@ static const uint16_t snrm_size = sizeof(snrm_nego);
 
 int hdlc_encode_snrm(hdlc_t *hdlc, uint8_t *buf, uint16_t size)
 {
+    hdlc->type = HDLC_PACKET_TYPE_SNRM;
     return hdlc_encode(hdlc, buf, size, 0x93U, snrm_nego, snrm_size);
 }
 
 int hdlc_encode_data(hdlc_t *hdlc, uint8_t *buf, uint16_t size, const uint8_t *data, uint16_t data_size)
 {
     uint8_t iframe = (((hdlc->rrr << 5U) + (hdlc->sss << 1U)) | 0x10U) & 0xFEU;
-
+    hdlc->type = HDLC_PACKET_TYPE_I;
     return hdlc_encode(hdlc, buf, size, iframe, data, data_size);
 }
 
 int hdlc_encode_rr(hdlc_t *hdlc, uint8_t *buf, uint16_t size)
 {
     uint8_t iframe = ((hdlc->rrr << 5U) & 0xF0U) | 0x11U; // Final bit = 1
-
+    hdlc->type = HDLC_PACKET_TYPE_RR;
     return hdlc_encode(hdlc, buf, size, iframe, NULL, 0U);
 }
 
