@@ -484,30 +484,42 @@ int clk_time_to_cosem(const clk_time_t *time, csm_array *array)
 
 int clk_datetime_from_cosem(clk_datetime_t *clk, csm_array *array)
 {
-    int valid = FALSE;
+    int valid = clk_date_from_cosem(&clk->date, array);
+    valid = valid && clk_time_from_cosem(&clk->time, array);
 
-    (void) clk;
-    (void) array;
+    uint8_t deviationhi;
+    uint8_t deviationlo;
+    valid = valid && csm_array_read_u8(array, &deviationhi);
+    valid = valid && csm_array_read_u8(array, &deviationlo);
+
+    clk->deviation = (((uint16_t)deviationhi) << 8) + deviationlo;
+
+    valid = valid && csm_array_read_u8(array, &clk->status);
 
     return valid;
 }
 
-int clk_datete_from_cosem(clk_date_t *date, csm_array *array)
+int clk_date_from_cosem(clk_date_t *date, csm_array *array)
 {
-    int valid = FALSE;
+    uint8_t yearhi;
+    uint8_t yearlo;
+    int valid = csm_array_read_u8(array, &yearhi);
+    valid = valid && csm_array_read_u8(array, &yearlo);
 
-    (void) date;
-    (void) array;
+    date->year = (((uint16_t)yearhi) << 8) + yearlo;
+    valid = valid && csm_array_read_u8(array, &date->month);
+    valid = valid && csm_array_read_u8(array, &date->day);
+    valid = valid && csm_array_read_u8(array, &date->dow);
 
     return valid;
 }
 
 int clk_time_from_cosem(clk_time_t *time, csm_array *array)
 {
-    int valid = FALSE;
-
-    (void) time;
-    (void) array;
+    int valid = csm_array_read_u8(array, &time->hour);
+    valid = valid && csm_array_read_u8(array, &time->minute);
+    valid = valid && csm_array_read_u8(array, &time->second);
+    valid = valid && csm_array_read_u8(array, &time->hundredths);
 
     return valid;
 }

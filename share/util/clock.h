@@ -1,6 +1,11 @@
 #ifndef CLOCK_H
 #define CLOCK_H
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
@@ -153,6 +158,9 @@ int main()
 }
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CLOCK_H
 
