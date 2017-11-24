@@ -394,30 +394,6 @@ C0 01 C1 0007 00 01 62 02 00 FF 02
 
 4CD77E
 
-Généré :
-
-7EA04B000200250732723CE6E600
-
-
-C001C100070100620102FF02
-
-  01
-    01
-       0204
-           0204
-                12 0008
-                09 06 00 00 01 00 00 FF
-                0F 02
-                12 0000
-                      0007E10801FF000000008000
-                      0007E10A17FF0E3702008000
-
-                0100
-
-
-  8CC97E
-
-
 */
 
 int csm_client_encode_selective_access_by_range(csm_array *array, csm_object_t *restricting_object, csm_array *start, csm_array *end)
