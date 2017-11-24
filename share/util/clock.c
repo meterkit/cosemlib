@@ -463,8 +463,7 @@ int clk_datetime_to_cosem(const clk_datetime_t *clk, csm_array *array)
 
 int clk_date_to_cosem(const clk_date_t *date, csm_array *array)
 {
-    int valid = csm_array_write_u16(array, (uint8_t)(date->year >> 8U) & 0xFFU);
-    valid = valid && csm_array_write_u8(array, (uint8_t)(date->year & 0xFFU));
+    int valid = csm_array_write_u16(array, date->year);
     valid = valid && csm_array_write_u8(array, date->month);
     valid = valid && csm_array_write_u8(array, date->day);
     valid = valid && csm_array_write_u8(array, date->dow);
@@ -501,12 +500,7 @@ int clk_datetime_from_cosem(clk_datetime_t *clk, csm_array *array)
 
 int clk_date_from_cosem(clk_date_t *date, csm_array *array)
 {
-    uint8_t yearhi;
-    uint8_t yearlo;
-    int valid = csm_array_read_u8(array, &yearhi);
-    valid = valid && csm_array_read_u8(array, &yearlo);
-
-    date->year = (((uint16_t)yearhi) << 8) + yearlo;
+    int valid = csm_array_read_u16(array, &date->year);
     valid = valid && csm_array_read_u8(array, &date->month);
     valid = valid && csm_array_read_u8(array, &date->day);
     valid = valid && csm_array_read_u8(array, &date->dow);

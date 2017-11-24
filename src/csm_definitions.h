@@ -82,13 +82,6 @@ typedef struct
     uint16_t        data_index;
 } csm_object_t;
 
-typedef struct
-{
-    uint8_t use_sel_access; // 0 = FALSE, 1, TRUE
-    uint8_t access_selector;
-    csm_array access_params;
-
-} csm_selective_access;
 
 typedef struct
 {
@@ -102,7 +95,8 @@ typedef struct
 {
     uint32_t block_number;
     enum csm_service service;
-    csm_selective_access access;
+    uint8_t use_sel_access; // 0 = FALSE, 1, TRUE
+    csm_array access_params;
     csm_object_t data;
     uint8_t db_type; //!< Database specific, base type of the data
 } csm_db_request;

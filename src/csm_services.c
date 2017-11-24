@@ -58,7 +58,7 @@ int svc_decode_request(csm_request *request, csm_array *array)
     valid = valid && csm_array_read_u16(array, &request->db_request.data.class_id);
     valid = valid && csm_array_read_buff(array, &request->db_request.data.obis.A, 6U);
     valid = valid && csm_array_read_u8(array, (uint8_t*)&request->db_request.data.id);
-    valid = valid && csm_array_read_u8(array, &request->db_request.access.use_sel_access);
+    valid = valid && csm_array_read_u8(array, &request->db_request.use_sel_access);
 
     return valid;
 }
@@ -393,6 +393,31 @@ C0 01 C1 0007 00 01 62 02 00 FF 02
                 01 00 selected_values (array null)
 
 4CD77E
+
+Généré :
+
+7EA04B000200250732723CE6E600
+
+
+C001C100070100620102FF02
+
+  01
+    01
+       0204
+           0204
+                12 0008
+                09 06 00 00 01 00 00 FF
+                0F 02
+                12 0000
+                      0007E10801FF000000008000
+                      0007E10A17FF0E3702008000
+
+                0100
+
+
+  8CC97E
+
+
 */
 
 int csm_client_encode_selective_access_by_range(csm_array *array, csm_object_t *restricting_object, csm_array *start, csm_array *end)
@@ -405,9 +430,9 @@ int csm_client_encode_selective_access_by_range(csm_array *array, csm_object_t *
     valid = valid && csm_axdr_wr_capture_object(array, restricting_object);
 
     // 2. start date
-    valid = valid && csm_array_write_buff(array, csm_array_rd_data(start), csm_array_written(start));
+    valid = valid && csm_axdr_wr_octetstring(array, csm_array_rd_data(start), csm_array_written(start));
     // 3. end date
-    valid = valid && csm_array_write_buff(array, csm_array_rd_data(end), csm_array_written(end));
+    valid = valid && csm_axdr_wr_octetstring(array, csm_array_rd_data(end), csm_array_written(end));
 
     // 4. selected values
     valid = valid && csm_array_write_u8(array, 0x01U); // selected values
@@ -431,12 +456,12 @@ int svc_get_request_encoder(csm_request *request, csm_array *array)
         valid = valid && csm_array_write_buff(array, (const uint8_t *)&request->db_request.data.obis.A, 6U);
         valid = valid && csm_array_write_u8(array, request->db_request.data.id);
 
-        if (request->db_request.access.use_sel_access)
+        if (request->db_request.use_sel_access)
         {
             valid = valid && csm_array_write_u8(array, 1U); // use selective access
-            if (request->db_request.access.access_params.buff != NULL)
+            if (request->db_request.access_params.buff != NULL)
             {
-                valid = valid && csm_array_write_buff(array, request->db_request.access.access_params.buff, csm_array_written(&request->db_request.access.access_params));
+                valid = valid && csm_array_write_buff(array, request->db_request.access_params.buff, csm_array_written(&request->db_request.access_params));
             }
             else
             {
