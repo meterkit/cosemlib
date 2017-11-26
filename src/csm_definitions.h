@@ -1,3 +1,14 @@
+/**
+ * Shared Cosem definition files
+ *
+ * Copyright (c) 2016, Anthony Rabine
+ * All rights reserved.
+ *
+ * This software may be modified and distributed under the terms of the BSD license.
+ * See LICENSE.txt for more details.
+ *
+ */
+
 #ifndef CSM_DEFINITIONS_H
 #define CSM_DEFINITIONS_H
 

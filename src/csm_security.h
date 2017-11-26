@@ -9,7 +9,6 @@
  *
  */
 
-
 #ifndef CSM_SECURITY_H
 #define CSM_SECURITY_H
 
@@ -26,11 +25,11 @@
 9.2.7.2.4.2         The security header
 The security header SH includes the security control byte concatenated with the invocation counter:
 SH = SC II IC. The security control byte is shown in Table 37 where:
-•     Bit 3…0: Security_Suite_Id, see 9.2.3.7;
-•     Bit 4: “A” subfield: indicates that authentication is applied;
-•     Bit 5: “E” subfield: indicates that encryption is applied;
-•     Bit 6: Key_Set subfield: 0 = Unicast, 1 = Broadcast;
-•     Bit 7: Indicates the use of compression.
+     Bit 3-0: Security_Suite_Id, see 9.2.3.7;
+     Bit 4: â€œAâ€� subfield: indicates that authentication is applied;
+     Bit 5: â€œEâ€� subfield: indicates that encryption is applied;
+     Bit 6: Key_Set subfield: 0 = Unicast, 1 = Broadcast;
+     Bit 7: Indicates the use of compression.
 */
 typedef union
 {
