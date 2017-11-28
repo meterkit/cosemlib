@@ -325,6 +325,7 @@ static int svc_get_response_decoder(csm_response *response, csm_array *array)
 
     if (response->type == SVC_GET_RESPONSE_NORMAL)
     {
+    	CSM_LOG("[SVC/GET] Get-Response-Normal");
         // Get-Response-Normal
         valid = valid && csm_array_read_u8(array, &response->invoke_id);
         valid = valid && csm_array_read_u8(array, &response->result);
@@ -351,6 +352,7 @@ static int svc_get_response_decoder(csm_response *response, csm_array *array)
     }
     else if (response->type == SVC_GET_RESPONSE_WITH_DATABLOCK)
     {
+    	CSM_LOG("[SVC/GET] Get-Response-WithDataBlock");
         // Get-Response-WithDataBlock
         valid = valid && csm_array_read_u8(array, &response->invoke_id);
         valid = valid && csm_array_read_u8(array, &response->last_block);
@@ -358,6 +360,7 @@ static int svc_get_response_decoder(csm_response *response, csm_array *array)
 
         if (valid)
         {
+        	CSM_TRACE("[SVC/GET] Block number: %d\r\n", response->block_number);
             response->access_result = CSM_ACCESS_RESULT_SUCCESS;
         }
 
@@ -393,6 +396,26 @@ C0 01 C1 0007 00 01 62 02 00 FF 02
                 01 00 selected_values (array null)
 
 4CD77E
+
+
+Selective access with undefined end date
+
+ C0 01 41 0007 00 00 63 01 00 FF 02
+
+   01
+     01
+        02 04
+             02 04
+                  12 0008
+                  09 06 00 00 01 00 00 FF
+                  0F 02
+                  12 0000
+
+             09 0C 07E10B1BFF000000FF800000
+             09 0C FFFFFFFFFFFFFFFFFF8000FF
+
+             0100
+
 
 */
 
