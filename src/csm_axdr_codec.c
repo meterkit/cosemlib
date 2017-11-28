@@ -109,11 +109,9 @@ int csm_axdr_decode_tags(csm_array *array, axdr_data_cb callback)
 
     while (csm_array_read_u8(array, &tag) && !error)
     {
-        error = 1;
-        for (uint32_t i = 0; i < tags_size; i++)
+    	uint32_t i;
+        for (i = 0; (i < tags_size) && !error; i++)
         {
-            error = 0;
-
             if (tags[i].tag == tag)
             {
                 uint32_t size = tags[i].size;
@@ -141,11 +139,17 @@ int csm_axdr_decode_tags(csm_array *array, axdr_data_cb callback)
                 break; // enough
             }
         }
+
+        // tag not found?
+        if (i >= tags_size)
+        {
+        	error = 1;
+        }
     }
 
-    if (!error)
+    if (error)
     {
-        ret = TRUE;
+        ret = FALSE;
     }
 
     return ret;
