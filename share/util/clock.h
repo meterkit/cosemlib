@@ -91,15 +91,19 @@ int clk_is_dst(uint32_t yr, uint32_t mo, uint32_t dy);
 
 // -------------------------------------- COSEM DATE TIME --------------------------------------
 
+// Initializers
 void clk_cosem_init(clk_datetime_t *clk);
+void clk_set_undefined(clk_datetime_t *clk);
 
-// return TRUE or FALSE
+// Converters, return TRUE or FALSE
 int clk_datetime_to_cosem(const clk_datetime_t *clk, csm_array *array);
 int clk_date_to_cosem(const clk_date_t *date, csm_array *array);
 int clk_time_to_cosem(const clk_time_t *time, csm_array *array);
 int clk_datetime_from_cosem(clk_datetime_t *clk, csm_array *array);
 int clk_date_from_cosem(clk_date_t *date, csm_array *array);
 int clk_time_from_cosem(clk_time_t *time, csm_array *array);
+
+// Printers
 void clk_print_datetime(const clk_datetime_t *clk);
 void clk_print_date(const clk_date_t *date);
 void clk_print_time(const clk_time_t *time);

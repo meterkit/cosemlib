@@ -449,6 +449,21 @@ void clk_cosem_init(clk_datetime_t *clk)
     clk_cosem_update_status(clk);
 }
 
+// FFFFFFFFFFFFFFFFFF8000FF
+void clk_set_undefined(clk_datetime_t *clk)
+{
+	clk->date.year = 0xFFFFU;
+	clk->date.month = 0xFFU;
+	clk->date.day = 0xFFU;
+	clk->date.dow = 0xFFU;
+	clk->time.hour = 0xFFU;
+	clk->time.minute = 0xFFU;
+	clk->time.second = 0xFFU;
+	clk->time.hundredths = 0U;
+	clk->deviation = -32768; // 0x8000
+	clk->status = 0xFFU;
+}
+
 int clk_datetime_to_cosem(const clk_datetime_t *clk, csm_array *array)
 {
     int valid = clk_date_to_cosem(&clk->date, array);

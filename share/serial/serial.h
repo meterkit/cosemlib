@@ -16,7 +16,7 @@ extern "C" {
 #include <config.h>
 #include <stdint.h>
 
-#if USE_WINDOWS_OS
+#ifdef USE_WINDOWS_OS
 #include <windows.h>
 #include <time.h>
 
@@ -34,7 +34,7 @@ typedef long speed_t;
 
 #endif
 
-#if IS_DARWIN
+#ifdef IS_DARWIN
 #include <IOKit/serial/ioss.h>
 #include <sys/ioctl.h>
 

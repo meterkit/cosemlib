@@ -18,7 +18,7 @@
 
 int serial_setup(int fd, unsigned long speed)
 {
-#if USE_WINDOWS_OS
+#ifdef USE_WINDOWS_OS
 	COMMTIMEOUTS timeouts;
 	DCB dcb = {0};
 	HANDLE hCom = (HANDLE)fd;
@@ -95,7 +95,7 @@ int serial_setup(int fd, unsigned long speed)
 	t_opt.c_cc[VMIN] = 1; // blocking read until N chars received
 	t_opt.c_cc[VTIME] = 10;
 
-#if IS_DARWIN
+#ifdef IS_DARWIN
 	if( tcsetattr(fd, TCSANOW, &t_opt) < 0 ) {
 		return -1;
 	}
@@ -112,7 +112,7 @@ int serial_setup(int fd, unsigned long speed)
 int serial_write(int fd, const char *buf, int size)
 {
 	int ret = -1;
-#if USE_WINDOWS_OS
+#ifdef USE_WINDOWS_OS
 	HANDLE hCom = (HANDLE)fd;
 	unsigned long bwritten = 0;
 
@@ -163,7 +163,7 @@ int serial_write(int fd, const char *buf, int size)
 	ret = write(fd, buf, size);
 #endif
 
-#if DEBUG
+#ifdef DEBUG
 	if (ret != size)
 		fprintf(stderr, "Error sending data (written %d should have written %d)\n", ret, size);
 #endif
@@ -176,7 +176,7 @@ int serial_read(int fd, char *buf, int size, int timeout)
 {
 	int len = 0;
 
-#if USE_WINDOWS_OS
+#ifdef USE_WINDOWS_OS
 	HANDLE hCom = (HANDLE)fd;
 
 	DWORD dwRead;
@@ -297,18 +297,13 @@ int serial_read(int fd, char *buf, int size, int timeout)
 
 #endif
 
-#if DEBUG
-	if (len != size)
-		fprintf(stderr, "Error receiving data (read %d should have read %d)\n", len, size);
-#endif
-
 	return len;
 }
 
 int serial_open(const char *port)
 {
 	int fd = -1;
-#if USE_WINDOWS_OS
+#ifdef USE_WINDOWS_OS
 	static char full_path[32] = {0};
 
 	HANDLE hCom = NULL;
@@ -341,7 +336,7 @@ int serial_open(const char *port)
 
 int serial_close(int fd)
 {
-#if USE_WINDOWS_OS
+#ifdef USE_WINDOWS_OS
 	HANDLE hCom = (HANDLE)fd;
 
 	CloseHandle(hCom);
