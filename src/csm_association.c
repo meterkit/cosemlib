@@ -976,6 +976,7 @@ int csm_asso_is_granted(csm_asso_state *state)
         // Test the password if required
         if (state->auth_level == CSM_AUTH_LOWEST_LEVEL)
         {
+            CSM_LOG("Granted (No security)");
             state->state_cf = CF_ASSOCIATED;
             state->handshake.result = CSM_ASSO_ERR_NULL;
             ret = TRUE;
