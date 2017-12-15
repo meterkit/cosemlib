@@ -169,13 +169,13 @@ static csm_acse_code acse_oid_decoder(csm_asso_state *state, csm_ber *ber, csm_a
             case LN_REF_WITH_CYPHERING:
                 state->ref = LN_REF_WITH_CYPHERING;
                 ret = CSM_ACSE_OK;
-                CSM_LOG("[ACSE] LogicalName referencing with cyphering");
+                CSM_LOG("[ACSE] LogicalName referencing with ciphering");
                 break;
 
             case SN_REF_WITH_CYPHERING:
                 state->ref = SN_REF_WITH_CYPHERING;
                 ret = CSM_ACSE_OK;
-                CSM_LOG("[ACSE] ShortName referencing with cyphering");
+                CSM_LOG("[ACSE] ShortName referencing with ciphering");
                 break;
 
             default:
@@ -251,7 +251,7 @@ static csm_acse_code acse_req_decoder(csm_asso_state *state, csm_ber *ber, csm_a
     return ret;
 }
 
-static csm_acse_code acse_auth_value_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+static csm_acse_code acse_auth_value_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array, uint8_t tag)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
 
@@ -264,11 +264,24 @@ static csm_acse_code acse_auth_value_decoder(csm_asso_state *state, csm_ber *ber
         {
             if (ber->tag.tag == (TAG_CONTEXT_SPECIFIC))
             {
-                // It is a GraphicString, the size is dynamic
-                if (csm_array_read_buff(array, &state->handshake.ctos.value[0], ber->length.length))
+
+                if (tag == CSM_ASSO_CALLING_AUTH_VALUE)
                 {
-                    state->handshake.ctos.size = ber->length.length;
-                    ret = CSM_ACSE_OK;
+                    // It is a GraphicString, the size is dynamic
+                    if (csm_array_read_buff(array, &state->handshake.ctos.value[0], ber->length.length))
+                    {
+                        state->handshake.ctos.size = ber->length.length;
+                        ret = CSM_ACSE_OK;
+                    }
+                }
+                else
+                {
+                    // It is a GraphicString, the size is dynamic
+                    if (csm_array_read_buff(array, &state->handshake.stoc.value[0], ber->length.length))
+                    {
+                        state->handshake.stoc.size = ber->length.length;
+                        ret = CSM_ACSE_OK;
+                    }
                 }
             }
         }
@@ -286,8 +299,56 @@ static csm_acse_code acse_auth_value_decoder(csm_asso_state *state, csm_ber *ber
     return ret;
 }
 
+static csm_acse_code acse_client_auth_value_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    return acse_auth_value_decoder(state, ber, array, CSM_ASSO_CALLING_AUTH_VALUE);
+}
 
-static csm_acse_code acse_user_info_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+static csm_acse_code acse_server_auth_value_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    return acse_auth_value_decoder(state, ber, array, CSM_ASSO_RESP_AUTH_VALUE);
+}
+
+int acse_decode_conformance_block(csm_asso_state *state, csm_ber *ber, csm_array *array, uint8_t tag)
+{
+    // conformance, [APPLICATION 31] IMPLICIT BIT STRING
+    // encoding of the [APPLICATION 31] tag (ASN.1 explicit tag)
+    int valid = csm_ber_decode(ber, array);
+    if ((ber->tag.tag == 0x5FU) && (ber->tag.ext == 0x1FU))
+    {
+        if (ber->length.length == 4U)
+        {
+            uint8_t byte;
+            valid = valid && csm_array_read_u8(array, &byte);
+            valid = valid && (byte == 0U ? TRUE : FALSE); // unused bits in the bitstring
+
+            state->handshake.proposed_conformance = ((uint32_t)byte) << 16U;
+            valid = valid && csm_array_read_u8(array, &byte);
+            state->handshake.proposed_conformance += ((uint32_t)byte) << 8U;
+            valid = valid && csm_array_read_u8(array, &byte);
+            state->handshake.proposed_conformance += ((uint32_t)byte);
+
+            uint16_t pdu_size;
+            valid = valid && csm_array_read_u16(array, &pdu_size);
+            if (tag == AXDR_INITIATE_REQUEST)
+            {
+                state->handshake.client_max_receive_pdu_size = pdu_size;
+            }
+            else
+            {
+                state->handshake.server_max_receive_pdu_size = pdu_size;
+            }
+        }
+    }
+    else
+    {
+        valid = 0U;
+    }
+
+    return valid;
+}
+
+static csm_acse_code acse_user_info_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array, uint8_t tag)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
 
@@ -298,28 +359,11 @@ static csm_acse_code acse_user_info_decoder(csm_asso_state *state, csm_ber *ber,
         {
             // Now decode the A-XDR encoded packet
             uint8_t byte;
+            int valid = TRUE;
             if(csm_array_read_u8(array, &byte))
             {
                 if (byte == AXDR_INITIATE_REQUEST)
                 {
-
-                    /*
-                    -- xDLMS APDU-s used during Association establishment
-                    InitiateRequest ::= SEQUENCE
-                    {
-                    --  shall not be encoded in DLMS without ciphering
-                    dedicated-key                      OCTET STRING OPTIONAL,
-                    response-allowed                   BOOLEAN DEFAULT TRUE,
-                    proposed-quality-of-service        [0] IMPLICIT Integer8 OPTIONAL,
-                    proposed-dlms-version-number       Unsigned8,
-                    proposed-conformance               Conformance, -- Shall be encoded in BER
-                    client-max-receive-pdu-size        Unsigned16
-                    }
-
-                    -- The Conformance field shall be encoded in BER. See IEC 61334-6 Example 1.
-
-                    */
-
                     CSM_LOG("[ACSE] Found xDLMS InitiateRequest encoded APDU");
                     if(csm_array_read_u8(array, &byte))
                     {
@@ -327,43 +371,48 @@ static csm_acse_code acse_user_info_decoder(csm_asso_state *state, csm_ber *ber,
                         {
                             // FIXME: copy the dedicated key
                         }
-                    }
 
-                    int valid = csm_axdr_rd_null(array); //  response-allowed
+                        valid = csm_axdr_rd_null(array); //  response-allowed
+                    }
+                    else
+                    {
+                        valid = FALSE;
+                    }
+                }
+                else if (byte == AXDR_INITIATE_RESPONSE)
+                {
+                    CSM_LOG("[ACSE] Found xDLMS InitiateResponse encoded APDU");
+                }
+                else
+                {
+                    CSM_ERR("[ACSE] Found xDLMS InitiateRequest encoded APDU");
+                    valid = FALSE;
+                }
+
+                if (valid)
+                {
                     valid =  valid && csm_axdr_rd_null(array); // proposed_quality_of_service
 
                     // proposed-dlms-version-number: always 6
                     valid = valid && csm_array_read_u8(array, &byte);
                     valid = valid && (byte == 6U ? TRUE : FALSE);
 
-                    // conformance, [APPLICATION 31] IMPLICIT BIT STRING
-                    // encoding of the [APPLICATION 31] tag (ASN.1 explicit tag)
-                    valid = valid && csm_ber_decode(ber, array);
-                    if ((ber->tag.tag == 0x5FU) && (ber->tag.ext == 31U))
+                    valid = valid && acse_decode_conformance_block(state, ber, array, tag);
+
+                    if (byte == AXDR_INITIATE_RESPONSE)
                     {
-                        if (ber->length.length == 4U)
+                        // VAA-name
+                        uint16_t vaaname;
+                        if (csm_array_read_u16(array, &vaaname))
                         {
-                            valid = valid && csm_array_read_u8(array, &byte);
-                            valid = valid && (byte == 0U ? TRUE : FALSE); // unused bits in the bitstring
-
-                            state->handshake.proposed_conformance = ((uint32_t)byte) << 16U;
-                            valid = valid && csm_array_read_u8(array, &byte);
-                            state->handshake.proposed_conformance += ((uint32_t)byte) << 8U;
-                            valid = valid && csm_array_read_u8(array, &byte);
-                            state->handshake.proposed_conformance += ((uint32_t)byte);
-
-                            valid = valid && csm_array_read_u16(array, &state->handshake.client_max_receive_pdu_size);
+                            valid = valid && (vaaname == 0x0007U);
                         }
                     }
-                    else
-                    {
-                        valid = 0U;
-                    }
+                }
 
-                    if (valid)
-                    {
-                        ret = CSM_ACSE_OK;
-                    }
+                if (valid)
+                {
+                    ret = CSM_ACSE_OK;
                 }
             }
         }
@@ -372,11 +421,22 @@ static csm_acse_code acse_user_info_decoder(csm_asso_state *state, csm_ber *ber,
     return ret;
 }
 
-static csm_acse_code acse_client_system_title_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+
+static csm_acse_code acse_initiate_request_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    return acse_user_info_decoder(state, ber, array, AXDR_INITIATE_REQUEST);
+}
+
+static csm_acse_code acse_initiate_response_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    return acse_user_info_decoder(state, ber, array, AXDR_INITIATE_RESPONSE);
+}
+
+static csm_acse_code acse_system_title_decoder(csm_ber *ber, csm_array *array, uint8_t *buffer)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
 
-    CSM_LOG("[ACSE] Found client AP-Title tag");
+    CSM_LOG("[ACSE] Found AP-Title tag");
     if (csm_ber_decode(ber, array))
     {
         // Can be a challenge or a LLS
@@ -385,7 +445,7 @@ static csm_acse_code acse_client_system_title_decoder(csm_asso_state *state, csm
             if (ber->tag.id == CSM_BER_TYPE_OCTET_STRING)
             {
                 // Store the AP-Title in the association context
-                if (csm_array_read_buff(array, state->client_app_title, CSM_DEF_APP_TITLE_SIZE))
+                if (csm_array_read_buff(array, buffer, CSM_DEF_APP_TITLE_SIZE))
                 {
                     ret = CSM_ACSE_OK;
                 }
@@ -406,6 +466,93 @@ static csm_acse_code acse_client_system_title_decoder(csm_asso_state *state, csm
 }
 
 
+static csm_acse_code acse_client_system_title_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    return acse_system_title_decoder(ber, array, state->client_app_title);
+}
+
+static csm_acse_code acse_server_system_title_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    return acse_system_title_decoder(ber, array, state->server_app_title);
+}
+
+static csm_acse_code acse_result_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    csm_acse_code ret = CSM_ACSE_ERR;
+    (void) ber;
+
+    CSM_LOG("[ACSE] Decoding result tag ...");
+
+    uint8_t result = 0U; // accepted
+    if (csm_ber_read_u8(array, &result))
+    {
+        ret = CSM_ACSE_OK;
+
+        if (result == 0U)
+        {
+            // accepted, connection OK
+            state->handshake.accepted = TRUE;
+        }
+        else
+        {
+            state->handshake.accepted = FALSE;
+        }
+    }
+
+    return ret;
+}
+
+static csm_acse_code acse_result_src_diag_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    csm_acse_code ret = CSM_ACSE_ERR;
+
+    CSM_LOG("[ACSE] Decoding result source diagnostic tag ...");
+
+    ber_length len;
+    int valid = csm_ber_read_len(array, &len);
+    if (valid && (len.length == 5U))
+    {
+        valid = csm_ber_decode(ber, array);
+        if (valid && (ber->length.length == 1U) && (ber->tag.tag == CSM_ASSO_RESULT_SERVICE_USER))
+        {
+            uint8_t result;
+            if (csm_array_read_u8(array, &result))
+            {
+                state->handshake.result = (enum csm_asso_result)result;
+                ret = CSM_ACSE_OK;
+            }
+        }
+    }
+    return ret;
+}
+
+
+static csm_acse_code acse_requirements_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
+{
+    csm_acse_code ret = CSM_ACSE_ERR;
+    (void) state;
+    (void) ber;
+
+    CSM_LOG("[ACSE] Decoding ACSE requirements tag ...");
+
+    ber_length len;
+    int valid = csm_ber_read_len(array, &len);
+    if (valid && len.length == 2U)
+    {
+        uint8_t bits;
+        uint8_t val;
+        valid = csm_array_read_u8(array, &bits); // unused bits in the bit-string
+        valid = valid && csm_array_read_u8(array, &val);
+
+        if (valid && (bits == 7U) && (val == 0x80U))
+        {
+            ret = CSM_ACSE_OK;
+        }
+    }
+
+    return ret;
+}
+
 static csm_acse_code acse_skip_decoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
 {
     (void) state;
@@ -420,34 +567,7 @@ static csm_acse_code acse_skip_decoder(csm_asso_state *state, csm_ber *ber, csm_
 }
 
 
-/*
-AARQ ::= [APPLICATION 0] IMPLICIT SEQUENCE
-{
--- [APPLICATION 0] == [ 60H ] = [ 96 ]
-protocol-version                   [0] IMPLICIT        BIT STRING {version1 (0)} DEFAULT {version1},
-application-context-name           [1]                 Application-context-name,
-called-AP-title                    [2]                 AP-title OPTIONAL,
-called-AE-qualifier                [3]                 AE-qualifier OPTIONAL,
-called-AP-invocation-id            [4]                 AP-invocation-identifier OPTIONAL,
-called-AE-invocation-id            [5]                 AE-invocation-identifier OPTIONAL,
-calling-AP-title                   [6]                 AP-title OPTIONAL,
-calling-AE-qualifier               [7]                 AE-qualifier OPTIONAL,
-calling-AP-invocation-id           [8]                 AP-invocation-identifier OPTIONAL,
-calling-AE-invocation-id           [9]                 AE-invocation-identifier OPTIONAL,
--- The following field shall not be present if only the kernel is used.
-sender-acse-requirements           [10] IMPLICIT      ACSE-requirements OPTIONAL,
--- The following field shall only be present if the authentication functional unit is selected.
-mechanism-name                     [11] IMPLICIT      Mechanism-name OPTIONAL,
--- The following field shall only be present if the authentication functional unit is selected.
-calling-authentication-value       [12] EXPLICIT      Authentication-value OPTIONAL,
-implementation-information         [29] IMPLICIT      Implementation-data OPTIONAL,
-user-information                   [30] EXPLICIT      Association-information OPTIONAL
-}
 
--- The user-information field shall carry an InitiateRequest APDU encoded in A-XDR, and then
--- encoding the resulting OCTET STRING in BER.
-
-*/
 static const csm_asso_codec aarq_decoder_chain[] =
 {
     {CSM_ASSO_PROTO_VER,            ACSE_NONE, acse_proto_version_decoder, NULL},
@@ -467,14 +587,34 @@ static const csm_asso_codec aarq_decoder_chain[] =
     {CSM_BER_TYPE_INTEGER,              ACSE_NONE, acse_skip_decoder, NULL},
     {CSM_ASSO_SENDER_ACSE_REQU,     ACSE_OPT, acse_req_decoder, NULL},
     {CSM_ASSO_REQ_MECHANISM_NAME,   ACSE_OPT, acse_oid_decoder, NULL},
-    {CSM_ASSO_CALLING_AUTH_VALUE,   ACSE_OPT, acse_auth_value_decoder, NULL},
+    {CSM_ASSO_CALLING_AUTH_VALUE,   ACSE_OPT, acse_client_auth_value_decoder, NULL},
     {CSM_ASSO_IMPLEMENTATION_INFO,  ACSE_OPT, acse_skip_decoder, NULL},
-    {CSM_ASSO_USER_INFORMATION,     ACSE_OPT, acse_user_info_decoder, NULL}
+    {CSM_ASSO_USER_INFORMATION,     ACSE_OPT, acse_initiate_request_decoder, NULL}
+};
+
+
+static const csm_asso_codec aare_decoder_chain[] =
+{
+    {CSM_ASSO_PROTO_VER,            ACSE_NONE, NULL, acse_proto_version_decoder},
+    {CSM_ASSO_APP_CONTEXT_NAME,     ACSE_ANY, NULL, acse_app_context_decoder},
+    {CSM_BER_TYPE_OBJECT_IDENTIFIER,    ACSE_ANY, NULL, acse_oid_decoder},
+    {CSM_ASSO_RESULT_FIELD,         ACSE_ANY, NULL, acse_result_decoder},
+    {CSM_ASSO_RESULT_SRC_DIAG,      ACSE_ANY, NULL, acse_result_src_diag_decoder},
+
+    // Additional fields specific when ciphered authentication is required
+    {CSM_ASSO_RESP_AP_TITLE,        ACSE_SEC, NULL, acse_server_system_title_decoder},
+    {CSM_ASSO_RESPONDER_ACSE_REQ,   ACSE_SEC, NULL, acse_requirements_decoder},
+    {CSM_ASSO_RESP_MECHANISM_NAME,  ACSE_SEC, NULL, acse_oid_decoder},
+    {CSM_ASSO_RESP_AUTH_VALUE,      ACSE_SEC, NULL, acse_server_auth_value_decoder},
+
+    // Final field
+    {CSM_ASSO_USER_INFORMATION,     ACSE_ANY, NULL, acse_initiate_response_decoder},
 };
 
 
 
-#define CSM_ACSE_AARQ_CHAIN_SIZE   (sizeof(aarq_decoder_chain)/sizeof(aarq_decoder_chain[0]))
+#define CSM_ACSE_AARQ_DECODER_CHAIN_SIZE   (sizeof(aarq_decoder_chain)/sizeof(aarq_decoder_chain[0]))
+#define CSM_ACSE_AARE_DECODER_CHAIN_SIZE   (sizeof(aare_decoder_chain)/sizeof(aare_decoder_chain[0]))
 
 
 // -------------------------------   ENCODERS ------------------------------------------
@@ -559,44 +699,17 @@ static csm_acse_code acse_result_encoder(csm_asso_state *state, csm_ber *ber, cs
         result = 1U; // rejected-permanent
     }
 
-    if (csm_ber_write_integer(array, result))
+    if (csm_ber_write_len(array, 3U)) // 3 bytes = integer tag, integer length and result boolean
     {
-        ret = CSM_ACSE_OK;
+        if (csm_ber_write_u8(array, result))
+        {
+            ret = CSM_ACSE_OK;
+        }
     }
-
     return ret;
 }
 
 
-/*
-Associate-source-diagnostic ::= CHOICE
-{
-    acse-service-user                  [1] INTEGER
-    {
-        null                                             (0),
-        no-reason-given                                  (1),
-        application-context-name-not-supported           (2),
-        calling-AP-title-not-recognized                  (3),
-        calling-AP-invocation-identifier-not-recognized  (4),
-        calling-AE-qualifier-not-recognized              (5),
-        calling-AE-invocation-identifier-not-recognized  (6),
-        called-AP-title-not-recognized                   (7),
-        called-AP-invocation-identifier-not-recognized   (8),
-        called-AE-qualifier-not-recognized               (9),
-        called-AE-invocation-identifier-not-recognized   (10),
-        authentication-mechanism-name-not-recognised     (11),
-        authentication-mechanism-name-required           (12),
-        authentication-failure                           (13),
-        authentication-required                          (14)
-    },
-    acse-service-provider              [2] INTEGER
-    {
-        null                               (0),
-        no-reason-given                    (1),
-        no-common-acse-version             (2)
-    }
-}
-*/
 static csm_acse_code acse_result_src_diag_encoder(csm_asso_state *state, csm_ber *ber, csm_array *array)
 {
     csm_acse_code ret = CSM_ACSE_ERR;
@@ -608,9 +721,12 @@ static csm_acse_code acse_result_src_diag_encoder(csm_asso_state *state, csm_ber
     {
         if (csm_array_write_u8(array, (uint8_t)CSM_ASSO_RESULT_SERVICE_USER))
         {
-            if (csm_ber_write_integer(array, state->handshake.result))
+            if (csm_ber_write_len(array, 3U)) // 3 bytes = integer tag, integer length and result boolean
             {
-                ret = CSM_ACSE_OK;
+                if (csm_ber_write_u8(array, state->handshake.result))
+                {
+                    ret = CSM_ACSE_OK;
+                }
             }
         }
     }
@@ -867,36 +983,6 @@ static csm_acse_code acse_initiate_request_encoder(csm_asso_state *state, csm_be
 }
 
 
-
-/**
-
-AARE-apdu ::= [APPLICATION 1] IMPLICIT SEQUENCE
-{
--- [APPLICATION 1] == [ 61H ] = [ 97 ]
-protocol-version                     [0] IMPLICIT BIT STRING {version1 (0)} DEFAULT
-{version1},
-application-context-name             [1]             Application-context-name,
-result                               [2]             Association-result,
-result-source-diagnostic             [3]             Associate-source-diagnostic,
-responding-AP-title                  [4]             AP-title OPTIONAL,
-responding-AE-qualifier              [5]             AE-qualifier OPTIONAL,
-responding-AP-invocation-id          [6]             AP-invocation-identifier OPTIONAL,
-responding-AE-invocation-id          [7]             AE-invocation-identifier OPTIONAL,
--- The following field shall not be present if only the kernel is used.
-responder-acse-requirements          [8] IMPLICIT    ACSE-requirements OPTIONAL,
---  The  following  field  shall  only  be  present  if  the  authentication  functional  unit  is selected.
-mechanism-name                       [9] IMPLICIT    Mechanism-name OPTIONAL,
---  The  following  field  shall  only  be  present  if  the  authentication  functional  unit  is selected.
-responding-authentication-value      [10] EXPLICIT   Authentication-value OPTIONAL,
-implementation-information           [29] IMPLICIT   Implementation-data OPTIONAL,
-user-information                     [30] EXPLICIT   Association-information OPTIONAL
-}
--- The user-information field shall carry either an InitiateResponse (or, when the proposed
--- xDLMS  context  is not  accepted  by  the  server,  a  confirmedServiceError  APDU  encoded  in
--- A-XDR, and then encoding the resulting OCTET STRING in BER.
-
-  */
-
 // FIXME: export context field in the configuration file
 static const csm_asso_codec aare_encoder_chain[] =
 {
@@ -917,7 +1003,7 @@ static const csm_asso_codec aare_encoder_chain[] =
 
 };
 
-#define CSM_ACSE_AARE_CHAIN_SIZE   (sizeof(aare_encoder_chain)/sizeof(aare_encoder_chain[0]))
+#define CSM_ACSE_AARE_ENCODER_CHAIN_SIZE   (sizeof(aare_encoder_chain)/sizeof(aare_encoder_chain[0]))
 
 
 static const csm_asso_codec aarq_encoder_chain[] =
@@ -1051,7 +1137,7 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array)
                         ret = TRUE; // normal error (optional field)
                     }
 
-                    if ((ret) && (decoder_index < CSM_ACSE_AARQ_CHAIN_SIZE))
+                    if ((ret) && (decoder_index < CSM_ACSE_AARQ_DECODER_CHAIN_SIZE))
                     {
                         // Continue decoding BER
                         ret = csm_ber_decode(&ber, array);
@@ -1064,7 +1150,7 @@ int csm_asso_decoder(csm_asso_state *state, csm_array *array)
                 break;
             }
         }
-        while (decoder_index < CSM_ACSE_AARQ_CHAIN_SIZE);
+        while (decoder_index < CSM_ACSE_AARQ_DECODER_CHAIN_SIZE);
     }
 
     return ret;
@@ -1083,7 +1169,7 @@ int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag)
         if (csm_array_write_u8(array, 0U))
         {
             const csm_asso_codec *codec = &aare_encoder_chain[0];
-            uint32_t size = CSM_ACSE_AARE_CHAIN_SIZE;
+            uint32_t size = CSM_ACSE_AARE_ENCODER_CHAIN_SIZE;
 
             if (tag == CSM_ASSO_AARQ)
             {

@@ -60,6 +60,8 @@ enum csm_auth_level
 {
     CSM_AUTH_LOWEST_LEVEL       = 0U,
     CSM_AUTH_LOW_LEVEL          = 1U,
+    CSM_AUTH_HIGH_LEVEL_MD5     = 3U,
+    CSM_AUTH_HIGH_LEVEL_SHA1    = 4U,
     CSM_AUTH_HIGH_LEVEL_GMAC    = 5U
 };
 
@@ -123,6 +125,7 @@ typedef enum
 enum csm_asso_result
 {
     CSM_ASSO_ERR_NULL           = 0U,   //!< No error
+    CSM_ASSO_NO_REASON_GIVEN    = 1U,
     CSM_ASSO_AUTH_UNKNOWN       = 11U,
     CSM_ASSO_ERR_AUTH_FAILURE   = 13U,
     CSM_ASSO_AUTH_REQUIRED      = 14U,
@@ -154,6 +157,8 @@ typedef struct
     csm_challenge stoc; // StoC: Server to Client challenge
     uint32_t proposed_conformance;
     uint16_t client_max_receive_pdu_size;
+    uint16_t server_max_receive_pdu_size;
+    uint8_t accepted;
     enum csm_asso_result result;
 } csm_asso_handshake;
 
@@ -170,6 +175,7 @@ typedef struct
     enum csm_referencing ref;
     enum csm_auth_level auth_level;
     uint8_t client_app_title[CSM_DEF_APP_TITLE_SIZE];
+    uint8_t server_app_title[CSM_DEF_APP_TITLE_SIZE];
 
     // Valid for the ACSE session establishment, for security reasons it should be erased after all
     csm_asso_handshake handshake;
