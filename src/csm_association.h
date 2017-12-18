@@ -70,7 +70,7 @@ typedef enum
     CSM_ASSO_AARQ                   = TAG_APPLICATION + TAG_CONSTRUCTED + 0U,   ///< Application number 0
     CSM_ASSO_AARE                   = TAG_APPLICATION + TAG_CONSTRUCTED + 1U,   ///< Application number 1
     CSM_ASSO_RLRQ                   = TAG_APPLICATION + TAG_CONSTRUCTED + 2U,   ///< Application number 2
-    CSM_ASSO_RLRE                   = TAG_APPLICATION + TAG_CONSTRUCTED + 3U,   ///< Application number 3s
+    CSM_ASSO_RLRE                   = TAG_APPLICATION + TAG_CONSTRUCTED + 3U,   ///< Application number 3
     CSM_ASSO_PROTO_VER              = TAG_CONTEXT_SPECIFIC + TAG_PRIMITIVE,
     CSM_ASSO_APP_CONTEXT_NAME       = TAG_CONTEXT_SPECIFIC + TAG_CONSTRUCTED +  1U,
 
@@ -185,8 +185,9 @@ typedef struct
 } csm_asso_state;
 
 void csm_asso_init(csm_asso_state *state);
-int csm_asso_execute(csm_asso_state *state, csm_array *packet);
+int csm_asso_server_execute(csm_asso_state *state, csm_array *packet);
 int csm_asso_encoder(csm_asso_state *state, csm_array *array, uint8_t tag);
+int csm_asso_decoder(csm_asso_state *state, csm_array *array, uint8_t tag);
 
 #ifdef __cplusplus
 }
