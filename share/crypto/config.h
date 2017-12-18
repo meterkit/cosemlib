@@ -53,7 +53,9 @@
 #define MBEDTLS_AES_C
 #define MBEDTLS_GCM_C
 #define MBEDTLS_CIPHER_C
-
+#define MBEDTLS_SHA1_C
+#define MBEDTLS_SHA256_C
+#define MBEDTLS_MD5_C
 /*
 #define MBEDTLS_ASN1_PARSE_C
 #define MBEDTLS_ASN1_WRITE_C
