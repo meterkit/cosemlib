@@ -219,15 +219,56 @@ static csm_db_code svc_action_request_decoder(csm_asso_state *state, csm_request
     return svc_set_or_action(state, request, array);
 }
 
+int svc_get_request_encoder(csm_request *request, csm_array *array)
+{
+    int valid = csm_array_write_u8(array, AXDR_GET_REQUEST);
+    valid = valid && csm_array_write_u8(array, request->type);
 
-typedef csm_db_code (*svc_decoder_func)(csm_asso_state *state, csm_request *request, csm_array *array);
-typedef csm_db_code (*svc_encoder_func)(csm_asso_state *state, csm_request *request, csm_array *array);
+    if (request->type == SVC_GET_REQUEST_NORMAL)
+    {
+        valid = valid && csm_array_write_u8(array, request->sender_invoke_id);
+        valid = valid && csm_array_write_u16(array, request->db_request.data.class_id);
+        valid = valid && csm_array_write_buff(array, (const uint8_t *)&request->db_request.data.obis.A, 6U);
+        valid = valid && csm_array_write_u8(array, request->db_request.data.id);
+
+        if (request->db_request.use_sel_access)
+        {
+            valid = valid && csm_array_write_u8(array, 1U); // use selective access
+            if (request->db_request.access_params.buff != NULL)
+            {
+                valid = valid && csm_array_write_buff(array, request->db_request.access_params.buff, csm_array_written(&request->db_request.access_params));
+            }
+            else
+            {
+                valid = FALSE;
+            }
+        }
+        else
+        {
+            valid = valid && csm_array_write_u8(array, 0U); // no selective access
+        }
+    }
+    else if (request->type == SVC_GET_REQUEST_NEXT)
+    {
+        valid = valid && csm_array_write_u8(array, request->sender_invoke_id); // save the invoke ID to reuse the same
+        valid = valid && csm_array_write_u32(array, request->db_request.block_number); // save the invoke ID to reuse the same
+    }
+    else
+    {
+        CSM_LOG("[SVC] Service not supported");
+    }
+    return valid;
+}
+
+
+typedef csm_db_code (*svc_func)(csm_asso_state *state, csm_request *request, csm_array *array);
+
 
 typedef struct
 {
     uint8_t tag;
-    svc_decoder_func decoder;   //!< Used by the server implementation
-    svc_encoder_func encoder;   //!< Used by the client implementation
+    svc_func decoder;   //!< Used by the server implementation
+    svc_func encoder;   //!< Used by the client implementation
 
 } csm_service_handler;
 
@@ -235,7 +276,7 @@ static const csm_service_handler services[] =
 {
     { AXDR_GET_REQUEST, svc_get_request_decoder, NULL },
     { AXDR_SET_REQUEST, svc_set_request_decoder, NULL },
-    { AXDR_ACTION_REQUEST, svc_action_request_decoder, NULL },
+    { AXDR_ACTION_REQUEST, svc_action_request_decoder, NULL }
 };
 
 #define NUMBER_OF_SERVICES (sizeof(services) / sizeof(services[0]))
@@ -441,65 +482,36 @@ int csm_client_encode_selective_access_by_range(csm_array *array, csm_object_t *
 }
 
 
-
-
-int svc_get_request_encoder(csm_request *request, csm_array *array)
+static int svc_exception_decoder(csm_response *response, csm_array *array)
 {
-    int valid = csm_array_write_u8(array, AXDR_GET_REQUEST);
-    valid = valid && csm_array_write_u8(array, request->type);
 
-    if (request->type == SVC_GET_REQUEST_NORMAL)
-    {
-        valid = valid && csm_array_write_u8(array, request->sender_invoke_id);
-        valid = valid && csm_array_write_u16(array, request->db_request.data.class_id);
-        valid = valid && csm_array_write_buff(array, (const uint8_t *)&request->db_request.data.obis.A, 6U);
-        valid = valid && csm_array_write_u8(array, request->db_request.data.id);
+    CSM_LOG("[SVC] Decoding Exception");
+    csm_db_code code = CSM_ERR_BAD_ENCODING;
 
-        if (request->db_request.use_sel_access)
-        {
-            valid = valid && csm_array_write_u8(array, 1U); // use selective access
-            if (request->db_request.access_params.buff != NULL)
-            {
-                valid = valid && csm_array_write_buff(array, request->db_request.access_params.buff, csm_array_written(&request->db_request.access_params));
-            }
-            else
-            {
-                valid = FALSE;
-            }
-        }
-        else
-        {
-            valid = valid && csm_array_write_u8(array, 0U); // no selective access
-        }
-    }
-    else if (request->type == SVC_GET_REQUEST_NEXT)
+    int valid = csm_array_read_u8(array, &response->exception.state_err);
+    valid = valid && csm_array_read_u8(array, &response->exception.service_err);
+
+    if (valid)
     {
-        valid = valid && csm_array_write_u8(array, request->sender_invoke_id); // save the invoke ID to reuse the same
-        valid = valid && csm_array_write_u32(array, request->db_request.block_number); // save the invoke ID to reuse the same
+        code = CSM_OK;
     }
-    else
-    {
-        CSM_LOG("[SVC] Service not supported");
-    }
-    return valid;
+    return code;
 }
 
+
 typedef int (*srv_resp_decoder_func)(csm_response *response, csm_array *array);
-typedef int (*srv_resp_encoder_func)(csm_response *response, csm_array *array);
 
 typedef struct
 {
     uint8_t tag;
-    srv_resp_decoder_func decoder;   //!< Used by the server implementation
-    srv_resp_encoder_func encoder;   //!< Used by the client implementation
+    srv_resp_decoder_func decoder;
 
 } csm_client_service_handler;
 
 static const csm_client_service_handler client_services[] =
 {
-    { AXDR_GET_RESPONSE, svc_get_response_decoder, NULL },
-//    { AXDR_SET_REQUEST, srv_set_request_decoder, NULL },
-//    { AXDR_ACTION_REQUEST, srv_action_request_decoder, NULL },
+    { AXDR_GET_RESPONSE, svc_get_response_decoder },
+    { AXDR_EXCEPTION_RESPONSE, svc_exception_decoder }
 };
 
 #define NUMBER_OF_CLIENT_SERVICES (sizeof(client_services) / sizeof(client_services[0]))
@@ -508,6 +520,8 @@ int csm_client_decode(csm_response *response, csm_array *array)
 {
     int valid = FALSE;
     uint8_t tag;
+
+    response->service = AXDR_BAD_TAG;
     if (csm_array_read_u8(array, &tag))
     {
         for (uint32_t i = 0U; i < NUMBER_OF_CLIENT_SERVICES; i++)
@@ -516,6 +530,7 @@ int csm_client_decode(csm_response *response, csm_array *array)
             if ((svc->tag == tag) && (svc->decoder != NULL))
             {
                 CSM_LOG("[SVC] Found service");
+                response->service = tag;
                 valid = svc->decoder(response, array);
                 break;
             }

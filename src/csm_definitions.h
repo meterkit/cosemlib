@@ -30,6 +30,7 @@
  */
 enum xdlms_tag
 {
+    AXDR_BAD_TAG            = 0U,
     AXDR_INITIATE_REQUEST   = 1U,
     AXDR_INITIATE_RESPONSE  = 8U,
     AXDR_GET_REQUEST        = 192U,
@@ -146,13 +147,20 @@ typedef enum
 
 typedef struct
 {
+    uint8_t state_err;
+    uint8_t service_err;
+} csm_exception;
+
+typedef struct
+{
+    uint8_t service;
     uint8_t type; // Type of the response (normal, next ...)
     uint8_t invoke_id;
     uint8_t result; // 0 = Data, 1 = Data-Access-Result
     csm_data_access_result access_result;
     uint8_t last_block;
     uint32_t block_number;
-
+    csm_exception exception;
 } csm_response;
 
 
