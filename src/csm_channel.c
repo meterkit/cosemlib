@@ -86,7 +86,7 @@ int csm_channel_execute(uint8_t channel, csm_array *packet)
             case CSM_ASSO_AARQ:
             case CSM_ASSO_RLRE:
             case CSM_ASSO_RLRQ:
-                ret = csm_asso_execute(&asso_list[i], packet);
+                ret = csm_asso_server_execute(&asso_list[i], packet);
                 break;
             default:
                 if (asso_list[i].state_cf == CF_ASSOCIATED)
