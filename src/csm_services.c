@@ -484,18 +484,11 @@ int csm_client_encode_selective_access_by_range(csm_array *array, csm_object_t *
 
 static int svc_exception_decoder(csm_response *response, csm_array *array)
 {
-
     CSM_LOG("[SVC] Decoding Exception");
-    csm_db_code code = CSM_ERR_BAD_ENCODING;
 
     int valid = csm_array_read_u8(array, &response->exception.state_err);
     valid = valid && csm_array_read_u8(array, &response->exception.service_err);
-
-    if (valid)
-    {
-        code = CSM_OK;
-    }
-    return code;
+    return valid;
 }
 
 
