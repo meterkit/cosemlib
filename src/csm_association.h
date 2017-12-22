@@ -62,7 +62,8 @@ enum csm_auth_level
     CSM_AUTH_LOW_LEVEL          = 1U,
     CSM_AUTH_HIGH_LEVEL_MD5     = 3U,
     CSM_AUTH_HIGH_LEVEL_SHA1    = 4U,
-    CSM_AUTH_HIGH_LEVEL_GMAC    = 5U
+    CSM_AUTH_HIGH_LEVEL_GMAC    = 5U,
+    CSM_AUTH_HIGH_LEVEL_SHA256  = 6U
 };
 
 typedef enum
