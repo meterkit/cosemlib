@@ -105,11 +105,18 @@ enum csm_service { SVC_GET, SVC_SET, SVC_ACTION };
 
 typedef struct
 {
+    uint8_t enable; // 0 = FALSE, 1, TRUE
+    csm_array data;
+} csm_opt_data;
+
+
+typedef struct
+{
     uint32_t block_number;
     enum csm_service service;
-    uint8_t use_sel_access; // 0 = FALSE, 1, TRUE
-    csm_array access_params;
-    csm_object_t data;
+    csm_opt_data additional_data;
+    csm_opt_data sel_access;
+    csm_object_t logical_name;
     uint8_t db_type; //!< Database specific, base type of the data
 } csm_db_request;
 
@@ -144,6 +151,23 @@ typedef enum
     CSM_ACCESS_RESULT_OTHER_REASON = 250,
 } csm_data_access_result;
 
+typedef enum
+{
+    CSM_ACTION_RESULT_SUCCESS = 0,
+    CSM_ACTION_RESULT_HARDWARE_FAULT = 1,
+    CSM_ACTION_RESULT_TEMPORARY_FAILURE = 2,
+    CSM_ACTION_RESULT_READ_WRITE_DENIED = 3,
+    CSM_ACTION_RESULT_OBJECT_UNDEFINED = 4,
+    CSM_ACTION_RESULT_OBJECT_CLASS_INCONSISTENT = 9,
+    CSM_ACTION_RESULT_OBJECT_UNAVAILABLE = 11,
+    CSM_ACTION_RESULT_TYPE_UNMATCHED = 12,
+    CSM_ACTION_RESULT_SCOPE_OF_ACCESS_VIOLATED = 13,
+    CSM_ACTION_RESULT_DATA_BLOCK_UNAVAILABLE = 14,
+    CSM_ACTION_RESULT_LONG_ACTION_ABORTED = 15,
+    CSM_ACTION_RESULT_NO_LONG_ACTION_IN_PROGRESS = 16,
+    CSM_ACTION_RESULT_OTHER_REASON = 250,
+} csm_action_result;
+
 
 typedef struct
 {
@@ -158,6 +182,7 @@ typedef struct
     uint8_t invoke_id;
     uint8_t result; // 0 = Data, 1 = Data-Access-Result
     csm_data_access_result access_result;
+    csm_action_result action_result;
     uint8_t last_block;
     uint32_t block_number;
     csm_exception exception;
@@ -184,10 +209,12 @@ void csm_sys_set_system_title(const uint8_t *buf);
 // This function returns a pointer to the system title buffer string in memory
 const uint8_t *csm_sys_get_system_title();
 
-int csm_sys_get_lls_password(uint8_t sap, uint8_t *array, uint8_t max_size);
+void csm_hal_get_lls_password(uint8_t sap, uint8_t *array, uint8_t max_size);
 
-// Generate a random number [0..255]
-uint8_t csm_sys_get_random_u8();
+uint8_t csm_hal_get_random_u8(uint8_t min, uint8_t max);
+
+
+int csm_hal_decode_selective_access(csm_request *request, csm_array *array);
 
 // Get the mechanism_id of the specified association
 uint8_t csm_sys_get_mechanism_id(uint8_t sap);
@@ -208,6 +235,17 @@ typedef enum
 } csm_sec_mode;
 
 uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id);
+
+
+/**
+ * output: 16 bytes array
+ */
+void csm_hal_md5(const uint8_t *input, uint32_t size, uint8_t *output);
+
+/**
+ * output: 32 bytes array
+ */
+void csm_hal_sha256(const uint8_t *input, uint32_t size, uint8_t *output);
 
 int csm_sys_gcm_init(uint8_t channel, uint8_t sap, csm_sec_key key_id, csm_sec_mode mode, const uint8_t *iv, const uint8_t *aad, uint32_t aad_len);
 int csm_sys_gcm_update(uint8_t channel, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt);
