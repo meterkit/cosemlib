@@ -42,18 +42,14 @@ typedef enum
 
 enum svc_response
 {
-    SVC_GET_RESPONSE_NORMAL         = 1U,
-    SVC_GET_RESPONSE_WITH_DATABLOCK = 2U,
-    SVC_GET_RESPONSE_WITH_LIST      = 3U,
-    SRV_SET_RESPONSE_NORMAL         = 1U,
-    SRV_ACTION_RESPONSE_NORMAL      = 1U
+    SVC_RESPONSE_NORMAL,
+    SVC_RESPONSE_WITH_DATABLOCK
 };
 
 enum svc_request
 {
-    SVC_GET_REQUEST_NORMAL         = 1U,
-    SVC_GET_REQUEST_NEXT           = 2U,
-    SVC_GET_REQUEST_WITH_LIST      = 3U
+    SVC_REQUEST_NORMAL,
+    SVC_REQUEST_NEXT
 };
 
 
@@ -68,7 +64,7 @@ typedef csm_db_code (*csm_db_access_handler)(csm_array *in, csm_array *out, csm_
 void csm_client_init(csm_request *request, csm_response *response);
 int csm_client_has_more_data(csm_response *response);
 int csm_client_decode(csm_response *response, csm_array *array);
-int svc_get_request_encoder(csm_request *request, csm_array *array);
+int svc_request_encoder(csm_request *request, csm_array *array);
 int csm_client_encode_selective_access_by_range(csm_array *array, csm_object_t *restricting_object, csm_array *start, csm_array *end);
 
 // ----------------------------------- SERVER SERVICES -----------------------------------

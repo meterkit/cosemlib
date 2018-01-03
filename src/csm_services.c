@@ -51,14 +51,67 @@ int svc_data_access_result_encoder(csm_array *array, csm_db_code code)
 }
 
 
+int svc_is_normal_request(csm_request *request)
+{
+    int istype = FALSE;
+
+    // Same type for SET/GET/ACTION
+    if (request->type == 1U)
+    {
+        istype = TRUE;
+    }
+
+    return istype;
+}
+
+int svc_is_next_request(csm_request *request)
+{
+    int istype = FALSE;
+
+    // Same type for SET/GET/ACTION
+    if ((request->type == 2U) && ( request->db_request.service != SVC_ACTION))
+    {
+        istype = TRUE;
+    }
+
+    return istype;
+}
+
+
 int svc_decode_request(csm_request *request, csm_array *array)
 {
     int valid = csm_array_read_u8(array, &request->type);
     valid = valid && csm_array_read_u8(array, &request->sender_invoke_id); // save the invoke ID to reuse the same
-    valid = valid && csm_array_read_u16(array, &request->db_request.data.class_id);
-    valid = valid && csm_array_read_buff(array, &request->db_request.data.obis.A, 6U);
-    valid = valid && csm_array_read_u8(array, (uint8_t*)&request->db_request.data.id);
-    valid = valid && csm_array_read_u8(array, &request->db_request.use_sel_access);
+
+    if (svc_is_normal_request(request))
+    {
+        valid = valid && csm_array_read_u16(array, &request->db_request.logical_name.class_id);
+        valid = valid && csm_array_read_buff(array, &request->db_request.logical_name.obis.A, 6U);
+        valid = valid && csm_array_read_u8(array, (uint8_t*)&request->db_request.logical_name.id);
+
+        if (request->db_request.service != SVC_ACTION)
+        {
+            // GET and SET services can have selective access parameter (option)
+            valid = valid && csm_array_read_u8(array, &request->db_request.sel_access.enable);
+
+            if (request->db_request.sel_access.enable)
+            {
+                // Retrieve selective access data, user side decoding
+                valid = valid && csm_hal_decode_selective_access(request, array);
+            }
+        }
+
+        if (request->db_request.service != SVC_GET)
+        {
+            // SET and ACTION services can have data in the request
+            valid = valid && csm_array_read_u8(array, &request->db_request.additional_data.enable);
+            // Data is following in the array
+        }
+    }
+    else if (svc_is_next_request(request))
+    {
+        valid = valid && csm_array_read_u32(array, &request->db_request.block_number); // save the invoke ID to reuse the same
+    }
 
     return valid;
 }
@@ -70,9 +123,10 @@ static csm_db_code svc_get_request_decoder(csm_asso_state *state, csm_request *r
 
     CSM_LOG("[SVC] Decoding GET.request");
 
+    request->db_request.service = SVC_GET;
+
     if (svc_decode_request(request, array))
     {
-        request->db_request.service = SVC_GET;
         if (database != NULL)
         {
             // Prepare the response
@@ -80,7 +134,7 @@ static csm_db_code svc_get_request_decoder(csm_asso_state *state, csm_request *r
             CSM_LOG("[SVC] Encoding GET.response");
 
             int valid = csm_array_write_u8(array, AXDR_GET_RESPONSE);
-            valid = valid && csm_array_write_u8(array, SVC_GET_RESPONSE_NORMAL);
+            valid = valid && csm_array_write_u8(array, 1U); // FIXME: we support only get response normal for now
             valid = valid && csm_array_write_u8(array, request->sender_invoke_id);
             valid = valid && csm_array_write_u8(array, 0U); // data result
 
@@ -117,7 +171,7 @@ static csm_db_code svc_get_request_decoder(csm_asso_state *state, csm_request *r
 
 static const uint32_t gResponseNormalHeaderSize = 6U; // Offset where data can be returned for an Action
 
-static csm_db_code svc_set_or_action(csm_asso_state *state, csm_request *request, csm_array *array)
+static csm_db_code svc_set_or_action_decoder(csm_asso_state *state, csm_request *request, csm_array *array)
 {
     csm_db_code code = CSM_ERR_BAD_ENCODING;
     (void) state;
@@ -146,7 +200,7 @@ static csm_db_code svc_set_or_action(csm_asso_state *state, csm_request *request
 
             uint8_t service_resp = (request->db_request.service == SVC_SET) ? AXDR_SET_RESPONSE : AXDR_ACTION_RESPONSE;
             int valid = csm_array_write_u8(&output, service_resp);
-            valid = valid && csm_array_write_u8(&output, SRV_SET_RESPONSE_NORMAL); // FIXME: use proper service tag
+            valid = valid && csm_array_write_u8(&output, 1U); // FIXME: use proper service tag according to service type
             valid = valid && csm_array_write_u8(&output, request->sender_invoke_id);
             valid = svc_data_access_result_encoder(&output, code);
 
@@ -208,7 +262,7 @@ static csm_db_code svc_set_request_decoder(csm_asso_state *state, csm_request *r
 {
     request->db_request.service = SVC_SET;
     CSM_LOG("[SVC] Decoding SET.request");
-    return svc_set_or_action(state, request, array);
+    return svc_set_or_action_decoder(state, request, array);
 }
 
 
@@ -216,39 +270,90 @@ static csm_db_code svc_action_request_decoder(csm_asso_state *state, csm_request
 {
     request->db_request.service = SVC_ACTION;
     CSM_LOG("[SVC] Decoding ACTION.request");
-    return svc_set_or_action(state, request, array);
+    return svc_set_or_action_decoder(state, request, array);
 }
 
-int svc_get_request_encoder(csm_request *request, csm_array *array)
+
+/*
+Action request (Here, MD5 pass 3):
+
+C3 01 41
+
+  000F
+  00 00 28 00 00 FF
+
+  01 // method 1
+
+  01 // Have Data (true)
+
+  0910 41C845AEEA55D9C9CDE708AF0BA5B4BD
+
+ */
+
+int svc_request_encoder(csm_request *request, csm_array *array)
 {
-    int valid = csm_array_write_u8(array, AXDR_GET_REQUEST);
+    uint8_t tag = (request->db_request.service == SVC_GET) ? AXDR_GET_REQUEST :  (request->db_request.service == SVC_SET) ? AXDR_SET_REQUEST : AXDR_ACTION_REQUEST;
+    int valid = csm_array_write_u8(array, tag);
     valid = valid && csm_array_write_u8(array, request->type);
 
-    if (request->type == SVC_GET_REQUEST_NORMAL)
+    if (request->type == SVC_REQUEST_NORMAL)
     {
         valid = valid && csm_array_write_u8(array, request->sender_invoke_id);
-        valid = valid && csm_array_write_u16(array, request->db_request.data.class_id);
-        valid = valid && csm_array_write_buff(array, (const uint8_t *)&request->db_request.data.obis.A, 6U);
-        valid = valid && csm_array_write_u8(array, request->db_request.data.id);
+        valid = valid && csm_array_write_u16(array, request->db_request.logical_name.class_id);
+        valid = valid && csm_array_write_buff(array, (const uint8_t *)&request->db_request.logical_name.obis.A, 6U);
+        valid = valid && csm_array_write_u8(array, request->db_request.logical_name.id);
 
-        if (request->db_request.use_sel_access)
+        // Additional data only for SET and ACTION
+
+        if (tag != AXDR_ACTION_REQUEST)
         {
-            valid = valid && csm_array_write_u8(array, 1U); // use selective access
-            if (request->db_request.access_params.buff != NULL)
+            valid = valid && csm_array_write_u8(array, request->db_request.sel_access.enable); // use selective access or not
+
+            if (request->db_request.sel_access.enable)
             {
-                valid = valid && csm_array_write_buff(array, request->db_request.access_params.buff, csm_array_written(&request->db_request.access_params));
-            }
-            else
-            {
-                valid = FALSE;
+                if (request->db_request.sel_access.data.buff != NULL)
+                {
+                    valid = valid && csm_array_write_buff(array, request->db_request.sel_access.data.buff, csm_array_written(&request->db_request.sel_access.data));
+                }
+                else
+                {
+                    valid = FALSE;
+                }
             }
         }
         else
         {
-            valid = valid && csm_array_write_u8(array, 0U); // no selective access
+            // Data is optional for ACTION
+            valid = valid && csm_array_write_u8(array, request->db_request.additional_data.enable); // use data or not
         }
+
+        // Add data, valid for ACTION or SET only
+        if (tag != AXDR_GET_REQUEST)
+        {
+            uint32_t data_size = csm_array_written(&request->db_request.additional_data.data);
+            if ((request->db_request.additional_data.enable) && (data_size > 0U))
+            {
+                if (request->db_request.additional_data.data.buff != NULL)
+                {
+                    valid = valid && csm_array_write_buff(array, request->db_request.additional_data.data.buff, csm_array_written(&request->db_request.additional_data.data));
+                }
+                else
+                {
+                    valid = FALSE;
+                }
+            }
+            else
+            {
+                if (tag == AXDR_SET_REQUEST)
+                {
+                    // No data (NULL)
+                    valid = valid && csm_array_write_u8(array, AXDR_TAG_NULL);
+                }
+            }
+        }
+
     }
-    else if (request->type == SVC_GET_REQUEST_NEXT)
+    else if (request->type == SVC_REQUEST_NEXT)
     {
         valid = valid && csm_array_write_u8(array, request->sender_invoke_id); // save the invoke ID to reuse the same
         valid = valid && csm_array_write_u32(array, request->db_request.block_number); // save the invoke ID to reuse the same
@@ -268,15 +373,14 @@ typedef struct
 {
     uint8_t tag;
     svc_func decoder;   //!< Used by the server implementation
-    svc_func encoder;   //!< Used by the client implementation
 
 } csm_service_handler;
 
 static const csm_service_handler services[] =
 {
-    { AXDR_GET_REQUEST, svc_get_request_decoder, NULL },
-    { AXDR_SET_REQUEST, svc_set_request_decoder, NULL },
-    { AXDR_ACTION_REQUEST, svc_action_request_decoder, NULL }
+    { AXDR_GET_REQUEST, svc_get_request_decoder },
+    { AXDR_SET_REQUEST, svc_set_request_decoder },
+    { AXDR_ACTION_REQUEST, svc_action_request_decoder }
 };
 
 #define NUMBER_OF_SERVICES (sizeof(services) / sizeof(services[0]))
@@ -326,7 +430,7 @@ int csm_server_services_execute(csm_asso_state *state, csm_request *request, csm
 }
 
 
-int svc_is_standard_result(uint8_t result)
+int svc_is_valid_data_access_result(uint8_t result)
 {
     int valid = FALSE;
     switch (result)
@@ -355,47 +459,112 @@ int svc_is_standard_result(uint8_t result)
     return valid;
 }
 
-
-//
-// Get-Response-WithDataBlock: C4 02 C1 0000000001008201F40601001B0800FF15000000000
-static int svc_get_response_decoder(csm_response *response, csm_array *array)
+int svc_is_valid_action_result(uint8_t result)
 {
-    CSM_LOG("[SVC] Decoding GET.response");
-
-    int valid = csm_array_read_u8(array, &response->type);
-
-    if (response->type == SVC_GET_RESPONSE_NORMAL)
+    int valid = FALSE;
+    switch (result)
     {
-    	CSM_LOG("[SVC/GET] Get-Response-Normal");
-        // Get-Response-Normal
-        valid = valid && csm_array_read_u8(array, &response->invoke_id);
-        valid = valid && csm_array_read_u8(array, &response->result);
+        case CSM_ACTION_RESULT_SUCCESS:
+        case CSM_ACTION_RESULT_HARDWARE_FAULT:
+        case CSM_ACTION_RESULT_TEMPORARY_FAILURE:
+        case CSM_ACTION_RESULT_READ_WRITE_DENIED:
+        case CSM_ACTION_RESULT_OBJECT_UNDEFINED:
+        case CSM_ACTION_RESULT_OBJECT_CLASS_INCONSISTENT:
+        case CSM_ACTION_RESULT_OBJECT_UNAVAILABLE:
+        case CSM_ACTION_RESULT_TYPE_UNMATCHED:
+        case CSM_ACTION_RESULT_SCOPE_OF_ACCESS_VIOLATED:
+        case CSM_ACTION_RESULT_DATA_BLOCK_UNAVAILABLE:
+        case CSM_ACTION_RESULT_LONG_ACTION_ABORTED:
+        case CSM_ACTION_RESULT_NO_LONG_ACTION_IN_PROGRESS:
+        case CSM_ACTION_RESULT_OTHER_REASON:
+            valid = TRUE;
+            break;
+        default:
+            break;
+    }
+    return valid;
+}
 
-        if (valid)
+
+int svc_is_normal_response(csm_response *response)
+{
+    int istype = FALSE;
+
+    // Same type for SET/GET/ACTION
+    if (response->type == 1U)
+    {
+        istype = TRUE;
+    }
+
+    return istype;
+}
+
+int svc_is_data_block_response(csm_response *response)
+{
+    int istype = FALSE;
+
+    // Same type for SET/GET/ACTION
+    if (response->type == 2U)
+    {
+        istype = TRUE;
+    }
+
+    return istype;
+}
+
+
+int svc_result_decoder(csm_response *response, csm_array *array)
+{
+    int valid = csm_array_read_u8(array, &response->result);
+
+    if (valid)
+    {
+        if (response->result == 0)
         {
-            if (response->result == 0)
+            response->access_result = CSM_ACCESS_RESULT_SUCCESS;
+        }
+        else if (response->result == 1)
+        {
+            // details about the error is on the next byte
+            uint8_t result;
+            valid = csm_array_read_u8(array, &result);
+
+            if (response->service == SVC_ACTION)
             {
-                response->access_result = CSM_ACCESS_RESULT_SUCCESS;
-            }
-            else if (response->result == 1)
-            {
-                // details about the error is on the next byte
-                uint8_t result;
-                valid = csm_array_read_u8(array, &result);
-                response->access_result = (csm_data_access_result)result;
-                valid = valid && svc_is_standard_result(response->access_result);
+                response->action_result = (csm_action_result)result;
+                valid = valid && svc_is_valid_action_result(response->action_result);
             }
             else
             {
-                valid = FALSE;
+                response->access_result = (csm_data_access_result)result;
+                valid = valid && svc_is_valid_data_access_result(response->access_result);
             }
         }
+        else
+        {
+            valid = FALSE;
+        }
     }
-    else if (response->type == SVC_GET_RESPONSE_WITH_DATABLOCK)
+
+    return valid;
+}
+
+
+//
+// Get-Response-WithDataBlock: C4 02 C1 0000000001008201F40601001B0800FF15000000000
+static int svc_response_decoder(csm_response *response, csm_array *array)
+{
+    int valid = csm_array_read_u8(array, &response->type);
+    valid = valid && csm_array_read_u8(array, &response->invoke_id);
+
+    if (svc_is_normal_response(response))
     {
-    	CSM_LOG("[SVC/GET] Get-Response-WithDataBlock");
-        // Get-Response-WithDataBlock
-        valid = valid && csm_array_read_u8(array, &response->invoke_id);
+    	CSM_LOG("[SVC] Response-Normal");
+    	valid = valid && svc_result_decoder(response, array);
+    }
+    else if (svc_is_data_block_response(response))
+    {
+    	CSM_LOG("[SVC] Response-WithDataBlock");
         valid = valid && csm_array_read_u8(array, &response->last_block);
         valid = valid && csm_array_read_u32(array, &response->block_number);
 
@@ -413,6 +582,27 @@ static int svc_get_response_decoder(csm_response *response, csm_array *array)
     }
 
     return valid;
+}
+
+static int svc_get_response_decoder(csm_response *response, csm_array *array)
+{
+    response->service = SVC_GET;
+    CSM_LOG("[SVC] Decoding GET.response");
+    return svc_response_decoder(response, array);
+}
+
+static int svc_set_response_decoder(csm_response *response, csm_array *array)
+{
+    response->service = SVC_SET;
+    CSM_LOG("[SVC] Decoding SET.response");
+    return svc_response_decoder(response, array);
+}
+
+static int svc_action_response_decoder(csm_response *response, csm_array *array)
+{
+    response->service = SVC_ACTION;
+    CSM_LOG("[SVC] Decoding ACTION.response");
+    return svc_response_decoder(response, array);
 }
 
 
@@ -504,6 +694,8 @@ typedef struct
 static const csm_client_service_handler client_services[] =
 {
     { AXDR_GET_RESPONSE, svc_get_response_decoder },
+    { AXDR_SET_RESPONSE, svc_set_response_decoder },
+    { AXDR_ACTION_RESPONSE, svc_action_response_decoder },
     { AXDR_EXCEPTION_RESPONSE, svc_exception_decoder }
 };
 
