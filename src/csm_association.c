@@ -161,12 +161,32 @@ static csm_acse_code acse_oid_decoder(csm_asso_state *state, csm_ber *ber, csm_a
                 case CSM_AUTH_LOW_LEVEL:
                     state->auth_level = CSM_AUTH_LOW_LEVEL;
                     ret = CSM_ACSE_OK;
-                    CSM_LOG("[ACSE] Low level authentication");
+                    CSM_LOG("[ACSE] Low level (LLS) authentication");
+                    break;
+                case CSM_AUTH_HIGH_LEVEL:
+                    state->auth_level = CSM_AUTH_HIGH_LEVEL;
+                    ret = CSM_ACSE_OK;
+                    CSM_LOG("[ACSE] High level 2 (Manufacturer) authentication");
+                    break;
+                case CSM_AUTH_HIGH_LEVEL_MD5:
+                    state->auth_level = CSM_AUTH_HIGH_LEVEL_MD5;
+                    ret = CSM_ACSE_OK;
+                    CSM_LOG("[ACSE] High level 3 (MD5) authentication");
+                    break;
+                case CSM_AUTH_HIGH_LEVEL_SHA1:
+                    state->auth_level = CSM_AUTH_HIGH_LEVEL_SHA1;
+                    ret = CSM_ACSE_OK;
+                    CSM_LOG("[ACSE] High level 4 (SHA1) authentication");
                     break;
                 case CSM_AUTH_HIGH_LEVEL_GMAC:
                     state->auth_level = CSM_AUTH_HIGH_LEVEL_GMAC;
                     ret = CSM_ACSE_OK;
-                    CSM_LOG("[ACSE] High level authentication");
+                    CSM_LOG("[ACSE] High level 5 (GMAC) authentication");
+                    break;
+                case CSM_AUTH_HIGH_LEVEL_SHA256:
+                    state->auth_level = CSM_AUTH_HIGH_LEVEL_SHA256;
+                    ret = CSM_ACSE_OK;
+                    CSM_LOG("[ACSE] High level 6 (SHA256) authentication");
                     break;
                 default:
                     CSM_LOG("[ACSE] Authentication level not supported");
@@ -787,7 +807,7 @@ static csm_acse_code acse_responder_auth_value_encoder(csm_asso_state *state, cs
 #ifdef GB_TEST_VECTORS
         uint8_t byte = stoc[i];
 #else
-        uint8_t byte = csm_sys_get_random_u8();
+        uint8_t byte = csm_hal_get_random_u8(0, 255);
 #endif
         state->handshake.stoc.value[i] = byte;
     }
@@ -807,18 +827,26 @@ static csm_acse_code acse_aarq_auth_value_encoder(csm_asso_state *state, csm_ber
 
     CSM_LOG("[ACSE] Encoding Requester authentication value ...");
 
-    // FIXME: In case of HLS, generate a challenge
-
     if (state->auth_level == CSM_AUTH_LOW_LEVEL)
     {
-        uint8_t max_size = 8U;
-        if (csm_sys_get_lls_password(0U, &state->handshake.ctos.value[0], max_size))
+        state->handshake.ctos.size = 8U;
+        csm_hal_get_lls_password(0U, &state->handshake.ctos.value[0], state->handshake.ctos.size);
+    }
+    else
+    {
+        // High level security, generate a challenge
+        state->handshake.ctos.size = csm_hal_get_random_u8(8U, 64U);
+
+        for (uint8_t i = 0U; i < state->handshake.ctos.size; i++)
         {
-            if (acse_auth_value_encoder(array, &state->handshake.ctos.value[0], max_size))
-            {
-                ret = CSM_ACSE_OK;
-            }
+            uint8_t byte = csm_hal_get_random_u8(0, 255);
+            state->handshake.ctos.value[i] = byte;
         }
+    }
+
+    if (acse_auth_value_encoder(array, &state->handshake.ctos.value[0], state->handshake.ctos.size))
+    {
+        ret = CSM_ACSE_OK;
     }
     return ret;
 }
@@ -990,14 +1018,12 @@ int csm_asso_is_granted(csm_asso_state *state)
         else if (state->auth_level == CSM_AUTH_LOW_LEVEL)
         {
             // Use unused StoC buffer to store our temporary password
-            if (csm_sys_get_lls_password(state->config->llc.dsap, &state->handshake.stoc.value[0], 8U))
+            csm_hal_get_lls_password(state->config->llc.dsap, &state->handshake.stoc.value[0], 8U);
+            if (memcmp(&state->handshake.stoc.value[0], &state->handshake.ctos.value[0], state->handshake.ctos.size) == 0)
             {
-                if (memcmp(&state->handshake.stoc.value[0], &state->handshake.ctos.value[0], state->handshake.ctos.size) == 0)
-                {
-                    state->state_cf = CF_ASSOCIATED;
-                    state->handshake.result = CSM_ASSO_ERR_NULL;
-                    ret = TRUE;
-                }
+                state->state_cf = CF_ASSOCIATED;
+                state->handshake.result = CSM_ASSO_ERR_NULL;
+                ret = TRUE;
             }
             else
             {
@@ -1014,7 +1040,7 @@ int csm_asso_is_granted(csm_asso_state *state)
         {
             // Failure, other cases are not managed
             CSM_ERR("[ACSE] Access refused, bad authentication level");
-            state->handshake.result = CSM_ASSO_AUTH_UNKNOWN;
+            state->handshake.result = CSM_ASSO_AUTH_NOT_RECOGNIZED;
         }
     }
 

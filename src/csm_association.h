@@ -60,6 +60,7 @@ enum csm_auth_level
 {
     CSM_AUTH_LOWEST_LEVEL       = 0U,
     CSM_AUTH_LOW_LEVEL          = 1U,
+    CSM_AUTH_HIGH_LEVEL         = 2U,
     CSM_AUTH_HIGH_LEVEL_MD5     = 3U,
     CSM_AUTH_HIGH_LEVEL_SHA1    = 4U,
     CSM_AUTH_HIGH_LEVEL_GMAC    = 5U,
@@ -116,7 +117,7 @@ typedef enum
         called-AP-invocation-identifier-not-recognized   (8),
         called-AE-qualifier-not-recognized               (9),
         called-AE-invocation-identifier-not-recognized   (10),
-        authentication-mechanism-name-not-recognised     (11),
+        authentication-mechanism-name-not-recognized     (11),
         authentication-mechanism-name-required           (12),
         authentication-failure                           (13),
         authentication-required                          (14)
@@ -125,11 +126,12 @@ typedef enum
  */
 enum csm_asso_result
 {
-    CSM_ASSO_ERR_NULL           = 0U,   //!< No error
-    CSM_ASSO_NO_REASON_GIVEN    = 1U,
-    CSM_ASSO_AUTH_UNKNOWN       = 11U,
-    CSM_ASSO_ERR_AUTH_FAILURE   = 13U,
-    CSM_ASSO_AUTH_REQUIRED      = 14U,
+    CSM_ASSO_ERR_NULL                           = 0U,   //!< No error
+    CSM_ASSO_NO_REASON_GIVEN                    = 1U,
+    CSM_ASSO_AUTH_NOT_RECOGNIZED                = 11U,
+    CSM_ASSO_AUTH_MECANISM_NAME_REQUIRED        = 12U,
+    CSM_ASSO_ERR_AUTH_FAILURE                   = 13U,
+    CSM_ASSO_AUTH_REQUIRED                      = 14U,
 };
 
 /**
