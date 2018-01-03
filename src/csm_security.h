@@ -54,13 +54,13 @@ typedef enum
 {
     CSM_SEC_OK = 0,
     CSM_SEC_AUTH_FAILURE = 1U,
-    CSM_SEC_CRYPT_FAILURE = 2U, //!< Either encryption or decryption
+    CSM_SEC_CRYPT_FAILURE = 2U, //!< Either ciphering or deciphering
     CSM_SEC_ERROR = 3U,
 } csm_sec_result;
 
 
 /**
- * @brief Authenticate and/or decypher the packet, following the control byte
+ * @brief Authenticate and/or decipher the packet, following the control byte
  * @param array
  * @return
  */
