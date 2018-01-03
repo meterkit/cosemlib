@@ -101,7 +101,9 @@ typedef struct
     uint16_t dsap; //< Server
 } csm_llc;
 
-enum csm_service { SVC_GET, SVC_SET, SVC_ACTION };
+enum csm_service { SVC_UNKOWN, SVC_GET, SVC_SET, SVC_ACTION, SVC_EXCEPTION };
+enum svc_request { SVC_REQUEST_NORMAL, SVC_REQUEST_NEXT };
+
 
 typedef struct
 {
@@ -124,7 +126,7 @@ typedef struct
 {
     csm_db_request db_request;
     uint8_t sender_invoke_id;
-    uint8_t type; // Type of the request (normal, next ...)
+    enum svc_request type; // Type of the request (normal, next ...)
     csm_llc llc;
     uint8_t channel_id; // Channel in use
 
@@ -175,10 +177,12 @@ typedef struct
     uint8_t service_err;
 } csm_exception;
 
+enum svc_response   { SVC_RESPONSE_NORMAL, SVC_RESPONSE_WITH_DATABLOCK };
+
 typedef struct
 {
-    uint8_t service;
-    uint8_t type; // Type of the response (normal, next ...)
+    enum csm_service service;
+    enum svc_response type; // Type of the response (normal, next ...)
     uint8_t invoke_id;
     uint8_t result; // 0 = Data, 1 = Data-Access-Result
     csm_data_access_result access_result;

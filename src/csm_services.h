@@ -40,19 +40,6 @@ typedef enum
 } csm_db_code;
 
 
-enum svc_response
-{
-    SVC_RESPONSE_NORMAL,
-    SVC_RESPONSE_WITH_DATABLOCK
-};
-
-enum svc_request
-{
-    SVC_REQUEST_NORMAL,
-    SVC_REQUEST_NEXT
-};
-
-
 
 typedef csm_db_code (*csm_db_access_handler)(csm_array *in, csm_array *out, csm_request *request);
 
