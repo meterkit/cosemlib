@@ -12,6 +12,10 @@
 #ifndef CSM_DEFINITIONS_H
 #define CSM_DEFINITIONS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include "csm_array.h"
 
@@ -151,6 +155,7 @@ typedef enum
     CSM_ACCESS_RESULT_NO_LONG_SET_IN_PROGRESS = 18,
     CSM_ACCESS_RESULT_DATA_BLOCK_NUMBER_INVALID = 19,
     CSM_ACCESS_RESULT_OTHER_REASON = 250,
+    CSM_ACCESS_RESULT_NOT_SET = 255
 } csm_data_access_result;
 
 typedef enum
@@ -168,6 +173,7 @@ typedef enum
     CSM_ACTION_RESULT_LONG_ACTION_ABORTED = 15,
     CSM_ACTION_RESULT_NO_LONG_ACTION_IN_PROGRESS = 16,
     CSM_ACTION_RESULT_OTHER_REASON = 250,
+    CSM_ACTION_RESULT_NOT_SET = 255
 } csm_action_result;
 
 
@@ -190,6 +196,7 @@ typedef struct
     uint8_t last_block;
     uint32_t block_number;
     csm_exception exception;
+    uint8_t has_data;
 } csm_response;
 
 
@@ -255,6 +262,9 @@ int csm_sys_gcm_init(uint8_t channel, uint8_t sap, csm_sec_key key_id, csm_sec_m
 int csm_sys_gcm_update(uint8_t channel, const uint8_t *plain, uint32_t plain_len, uint8_t *crypt);
 int csm_sys_gcm_finish(uint8_t channel, uint8_t *tag);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // CSM_DEFINITIONS_H
 
