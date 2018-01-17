@@ -44,7 +44,7 @@ int csm_axdr_size(csm_array *array, uint32_t *size)
     return ret;
 }
 
-int csm_axdr_rd_octetstring(csm_array *array)
+int csm_axdr_rd_octetstring(csm_array *array, uint32_t *size)
 {
     int ret = FALSE;
     uint8_t byte = 0xFFU;
@@ -52,8 +52,7 @@ int csm_axdr_rd_octetstring(csm_array *array)
     {
         if (byte == AXDR_TAG_OCTETSTRING)
         {
-            uint32_t size;
-            ret = csm_axdr_size(array, &size);
+            ret = csm_axdr_size(array, size);
         }
     }
     return ret;

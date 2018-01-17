@@ -85,7 +85,7 @@ typedef void (*axdr_data_cb)(uint8_t type, uint32_t size, uint8_t *data);
 
 // Decoders
 int csm_axdr_rd_null(csm_array *array);
-int csm_axdr_rd_octetstring(csm_array *array);
+int csm_axdr_rd_octetstring(csm_array *array, uint32_t *size);
 
 int csm_axdr_decode_tags(csm_array *array, axdr_data_cb callback);
 int csm_axdr_decode_block(csm_array *array, uint32_t *size);
