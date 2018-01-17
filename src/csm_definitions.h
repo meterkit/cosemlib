@@ -254,6 +254,11 @@ uint8_t *csm_sys_get_key(uint8_t sap, csm_sec_key key_id);
 void csm_hal_md5(const uint8_t *input, uint32_t size, uint8_t *output);
 
 /**
+ * output: 20 bytes array
+ */
+void csm_hal_sha1(const uint8_t *input, uint32_t size, uint8_t *output);
+
+/**
  * output: 32 bytes array
  */
 void csm_hal_sha256(const uint8_t *input, uint32_t size, uint8_t *output);
