@@ -557,7 +557,31 @@ int svc_result_decoder(csm_response *response, csm_array *array)
         // 01 Data-Access-Result (0 == Data)
         // 0B  OBJECT_UNAVAILABLE
 
-        valid = valid && svc_is_valid_action_result(response->action_result);
+/*
+        // FIXME: support this?
+
+        ACTION test:
+
+        C701C1FA00
+        <ActionResponse>
+          <ActionResponseNormal>
+            <InvokeIdAndPriority Value="C1" />
+            <Result Value="OtherReason" />
+          </ActionResponseNormal>
+        </ActionResponse>
+
+        // In case of data:
+         C7 01 C1
+
+           00 Action result Success
+           01 Access-Data result
+           00 It is Data
+               09 20 619446AE4664788D7C2FF7517C53C0CD44F7B4A5EF3BE9CA08B8A262FE985924
+
+*/
+
+
+        valid = valid && svc_is_valid_action_result(result);
         if (valid)
         {
             response->action_result = (csm_action_result)result;
