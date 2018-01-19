@@ -837,7 +837,7 @@ void csm_client_init(csm_request *request, csm_response *response)
 int csm_client_has_more_data(csm_response *response)
 {
     int more_data = 0;
-    if ((response->type == 2) &&
+    if ((response->type == SVC_RESPONSE_WITH_DATABLOCK) &&
         (!response->last_block))
     {
         more_data = 1;
