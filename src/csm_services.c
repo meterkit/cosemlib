@@ -578,6 +578,20 @@ int svc_result_decoder(csm_response *response, csm_array *array)
            00 It is Data
                09 20 619446AE4664788D7C2FF7517C53C0CD44F7B4A5EF3BE9CA08B8A262FE985924
 
+    // OTHER :
+      C701C1FA00
+
+<ActionResponse>
+  <ActionResponseNormal>
+    <InvokeIdAndPriority Value="C1" />
+    <Result Value="OtherReason" />
+    <ReturnParameters>
+      <Result Value="OtherReason" />
+    </ReturnParameters>
+  </ActionResponseNormal>
+</ActionResponse>
+
+
 */
 
 
